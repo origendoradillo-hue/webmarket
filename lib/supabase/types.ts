@@ -6,6 +6,7 @@ export interface Database {
           id: string;
           full_name: string | null;
           whatsapp_number: string | null;
+          email: string | null;
           role: "publicador" | "moderador" | "administrador" | "superadmin";
           created_at: string;
         };
@@ -13,6 +14,7 @@ export interface Database {
           id: string;
           full_name?: string | null;
           whatsapp_number?: string | null;
+          email?: string | null;
         };
         Update: {
           full_name?: string | null;
@@ -93,6 +95,14 @@ export interface Database {
       contactar_publicacion: {
         Args: { p_listing_id: string };
         Returns: string;
+      };
+      admin_update_listing_status: {
+        Args: { p_listing_id: string; p_status: string };
+        Returns: undefined;
+      };
+      admin_set_role: {
+        Args: { p_user_id: string; p_role: string };
+        Returns: undefined;
       };
     };
   };
