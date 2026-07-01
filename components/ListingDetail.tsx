@@ -13,6 +13,7 @@ interface ListingDetailProps {
 
 export default function ListingDetail({ listing: l, onClose }: ListingDetailProps) {
   if (!l) return null;
+  const listing = l;
 
   const fallbackColor = FALLBACK_COLORS[l.id % FALLBACK_COLORS.length];
   const isVecino = l.tipoPublicador === "vecino";
@@ -24,7 +25,7 @@ export default function ListingDetail({ listing: l, onClose }: ListingDetailProp
   function handleContact() {
     // En producción esto registra un `whatsapp_click` server-side antes de redirigir
     // (ver ARQUITECTURA.md, sección 8). Acá es solo el link directo de demo.
-    window.open(buildWhatsappLink(l), "_blank");
+     window.open(buildWhatsappLink(listing), "_blank");
   }
 
   return (
