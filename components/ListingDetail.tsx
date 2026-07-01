@@ -1,31 +1,59 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
-import { FALLBACK_COLORS } from "@/lib/data";
+import { fallbackColorFor } from "@/lib/data";
 import { CATEGORIES } from "@/lib/data";
 import { Listing } from "@/lib/types";
 import { buildWhatsappLink } from "@/lib/whatsapp";
+import { createClient } from "@/lib/supabase/client";
 
 interface ListingDetailProps {
   listing: Listing | null;
   onClose: () => void;
+  isLoggedIn: boolean;
+  onRequireAuth: () => void;
 }
 
-export default function ListingDetail({ listing: l, onClose }: ListingDetailProps) {
+export default function ListingDetail({ listing: l, onClose, isLoggedIn, onRequireAuth }: ListingDetailProps) {
+  const [contacting, setContacting] = useState(false);
   if (!l) return null;
   const listing = l;
 
-  const fallbackColor = FALLBACK_COLORS[l.id % FALLBACK_COLORS.length];
+  const fallbackColor = fallbackColorFor(l.id);
   const isVecino = l.tipoPublicador === "vecino";
   const isNegocio = l.tipoPublicador === "negocio";
+  const isDemanda = l.tipoAviso === "demanda";
   const mapsUrl = l.direccion
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(l.direccion + " Puerto Madryn")}`
     : null;
 
-  function handleContact() {
-    // En producción esto registra un `whatsapp_click` server-side antes de redirigir
-    // (ver ARQUITECTURA.md, sección 8). Acá es solo el link directo de demo.
-    window.open(buildWhatsappLink(listing), "_blank");
+  async function handleContact() {
+    if (!isLoggedIn) {
+      onRequireAuth();
+      return;
+    }
+
+    if (!listing.isReal) {
+      // Publicación de ejemplo (no vive en la base de datos real).
+      window.open(buildWhatsappLink(listing), "_blank");
+      return;
+    }
+
+    setContacting(true);
+    const supabase = createClient();
+    const { data: numero, error } = await supabase.rpc("contactar_publicacion", {
+      p_listing_id: String(listing.id),
+    });
+    setContacting(false);
+
+    if (error || !numero) {
+      alert("No pudimos obtener el contacto. Probá de nuevo en un momento.");
+      return;
+    }
+
+    const mensaje = `Hola, vi tu publicación de ${listing.nombre} en Origen El Doradillo`;
+    window.open(`https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}`, "_blank");
   }
 
   return (
@@ -44,10 +72,12 @@ export default function ListingDetail({ listing: l, onClose }: ListingDetailProp
         <div
           className="relative h-60"
           style={{
-            backgroundColor: l.foto ? undefined : isVecino ? "#DCD7C9" : fallbackColor,
+            backgroundColor: isDemanda ? "#E4EDEE" : l.foto ? undefined : isVecino ? "#DCD7C9" : fallbackColor,
           }}
         >
-          {l.foto ? (
+          {isDemanda ? (
+            <i className="ti ti-search absolute inset-0 m-auto flex h-14 w-14 items-center justify-center text-6xl text-golfo/70" aria-hidden />
+          ) : l.foto ? (
             <Image src={l.foto} alt={l.nombre} fill className="object-cover" sizes="480px" />
           ) : (
             <i
@@ -60,6 +90,11 @@ export default function ListingDetail({ listing: l, onClose }: ListingDetailProp
         </div>
 
         <div className="px-5 pb-6 pt-4">
+          {isDemanda && (
+            <div className="mb-3.5 inline-flex items-center gap-1.5 rounded-full bg-golfo px-3 py-1 text-xs font-medium text-hueso">
+              <i className="ti ti-search text-sm" aria-hidden /> Busca esto (no es una oferta)
+            </div>
+          )}
           {l.sello && (
             <Image src="/brand/sello-claro.png" alt="Selección Origen El Doradillo" width={160} height={44} className="mb-3.5 h-9 w-auto" />
           )}
@@ -112,6 +147,16 @@ export default function ListingDetail({ listing: l, onClose }: ListingDetailProp
 
           <p className="mb-4 text-[15px] leading-relaxed text-tinta">{l.descripcion}</p>
 
+          {l.tags && l.tags.length > 0 && (
+            <div className="mb-4 flex flex-wrap gap-1.5">
+              {l.tags.map((t) => (
+                <span key={t} className="rounded-full bg-hueso-2 px-2.5 py-1 text-[11.5px] text-golfo">
+                  #{t.replace(/\s+/g, "")}
+                </span>
+              ))}
+            </div>
+          )}
+
           {isNegocio && l.colorMarca && (
             <div className="h-[38px] rounded-t-lg" style={{ backgroundColor: l.colorMarca }} />
           )}
@@ -136,9 +181,11 @@ export default function ListingDetail({ listing: l, onClose }: ListingDetailProp
 
           <button
             onClick={handleContact}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-oliva py-3.5 text-[14.5px] font-semibold text-hueso"
+            disabled={contacting}
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-oliva py-3.5 text-[14.5px] font-semibold text-hueso disabled:opacity-60"
           >
-            <i className="ti ti-brand-whatsapp text-lg" aria-hidden /> Contactar por WhatsApp
+            <i className="ti ti-brand-whatsapp text-lg" aria-hidden />
+            {contacting ? "Un momento..." : isLoggedIn ? "Contactar por WhatsApp" : "Ingresá para contactar"}
           </button>
         </div>
       </div>

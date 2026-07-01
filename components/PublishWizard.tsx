@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { User } from "@supabase/supabase-js";
 import { CATEGORIES } from "@/lib/data";
 import { CategoryKey } from "@/lib/types";
+import { createClient } from "@/lib/supabase/client";
 
 type Tipo = "oferta" | "demanda" | "evento";
 type Rol = "negocio" | "vecino";
@@ -15,6 +17,7 @@ interface PublishData {
   nombre: string;
   desc: string;
   fotoData: string | null;
+  tags: string;
   modalidad: string[];
   disponibilidad: "recurrente" | "limitada";
   qty: string;
@@ -36,6 +39,7 @@ const DEFAULTS: PublishData = {
   nombre: "",
   desc: "",
   fotoData: null,
+  tags: "",
   modalidad: [],
   disponibilidad: "recurrente",
   qty: "",
@@ -65,7 +69,7 @@ function isValid(step: string, d: PublishData): boolean {
     case "categoria":
       return !!d.cat && !!d.sub;
     case "datos":
-      return d.nombre.trim() !== "" && d.desc.trim() !== "" && !!d.fotoData;
+      return d.nombre.trim() !== "" && d.desc.trim() !== "" && (d.tipo === "demanda" || !!d.fotoData);
     case "detalles":
       return d.modalidad.length > 0;
     case "evento":
@@ -82,16 +86,21 @@ function isValid(step: string, d: PublishData): boolean {
 interface PublishWizardProps {
   open: boolean;
   onClose: () => void;
+  user: User;
+  onPublished: () => void;
 }
 
-export default function PublishWizard({ open, onClose }: PublishWizardProps) {
+export default function PublishWizard({ open, onClose, user, onPublished }: PublishWizardProps) {
   const [stepIndex, setStepIndex] = useState(0);
   const [data, setData] = useState<PublishData>(DEFAULTS);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
       setStepIndex(0);
       setData(DEFAULTS);
+      setSubmitError(null);
     }
   }, [open]);
 
@@ -120,10 +129,69 @@ export default function PublishWizard({ open, onClose }: PublishWizardProps) {
     reader.readAsDataURL(file);
   }
 
-  function goNext() {
+  async function goNext() {
     if (!step || !isValid(step, data)) return;
-    if (stepIndex < steps.length - 1) setStepIndex(stepIndex + 1);
-    else setStepIndex(-1);
+    if (stepIndex < steps.length - 1) {
+      setStepIndex(stepIndex + 1);
+      return;
+    }
+    await handleSubmit();
+  }
+
+  async function handleSubmit() {
+    setSubmitting(true);
+    setSubmitError(null);
+    const supabase = createClient();
+
+    try {
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({ full_name: data.nombreVecino, whatsapp_number: data.whatsapp })
+        .eq("id", user.id);
+      if (profileError) throw profileError;
+
+      let fotoUrl: string | null = null;
+      if (data.fotoData) {
+        const blob = await (await fetch(data.fotoData)).blob();
+        const path = `${user.id}/${Date.now()}.jpg`;
+        const { error: uploadError } = await supabase.storage.from("listing-photos").upload(path, blob, {
+          contentType: blob.type || "image/jpeg",
+        });
+        if (uploadError) throw uploadError;
+        fotoUrl = supabase.storage.from("listing-photos").getPublicUrl(path).data.publicUrl;
+      }
+
+      const isEvento = data.tipo === "evento";
+      const { error: insertError } = await supabase.from("listings").insert({
+        publisher_id: user.id,
+        tipo_aviso: data.tipo!,
+        rol: data.tipo === "oferta" ? data.rol : null,
+        categoria: isEvento ? "turismo" : data.cat!,
+        subcategoria: isEvento ? "Eventos y celebraciones" : data.sub!,
+        zona: data.zona,
+        cuadrante: data.cuadrante,
+        direccion: data.direccion || null,
+        nombre: isEvento ? data.evNombre : data.nombre,
+        descripcion: isEvento
+          ? `Evento el ${data.evFecha} en ${data.evLugar}.${data.desc ? " " + data.desc : ""}`
+          : data.desc,
+        foto_url: fotoUrl,
+        modalidad: data.modalidad,
+        tags: data.tags
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean),
+        cantidad: data.disponibilidad === "limitada" && data.qty ? Number(data.qty) : null,
+      });
+      if (insertError) throw insertError;
+
+      onPublished();
+      setStepIndex(-1);
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "Algo salió mal, probá de nuevo.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   function goBack() {
@@ -143,11 +211,10 @@ export default function PublishWizard({ open, onClose }: PublishWizardProps) {
         {stepIndex === -1 ? (
           <div className="flex flex-1 flex-col justify-center px-6 py-10 text-center">
             <i className="ti ti-circle-check mx-auto text-5xl text-oliva" aria-hidden />
-            <h3 className="mt-4 font-slab text-lg font-semibold text-tinta">Publicación cargada</h3>
+            <h3 className="mt-4 font-slab text-lg font-semibold text-tinta">Publicación enviada</h3>
             <p className="mt-1.5 text-[13px] leading-relaxed text-tinta-suave">
-              Esto es una demo — todavía no queda guardada de verdad.
-              <br />
-              En la versión final, te llega un código por WhatsApp para confirmarla y ahí sí queda publicada.
+              Ya quedó guardada. Antes de aparecer en el sitio, alguien del equipo la revisa rápido —
+              normalmente en menos de 48h.
             </p>
             <button onClick={onClose} className="mx-auto mt-6 rounded-lg bg-oliva px-6 py-2.5 text-[13.5px] font-semibold text-hueso">
               Listo
@@ -279,20 +346,32 @@ export default function PublishWizard({ open, onClose }: PublishWizardProps) {
                       className="w-full rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta"
                     />
                   </Field>
-                  <Field label="Foto">
-                    <PhotoDropzone
-                      label={data.rol === "negocio" ? "Subí el logo, un flyer o una foto de tu emprendimiento" : "Subí una foto real del producto, como en Mercado Libre"}
-                      value={data.fotoData}
-                      onChange={handleFoto}
-                    />
-                  </Field>
+                  {data.tipo !== "demanda" && (
+                    <Field label="Foto">
+                      <PhotoDropzone
+                        label={data.rol === "negocio" ? "Subí el logo, un flyer o una foto de tu emprendimiento" : "Subí una foto real del producto, como en Mercado Libre"}
+                        value={data.fotoData}
+                        onChange={handleFoto}
+                      />
+                    </Field>
+                  )}
                   <Field label="Descripción">
                     <textarea
-                      placeholder="Contá brevemente de qué se trata"
+                      placeholder={data.tipo === "demanda" ? "Contá qué estás buscando" : "Contá brevemente de qué se trata"}
                       value={data.desc}
                       onChange={(e) => update("desc", e.target.value)}
                       className="min-h-[64px] w-full resize-y rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta"
                     />
+                  </Field>
+                  <Field label="Palabras clave (opcional)">
+                    <input
+                      type="text"
+                      placeholder="Separadas por coma. Ej: miel, estepa, artesanal"
+                      value={data.tags}
+                      onChange={(e) => update("tags", e.target.value)}
+                      className="w-full rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta"
+                    />
+                    <p className="mt-1 text-[11px] text-tinta-suave">Ayudan a que te encuentren en el buscador.</p>
                   </Field>
                 </>
               )}
@@ -436,7 +515,7 @@ export default function PublishWizard({ open, onClose }: PublishWizardProps) {
                   <p className="mb-4 font-slab text-lg font-semibold text-tinta">Tus datos de contacto</p>
                   <div className="mb-3.5 flex gap-2 rounded-lg bg-[#F7F3EC] p-2.5 text-xs text-tinta-suave">
                     <i className="ti ti-brand-whatsapp mt-0.5 flex-shrink-0 text-dorado" aria-hidden />
-                    Te vamos a mandar un código por WhatsApp para confirmar que sos vos. Recién ahí queda publicado.
+                    Este es el WhatsApp que va a ver quien te contacte por esta publicación.
                   </div>
                   <Field label="Tu nombre">
                     <input
@@ -460,16 +539,19 @@ export default function PublishWizard({ open, onClose }: PublishWizardProps) {
               )}
             </div>
 
+            {submitError && (
+              <p className="bg-white px-5 pt-3 text-[12px] text-red-700 sm:px-6">{submitError}</p>
+            )}
             <div className="flex justify-between gap-2.5 border-t border-piedra/40 bg-white px-5 py-3.5 sm:px-6">
-              <button onClick={goBack} className="rounded-lg border border-piedra/70 px-4 py-2.5 text-[13.5px] text-tinta">
+              <button onClick={goBack} disabled={submitting} className="rounded-lg border border-piedra/70 px-4 py-2.5 text-[13.5px] text-tinta">
                 {isFirst ? "Cancelar" : "Atrás"}
               </button>
               <button
                 onClick={goNext}
-                disabled={!step || !isValid(step, data)}
+                disabled={!step || !isValid(step, data) || submitting}
                 className="rounded-lg bg-oliva px-5 py-2.5 text-[13.5px] font-semibold text-white disabled:bg-piedra"
               >
-                {isLast ? "Publicar" : "Siguiente"}
+                {submitting ? "Publicando..." : isLast ? "Publicar" : "Siguiente"}
               </button>
             </div>
           </>

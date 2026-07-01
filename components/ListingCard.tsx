@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { FALLBACK_COLORS } from "@/lib/data";
+import { fallbackColorFor } from "@/lib/data";
 import { Listing } from "@/lib/types";
 
 interface ListingCardProps {
@@ -10,22 +10,35 @@ interface ListingCardProps {
 }
 
 export default function ListingCard({ listing: l, onOpen }: ListingCardProps) {
-  const fallbackColor = FALLBACK_COLORS[l.id % FALLBACK_COLORS.length];
+  const fallbackColor = fallbackColorFor(l.id);
   const isVecino = l.tipoPublicador === "vecino";
   const isNegocio = l.tipoPublicador === "negocio";
+  const isDemanda = l.tipoAviso === "demanda";
 
   return (
     <div
       onClick={onOpen}
-      className="cursor-pointer overflow-hidden rounded-xl border border-piedra/60 bg-white transition-colors hover:border-oliva"
+      className={`cursor-pointer overflow-hidden rounded-xl border bg-white transition-colors hover:border-oliva ${
+        isDemanda ? "border-golfo/50" : "border-piedra/60"
+      }`}
     >
       <div
         className="relative aspect-[4/3]"
         style={{
-          backgroundColor: l.foto ? undefined : isNegocio && l.colorMarca ? l.colorMarca : isVecino ? "#DCD7C9" : fallbackColor,
+          backgroundColor: isDemanda
+            ? "#E4EDEE"
+            : l.foto
+              ? undefined
+              : isNegocio && l.colorMarca
+                ? l.colorMarca
+                : isVecino
+                  ? "#DCD7C9"
+                  : fallbackColor,
         }}
       >
-        {l.foto ? (
+        {isDemanda ? (
+          <i className="ti ti-search absolute inset-0 m-auto flex h-9 w-9 items-center justify-center text-4xl text-golfo/70" aria-hidden />
+        ) : l.foto ? (
           <Image src={l.foto} alt={l.nombre} fill className="object-cover" sizes="(max-width: 640px) 100vw, 25vw" />
         ) : (
           <i
@@ -41,7 +54,9 @@ export default function ListingCard({ listing: l, onOpen }: ListingCardProps) {
           aria-hidden
         />
 
-        {l.sello ? (
+        {isDemanda ? (
+          <div className="absolute left-2 top-2 rounded-full bg-golfo px-2 py-1 text-[9px] font-medium text-hueso">Busco</div>
+        ) : l.sello ? (
           <Image src="/brand/sello-claro.png" alt="Selección Origen El Doradillo" width={80} height={22} className="absolute left-2 top-2 h-5 w-auto" />
         ) : isVecino ? (
           <div className="absolute left-2 top-2 rounded-full bg-nogal/85 px-2 py-1 text-[9px] font-medium text-hueso">Particular</div>
@@ -62,6 +77,9 @@ export default function ListingCard({ listing: l, onOpen }: ListingCardProps) {
           {l.barrio || "El Doradillo"} · {l.zona}
           {l.cuadrante ? ` ${l.cuadrante}` : ""}
         </p>
+        {l.tags && l.tags.length > 0 && (
+          <p className="mb-2 truncate text-[10.5px] text-golfo">{l.tags.slice(0, 3).map((t) => `#${t.replace(/\s+/g, "")}`).join(" ")}</p>
+        )}
         <span className="text-[11.5px] font-semibold text-dorado">
           {l.rating > 0 ? (
             <>

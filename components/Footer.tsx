@@ -30,11 +30,11 @@ export default function Footer() {
 
           <div>
             <p className="mb-3 font-slab text-[13px] font-semibold text-dorado">Contacto</p>
-            <a className="mb-2.5 flex items-center gap-2 text-[13px] text-hueso/85" href="https://wa.me/5492804000000" target="_blank" rel="noreferrer">
+            <a className="mb-2.5 flex items-center gap-2 text-[13px] text-hueso/85" href="https://wa.me/5491136450498" target="_blank" rel="noreferrer">
               <i className="ti ti-brand-whatsapp text-arena" aria-hidden /> WhatsApp
             </a>
-            <a className="mb-2.5 flex items-center gap-2 text-[13px] text-hueso/85" href="mailto:hola@origeneldoradillo.com.ar">
-              <i className="ti ti-mail text-arena" aria-hidden /> hola@origeneldoradillo.com.ar
+            <a className="mb-2.5 flex items-center gap-2 text-[13px] text-hueso/85" href="mailto:origendoradillo@gmail.com">
+              <i className="ti ti-mail text-arena" aria-hidden /> origendoradillo@gmail.com
             </a>
             <a className="mb-2.5 flex items-center gap-2 text-[13px] text-hueso/85" href="https://instagram.com/origen.eldoradillo" target="_blank" rel="noreferrer">
               <i className="ti ti-brand-instagram text-arena" aria-hidden /> @origen.eldoradillo

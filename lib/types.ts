@@ -5,7 +5,8 @@ export type CategoryKey =
   | "construccion"
   | "turismo"
   | "hospedaje"
-  | "inmuebles";
+  | "inmuebles"
+  | "otro";
 
 export interface Category {
   label: string;
@@ -17,9 +18,13 @@ export type Cuadrante = "Norte" | "Sur" | "Este" | "Oeste";
 
 export type PublisherType = "negocio" | "vecino" | "productor";
 
+export type TipoAviso = "oferta" | "demanda" | "evento";
+
 export interface Listing {
-  id: number;
+  id: number | string;
+  isReal?: boolean;
   nombre: string;
+  tipoAviso: TipoAviso;
   categoria: CategoryKey;
   subcategoria: string;
   zona: string;
@@ -37,4 +42,5 @@ export interface Listing {
   tipoPublicador: PublisherType;
   cantidad?: number;
   colorMarca?: string;
+  tags?: string[];
 }
