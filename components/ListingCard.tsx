@@ -18,7 +18,7 @@ export default function ListingCard({ listing: l, onOpen }: ListingCardProps) {
   return (
     <div
       onClick={onOpen}
-      className={`cursor-pointer overflow-hidden rounded-xl border bg-white transition-colors hover:border-oliva ${
+      className={`flex h-full cursor-pointer flex-col overflow-hidden rounded-xl border bg-white transition-colors hover:border-oliva ${
         isDemanda ? "border-golfo/50" : "border-piedra/60"
       }`}
     >
@@ -70,22 +70,20 @@ export default function ListingCard({ listing: l, onOpen }: ListingCardProps) {
         </div>
       </div>
 
-      <div className="px-3 pb-3 pt-[18px]">
-        <p className="mb-1 text-[10px] uppercase tracking-wide text-piedra">{l.subcategoria || "Otro"}</p>
-        <h3 className="mb-0.5 font-slab text-sm font-semibold leading-tight text-tinta">{l.nombre}</h3>
-        <p className="mb-2 text-[11.5px] text-piedra">
+      <div className="flex flex-col px-3 pb-3 pt-[18px]">
+        <p className="mb-1 truncate text-[10px] uppercase tracking-wide text-piedra">{l.subcategoria || "Otro"}</p>
+        <h3 className="mb-0.5 line-clamp-2 min-h-[2.4em] font-slab text-sm font-semibold leading-tight text-tinta">{l.nombre}</h3>
+        <p className="mb-2 truncate text-[11.5px] text-piedra">
           {l.barrio || "El Doradillo"} · {l.zona}
           {l.cuadrante ? ` ${l.cuadrante}` : ""}
         </p>
-        {(l.precio || l.precioConsultar) && (
-          <p className="mb-1.5 font-slab text-[13px] font-semibold text-tinta">
-            {l.precioConsultar ? "A consultar" : `$${l.precio!.toLocaleString("es-AR")}`}
-          </p>
-        )}
-        {l.tags && l.tags.length > 0 && (
-          <p className="mb-2 truncate text-[10.5px] text-golfo">{l.tags.slice(0, 3).map((t) => `#${t.replace(/\s+/g, "")}`).join(" ")}</p>
-        )}
-        <span className="text-[11.5px] font-semibold text-dorado">
+        <p className="mb-1.5 min-h-[17px] font-slab text-[13px] font-semibold text-tinta">
+          {l.precioConsultar ? "A consultar" : l.precio ? `$${l.precio.toLocaleString("es-AR")}` : " "}
+        </p>
+        <p className="mb-2 min-h-[15px] truncate text-[10.5px] text-golfo">
+          {l.tags && l.tags.length > 0 ? l.tags.slice(0, 3).map((t) => `#${t.replace(/\s+/g, "")}`).join(" ") : " "}
+        </p>
+        <span className="mt-auto text-[11.5px] font-semibold text-dorado">
           {l.rating > 0 ? (
             <>
               <i className="ti ti-star" aria-hidden /> {l.rating.toFixed(1)}

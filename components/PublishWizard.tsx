@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { CATEGORIES } from "@/lib/data";
-import { CategoryKey, TipoPublicacion } from "@/lib/types";
+import { CategoryKey, Etiqueta, TipoPublicacion } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 
 type Intencion = "ofrezco" | "busco";
@@ -20,6 +20,7 @@ interface PublishData {
   precio: string;
   precioConsultar: boolean;
   modalidad: string[];
+  etiquetas: Etiqueta[];
   // Producto
   disponibilidad: "recurrente" | "limitada";
   qty: string;
@@ -33,7 +34,7 @@ interface PublishData {
   // Inmueble
   superficie: string;
   mejoras: string;
-  // Usado o herramienta
+  // Usado / herramienta
   estadoArticulo: string;
   // Busco
   urgencia: boolean;
@@ -57,6 +58,7 @@ const DEFAULTS: PublishData = {
   precio: "",
   precioConsultar: false,
   modalidad: [],
+  etiquetas: [],
   disponibilidad: "recurrente",
   qty: "",
   zonaCobertura: "",
@@ -79,24 +81,24 @@ const TIPO_OPTIONS: { value: TipoPublicacion; icon: string; label: string }[] = 
   { value: "producto", icon: "ti-box", label: "Producto" },
   { value: "servicio", icon: "ti-tools", label: "Servicio" },
   { value: "experiencia", icon: "ti-compass", label: "Experiencia" },
-  { value: "inmueble", icon: "ti-home", label: "Inmueble / lote / chacra" },
-  { value: "usado_herramienta", icon: "ti-recycle", label: "Usado o herramienta" },
+  { value: "inmueble", icon: "ti-home", label: "Inmuebles" },
+  { value: "usado", icon: "ti-recycle", label: "Usados" },
+  { value: "herramienta", icon: "ti-hammer", label: "Herramientas" },
   { value: "otro", icon: "ti-dots", label: "Otro" },
 ];
 
 function fotoRequerida(d: PublishData): boolean {
   if (d.intencion !== "ofrezco" || !d.tipo) return false;
-  return ["producto", "experiencia", "inmueble", "usado_herramienta"].includes(d.tipo);
+  return ["producto", "experiencia", "inmueble", "usado", "herramienta"].includes(d.tipo);
 }
 
 function stepsFor(d: PublishData): string[] {
   if (!d.intencion) return ["intencion"];
-  if (d.intencion === "busco") return ["intencion", "categoria", "datos", "ubicacion", "contacto"];
-  // ofrezco
   if (!d.tipo) return ["intencion", "tipo"];
   const steps = ["intencion", "tipo"];
-  if (d.tipo !== "otro") steps.push("categoria");
-  steps.push("datos", "detalles", "ubicacion", "contacto");
+  if (d.tipo !== "otro" && d.tipo !== "herramienta") steps.push("categoria");
+  if (d.intencion === "ofrezco") steps.push("datos", "detalles", "ubicacion", "contacto");
+  else steps.push("datos", "ubicacion", "contacto");
   return steps;
 }
 
@@ -107,7 +109,7 @@ function isValid(step: string, d: PublishData): boolean {
     case "tipo":
       return !!d.tipo;
     case "categoria":
-      if (d.tipo === "usado_herramienta") return !!d.sub;
+      if (d.tipo === "usado") return !!d.sub;
       return !!d.cat && !!d.sub;
     case "datos":
       return d.nombre.trim() !== "" && d.desc.trim() !== "" && (!fotoRequerida(d) || !!d.fotoData);
@@ -158,6 +160,13 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
     setData((prev) => ({
       ...prev,
       modalidad: prev.modalidad.includes(m) ? prev.modalidad.filter((x) => x !== m) : [...prev.modalidad, m],
+    }));
+  }
+
+  function toggleEtiqueta(e: Etiqueta) {
+    setData((prev) => ({
+      ...prev,
+      etiquetas: prev.etiquetas.includes(e) ? prev.etiquetas.filter((x) => x !== e) : [...prev.etiquetas, e],
     }));
   }
 
@@ -217,7 +226,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
         } else if (data.tipo === "inmueble") {
           if (data.superficie) detalles.superficie = data.superficie;
           if (data.mejoras) detalles.mejoras = data.mejoras;
-        } else if (data.tipo === "usado_herramienta") {
+        } else if (data.tipo === "usado" || data.tipo === "herramienta") {
           if (data.estadoArticulo) detalles.estado = data.estadoArticulo;
           if (data.qty) cantidad = Number(data.qty);
         }
@@ -230,7 +239,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
       const { error: insertError } = await supabase.from("listings").insert({
         publisher_id: user.id,
         intencion: data.intencion!,
-        tipo: data.intencion === "ofrezco" ? data.tipo : null,
+        tipo: data.tipo!,
         categoria: data.cat,
         subcategoria: data.sub,
         zona: data.zona,
@@ -244,6 +253,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
           .split(",")
           .map((t) => t.trim())
           .filter(Boolean),
+        etiquetas: data.etiquetas,
         cantidad,
         precio: precioNum,
         precio_a_consultar: data.intencion === "busco" ? false : data.precioConsultar,
@@ -267,7 +277,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
 
   const isFirst = stepIndex === 0;
   const isLast = stepIndex === steps.length - 1;
-  const direccionRequiereRetiro = data.tipo === "producto" || data.tipo === "usado_herramienta";
+  const direccionRequiereRetiro = data.tipo === "producto" || data.tipo === "usado" || data.tipo === "herramienta";
   const direccionAplica = !direccionRequiereRetiro || data.modalidad.includes("Retiro");
 
   return (
@@ -344,7 +354,13 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
                         selected={data.tipo === t.value}
                         onClick={() => {
                           update("tipo", t.value);
-                          if (t.value === "usado_herramienta") update("cat", "usados");
+                          if (t.value === "herramienta") {
+                            update("cat", "usados");
+                            update("sub", "Herramientas");
+                          } else if (t.value === "usado") {
+                            update("cat", "usados");
+                            update("sub", null);
+                          }
                           setStepIndex((i) => i + 1);
                         }}
                       />
@@ -355,12 +371,12 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
 
               {step === "categoria" && (
                 <>
-                  {data.tipo === "usado_herramienta" ? (
+                  {data.tipo === "usado" ? (
                     <>
-                      <p className="mb-1 font-slab text-lg font-semibold text-tinta">Usados y herramientas</p>
+                      <p className="mb-1 font-slab text-lg font-semibold text-tinta">Usados</p>
                       <p className="mb-4 text-[13px] text-tinta-suave">Elegí qué tipo de artículo es</p>
                       <div className="flex flex-wrap gap-1.5">
-                        {CATEGORIES.usados.subs.map((s) => (
+                        {CATEGORIES.usados.subs.filter((s) => s !== "Herramientas").map((s) => (
                           <button
                             key={s}
                             onClick={() => update("sub", s)}
@@ -491,7 +507,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
                   <p className="mb-4 font-slab text-lg font-semibold text-tinta">Detalles</p>
                   <Field label="¿Cómo se entrega? (elegí una o más)">
                     <div className="flex flex-wrap gap-2">
-                      {["A domicilio", "Retiro", "Envío"].map((m) => (
+                      {["A domicilio", "Retiro", "Envío", "Alquiler"].map((m) => (
                         <button
                           key={m}
                           onClick={() => toggleModalidad(m)}
@@ -500,6 +516,25 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
                           }`}
                         >
                           {m}
+                        </button>
+                      ))}
+                    </div>
+                  </Field>
+
+                  <Field label="Etiquetas (opcional)">
+                    <div className="flex flex-wrap gap-2">
+                      {([
+                        { value: "turismo", label: "Turismo" },
+                        { value: "alquileres_temporarios", label: "Alquileres temporarios" },
+                      ] as { value: Etiqueta; label: string }[]).map((e) => (
+                        <button
+                          key={e.value}
+                          onClick={() => toggleEtiqueta(e.value)}
+                          className={`rounded-full border px-3 py-1.5 text-xs ${
+                            data.etiquetas.includes(e.value) ? "border-dorado bg-dorado text-white" : "border-arena bg-hueso-2 text-tinta"
+                          }`}
+                        >
+                          {e.label}
                         </button>
                       ))}
                     </div>
@@ -619,7 +654,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
                     </>
                   )}
 
-                  {data.tipo === "usado_herramienta" && (
+                  {(data.tipo === "usado" || data.tipo === "herramienta") && (
                     <>
                       <Field label="Estado del artículo">
                         <select

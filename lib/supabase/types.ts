@@ -27,7 +27,7 @@ export interface Database {
           id: string;
           publisher_id: string;
           intencion: "ofrezco" | "busco";
-          tipo: "producto" | "servicio" | "experiencia" | "inmueble" | "usado_herramienta" | "otro" | null;
+          tipo: "producto" | "servicio" | "experiencia" | "inmueble" | "usado" | "herramienta" | "otro" | null;
           rol: "negocio" | "vecino" | null;
           categoria: string | null;
           subcategoria: string | null;
@@ -39,6 +39,7 @@ export interface Database {
           foto_url: string | null;
           modalidad: string[];
           tags: string[];
+          etiquetas: string[];
           cantidad: number | null;
           precio: number | null;
           precio_a_consultar: boolean;
@@ -53,7 +54,7 @@ export interface Database {
         Insert: {
           publisher_id: string;
           intencion: "ofrezco" | "busco";
-          tipo?: "producto" | "servicio" | "experiencia" | "inmueble" | "usado_herramienta" | "otro" | null;
+          tipo?: "producto" | "servicio" | "experiencia" | "inmueble" | "usado" | "herramienta" | "otro" | null;
           categoria?: string | null;
           subcategoria?: string | null;
           zona: string;
@@ -64,6 +65,7 @@ export interface Database {
           foto_url?: string | null;
           modalidad?: string[];
           tags?: string[];
+          etiquetas?: string[];
           cantidad?: number | null;
           precio?: number | null;
           precio_a_consultar?: boolean;

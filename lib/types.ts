@@ -22,9 +22,12 @@ export type PublisherType = "negocio" | "vecino" | "productor";
 // ahora son Anuncios, ver tipo Anuncio más abajo).
 export type Intencion = "ofrezco" | "busco";
 
-// Gobierna foto/precio/dirección/campos extra del formulario. Solo aplica
-// cuando intencion === "ofrezco" — "busco" tiene sus propias reglas fijas.
-export type TipoPublicacion = "producto" | "servicio" | "experiencia" | "inmueble" | "usado_herramienta" | "otro";
+// Gobierna foto/precio/dirección/campos extra del formulario. Ahora aplica a
+// "ofrezco" y "busco" por igual (ambos se navegan por esta categoría).
+export type TipoPublicacion = "producto" | "servicio" | "experiencia" | "inmueble" | "usado" | "herramienta" | "otro";
+
+// Etiquetas transversales, combinables con cualquier tipo/rubro.
+export type Etiqueta = "turismo" | "alquileres_temporarios";
 
 export interface Listing {
   id: number | string;
@@ -34,6 +37,7 @@ export interface Listing {
   tipo?: TipoPublicacion;
   categoria?: CategoryKey;
   subcategoria?: string;
+  etiquetas?: Etiqueta[];
   zona: string;
   cuadrante?: Cuadrante;
   direccion?: string;

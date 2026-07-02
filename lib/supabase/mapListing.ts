@@ -7,7 +7,8 @@ const TIPO_ICON: Record<TipoPublicacion, string> = {
   servicio: "ti-tools",
   experiencia: "ti-compass",
   inmueble: "ti-home",
-  usado_herramienta: "ti-recycle",
+  usado: "ti-recycle",
+  herramienta: "ti-hammer",
   otro: "ti-dots",
 };
 
@@ -44,6 +45,7 @@ export function mapListingRow(row: ListingRow, publisherName: string | null): Li
     tipoPublicador: row.intencion !== "ofrezco" ? "vecino" : row.rol === "negocio" ? "negocio" : "vecino",
     cantidad: row.cantidad || undefined,
     tags: row.tags,
+    etiquetas: (row.etiquetas as Listing["etiquetas"]) || undefined,
     precio: row.precio || undefined,
     precioConsultar: row.precio_a_consultar,
     detalles: row.detalles || undefined,

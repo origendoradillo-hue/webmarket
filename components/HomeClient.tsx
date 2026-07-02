@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CATEGORIES, LISTINGS, ANUNCIOS } from "@/lib/data";
-import { Anuncio, CategoryKey, Listing, TipoPublicacion } from "@/lib/types";
+import { Anuncio, CategoryKey, Etiqueta, Listing, TipoPublicacion } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import { mapListingRow } from "@/lib/supabase/mapListing";
 import { mapAnuncioRow } from "@/lib/supabase/mapAnuncio";
@@ -11,7 +11,8 @@ import { useAuth } from "@/lib/useAuth";
 import Header from "./Header";
 import Hero from "./Hero";
 import CategoryFilters from "./CategoryFilters";
-import IntentShortcuts from "./IntentShortcuts";
+import HomeEntryButtons from "./HomeEntryButtons";
+import TipoCategoryPicker from "./TipoCategoryPicker";
 import AnuncioCarousel from "./AnuncioCarousel";
 import CuratedRow from "./CuratedRow";
 import ListingGrid from "./ListingGrid";
@@ -22,14 +23,24 @@ import AnuncioRequestForm from "./AnuncioRequestForm";
 import AuthModal from "./AuthModal";
 import Footer from "./Footer";
 
+const ETIQUETAS: { value: Etiqueta; label: string }[] = [
+  { value: "turismo", label: "Turismo" },
+  { value: "alquileres_temporarios", label: "Alquileres temporarios" },
+];
+
+type Screen = "home" | "explorar" | "resultados";
+
 export default function HomeClient() {
   const { user } = useAuth();
   const [isStaff, setIsStaff] = useState(false);
+  const [screen, setScreen] = useState<Screen>("home");
+  const [resultadosIntencion, setResultadosIntencion] = useState<"ofrezco" | "busco" | null>(null);
   const [cat, setCat] = useState<CategoryKey | "all">("all");
   const [sub, setSub] = useState<string | "all">("all");
   const [query, setQuery] = useState("");
   const [intencionFilter, setIntencionFilter] = useState<"all" | "ofrezco" | "busco">("all");
   const [tipoFilter, setTipoFilter] = useState<"all" | TipoPublicacion>("all");
+  const [etiquetaFilter, setEtiquetaFilter] = useState<"all" | Etiqueta>("all");
   const [activeListing, setActiveListing] = useState<Listing | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
   const [publishOpen, setPublishOpen] = useState(false);
@@ -87,12 +98,22 @@ export default function HomeClient() {
       .then(({ data }) => setIsStaff(!!data && ["moderador", "administrador", "superadmin"].includes(data.role)));
   }, [user]);
 
+  useEffect(() => {
+    if (query.trim() !== "" && screen !== "resultados") {
+      setScreen("resultados");
+      setResultadosIntencion(null);
+    }
+  }, [query, screen]);
+
   function resetFilters() {
     setCat("all");
     setSub("all");
     setQuery("");
     setIntencionFilter("all");
     setTipoFilter("all");
+    setEtiquetaFilter("all");
+    setResultadosIntencion(null);
+    setScreen("home");
   }
 
   function handleSelectCat(next: CategoryKey | "all") {
@@ -100,18 +121,22 @@ export default function HomeClient() {
     setSub("all");
   }
 
+  function handleExplorar() {
+    setScreen("explorar");
+  }
+
   function handleSelectIntencion(i: "ofrezco" | "busco") {
     setIntencionFilter(i);
+    setResultadosIntencion(i);
     setTipoFilter("all");
     setCat("all");
     setSub("all");
+    setEtiquetaFilter("all");
+    setScreen("resultados");
   }
 
   function handleSelectTipo(t: TipoPublicacion) {
     setTipoFilter(t);
-    setIntencionFilter("ofrezco");
-    setCat("all");
-    setSub("all");
   }
 
   function handleOpenPublish() {
@@ -143,8 +168,6 @@ export default function HomeClient() {
   const allListings = useMemo(() => [...realListings, ...LISTINGS], [realListings]);
   const allAnuncios = useMemo(() => [...realAnuncios, ...ANUNCIOS], [realAnuncios]);
 
-  const isPortal = cat === "all" && sub === "all" && query.trim() === "" && intencionFilter === "all" && tipoFilter === "all";
-
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const result = allListings.filter((l) => {
@@ -152,6 +175,7 @@ export default function HomeClient() {
       if (sub !== "all" && l.subcategoria !== sub) return false;
       if (intencionFilter !== "all" && l.intencion !== intencionFilter) return false;
       if (tipoFilter !== "all" && l.tipo !== tipoFilter) return false;
+      if (etiquetaFilter !== "all" && !(l.etiquetas || []).includes(etiquetaFilter)) return false;
       if (q) {
         const haystack = `${l.nombre} ${l.subcategoria || ""} ${l.categoria ? CATEGORIES[l.categoria].label : ""} ${(l.tags || []).join(" ")}`.toLowerCase();
         if (!haystack.includes(q)) return false;
@@ -163,13 +187,16 @@ export default function HomeClient() {
       return score(b) - score(a) || b.rating - a.rating;
     });
     return result;
-  }, [allListings, cat, sub, query, intencionFilter, tipoFilter]);
+  }, [allListings, cat, sub, query, intencionFilter, tipoFilter, etiquetaFilter]);
 
   const seleccionOrigen = useMemo(() => allListings.filter((l) => l.sello), [allListings]);
   const productosRecientes = useMemo(() => allListings.filter((l) => l.tipo === "producto").slice(0, 10), [allListings]);
   const serviciosDisponibles = useMemo(() => allListings.filter((l) => l.tipo === "servicio").slice(0, 10), [allListings]);
-  const usadosHerramientas = useMemo(() => allListings.filter((l) => l.tipo === "usado_herramienta").slice(0, 10), [allListings]);
+  const usadosRecientes = useMemo(() => allListings.filter((l) => l.tipo === "usado").slice(0, 10), [allListings]);
+  const herramientasDisponibles = useMemo(() => allListings.filter((l) => l.tipo === "herramienta").slice(0, 10), [allListings]);
   const busquedasActivas = useMemo(() => allListings.filter((l) => l.intencion === "busco").slice(0, 10), [allListings]);
+
+  const showingPicker = screen === "resultados" && !!resultadosIntencion && tipoFilter === "all";
 
   return (
     <>
@@ -183,25 +210,69 @@ export default function HomeClient() {
         isStaff={isStaff}
       />
       <Hero query={query} onQueryChange={setQuery} />
-      <AnuncioCarousel anuncios={allAnuncios} />
-      {isPortal && <IntentShortcuts onSelectIntencion={handleSelectIntencion} onSelectTipo={handleSelectTipo} />}
-      <CategoryFilters cat={cat} sub={sub} onSelectCat={handleSelectCat} onSelectSub={setSub} />
+      {screen === "home" && <AnuncioCarousel anuncios={allAnuncios} />}
+      {screen === "home" && (
+        <HomeEntryButtons
+          onExplorar={handleExplorar}
+          onOfrezco={() => handleSelectIntencion("ofrezco")}
+          onBusco={() => handleSelectIntencion("busco")}
+          onPublicar={handleOpenPublish}
+        />
+      )}
+      {screen === "resultados" && !showingPicker && (
+        <CategoryFilters cat={cat} sub={sub} onSelectCat={handleSelectCat} onSelectSub={setSub} />
+      )}
 
       <main className="mx-auto max-w-[1240px] px-4 pb-12 sm:px-7">
-        {isPortal ? (
-          <>
-            <CuratedRow title="Selección Origen" icon="ti-sparkles" listings={seleccionOrigen} onOpen={setActiveListing} />
-            <CuratedRow title="Productos recientes" icon="ti-box" listings={productosRecientes} onOpen={setActiveListing} />
-            <CuratedRow title="Servicios disponibles" icon="ti-tools" listings={serviciosDisponibles} onOpen={setActiveListing} />
-            <CuratedRow title="Usados y herramientas" icon="ti-recycle" listings={usadosHerramientas} onOpen={setActiveListing} />
-            <CuratedRow title="Búsquedas activas" icon="ti-search" listings={busquedasActivas} onOpen={setActiveListing} />
-          </>
-        ) : (
+        {screen === "home" && <CuratedRow title="Selección Origen" icon="ti-sparkles" listings={seleccionOrigen.slice(0, 4)} onOpen={setActiveListing} />}
+
+        {screen === "explorar" && (
           <div className="pt-2">
             <button onClick={resetFilters} className="mb-3 flex items-center gap-1.5 text-[13px] font-medium text-golfo">
               <i className="ti ti-arrow-left" aria-hidden /> Volver al inicio
             </button>
-            <ListingGrid listings={filtered} onOpen={setActiveListing} />
+            <CuratedRow title="Selección Origen" icon="ti-sparkles" listings={seleccionOrigen} onOpen={setActiveListing} />
+            <CuratedRow title="Productos recientes" icon="ti-box" listings={productosRecientes} onOpen={setActiveListing} />
+            <CuratedRow title="Servicios disponibles" icon="ti-tools" listings={serviciosDisponibles} onOpen={setActiveListing} />
+            <CuratedRow title="Usados recientes" icon="ti-recycle" listings={usadosRecientes} onOpen={setActiveListing} />
+            <CuratedRow title="Herramientas disponibles" icon="ti-hammer" listings={herramientasDisponibles} onOpen={setActiveListing} />
+            <CuratedRow title="Búsquedas activas" icon="ti-search" listings={busquedasActivas} onOpen={setActiveListing} />
+          </div>
+        )}
+
+        {screen === "resultados" && (
+          <div className="pt-2">
+            <button onClick={resetFilters} className="mb-3 flex items-center gap-1.5 text-[13px] font-medium text-golfo">
+              <i className="ti ti-arrow-left" aria-hidden /> Volver al inicio
+            </button>
+            {showingPicker ? (
+              <TipoCategoryPicker intencion={resultadosIntencion!} onSelect={handleSelectTipo} />
+            ) : (
+              <>
+                <div className="no-scrollbar mb-4 flex gap-1.5 overflow-x-auto">
+                  <button
+                    onClick={() => setEtiquetaFilter("all")}
+                    className={`flex-shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-[11.5px] ${
+                      etiquetaFilter === "all" ? "border-dorado bg-dorado text-hueso-2" : "border-arena bg-hueso-2 text-nogal"
+                    }`}
+                  >
+                    Todas las etiquetas
+                  </button>
+                  {ETIQUETAS.map((e) => (
+                    <button
+                      key={e.value}
+                      onClick={() => setEtiquetaFilter(e.value)}
+                      className={`flex-shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-[11.5px] ${
+                        etiquetaFilter === e.value ? "border-dorado bg-dorado text-hueso-2" : "border-arena bg-hueso-2 text-nogal"
+                      }`}
+                    >
+                      {e.label}
+                    </button>
+                  ))}
+                </div>
+                <ListingGrid listings={filtered} onOpen={setActiveListing} />
+              </>
+            )}
           </div>
         )}
       </main>
