@@ -12,7 +12,7 @@ export default async function AdminPage() {
 
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
 
-  const isStaff = profile && ["moderador", "administrador", "superadmin"].includes(profile.role);
+  const isStaff = profile && ["admin", "superadmin"].includes(profile.role);
   if (!isStaff) redirect("/");
 
   return <AdminClient role={profile.role} />;

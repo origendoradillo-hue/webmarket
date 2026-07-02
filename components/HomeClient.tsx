@@ -46,6 +46,7 @@ export default function HomeClient() {
   const [publishOpen, setPublishOpen] = useState(false);
   const [anuncioFormOpen, setAnuncioFormOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<"login" | "signup" | "forgot" | "reset">("login");
   const [realListings, setRealListings] = useState<Listing[]>([]);
   const [realAnuncios, setRealAnuncios] = useState<Anuncio[]>([]);
 
@@ -85,6 +86,14 @@ export default function HomeClient() {
   }, [loadRealListings, loadRealAnuncios]);
 
   useEffect(() => {
+    if (window.location.search.includes("reset=1")) {
+      setAuthMode("reset");
+      setAuthOpen(true);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
+
+  useEffect(() => {
     if (!user) {
       setIsStaff(false);
       return;
@@ -95,7 +104,7 @@ export default function HomeClient() {
       .select("role")
       .eq("id", user.id)
       .single()
-      .then(({ data }) => setIsStaff(!!data && ["moderador", "administrador", "superadmin"].includes(data.role)));
+      .then(({ data }) => setIsStaff(!!data && ["admin", "superadmin"].includes(data.role)));
   }, [user]);
 
   useEffect(() => {
@@ -139,9 +148,14 @@ export default function HomeClient() {
     setTipoFilter(t);
   }
 
+  function openAuth() {
+    setAuthMode("login");
+    setAuthOpen(true);
+  }
+
   function handleOpenPublish() {
     if (!user) {
-      setAuthOpen(true);
+      openAuth();
       return;
     }
     setPublishOpen(true);
@@ -206,7 +220,7 @@ export default function HomeClient() {
         onOpenPublish={handleOpenPublish}
         onLogoClick={resetFilters}
         userEmail={user?.email ?? null}
-        onOpenAuth={() => setAuthOpen(true)}
+        onOpenAuth={openAuth}
         onSignOut={handleSignOut}
         isStaff={isStaff}
       />
@@ -288,7 +302,7 @@ export default function HomeClient() {
         listing={activeListing}
         onClose={() => setActiveListing(null)}
         isLoggedIn={!!user}
-        onRequireAuth={() => setAuthOpen(true)}
+        onRequireAuth={openAuth}
       />
       <MapModal open={mapOpen} onClose={() => setMapOpen(false)} />
       {user && (
@@ -301,7 +315,7 @@ export default function HomeClient() {
         />
       )}
       {user && <AnuncioRequestForm open={anuncioFormOpen} onClose={() => setAnuncioFormOpen(false)} user={user} />}
-      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
+      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} initialMode={authMode} />
     </>
   );
 }

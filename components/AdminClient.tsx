@@ -28,7 +28,7 @@ const ANUNCIO_STATUS_LABELS: Record<string, string> = {
 };
 const ANUNCIO_STATUS_OPTIONS = Object.keys(ANUNCIO_STATUS_LABELS);
 
-const ROLE_OPTIONS = ["publicador", "moderador", "administrador", "superadmin"];
+const ROLE_OPTIONS = ["publicador", "admin", "superadmin"];
 
 type ListingWithPublisher = ListingRow & { profiles: { full_name: string | null; email: string | null; whatsapp_number: string | null } | null };
 type AnuncioWithSolicitante = AnuncioRow & { profiles: { full_name: string | null; email: string | null; whatsapp_number: string | null } | null };
@@ -45,7 +45,7 @@ export default function AdminClient({ role }: AdminClientProps) {
   const [loading, setLoading] = useState(true);
   const [expandedListing, setExpandedListing] = useState<string | null>(null);
   const [expandedAnuncio, setExpandedAnuncio] = useState<string | null>(null);
-  const canManageUsers = role === "administrador" || role === "superadmin";
+  const canManageUsers = role === "superadmin";
 
   const loadListings = useCallback(async () => {
     const supabase = createClient();

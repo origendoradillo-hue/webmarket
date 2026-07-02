@@ -7,7 +7,12 @@ export interface Database {
           full_name: string | null;
           whatsapp_number: string | null;
           email: string | null;
-          role: "publicador" | "moderador" | "administrador" | "superadmin";
+          role: "publicador" | "admin" | "superadmin";
+          email_verified_at: string | null;
+          whatsapp_verified_at: string | null;
+          verification_level: 1 | 2 | 3;
+          blocked_at: string | null;
+          must_change_password: boolean;
           created_at: string;
         };
         Insert: {
@@ -19,6 +24,31 @@ export interface Database {
         Update: {
           full_name?: string | null;
           whatsapp_number?: string | null;
+        };
+        Relationships: [];
+      };
+      user_verifications: {
+        Row: {
+          id: string;
+          user_id: string;
+          nivel_solicitado: 2 | 3;
+          motivo: string;
+          evidencia_url: string | null;
+          estado: "pendiente" | "aprobada" | "rechazada";
+          revisado_por: string | null;
+          revisado_en: string | null;
+          created_at: string;
+        };
+        Insert: {
+          user_id: string;
+          nivel_solicitado: 2 | 3;
+          motivo: string;
+          evidencia_url?: string | null;
+        };
+        Update: {
+          estado?: "pendiente" | "aprobada" | "rechazada";
+          revisado_por?: string | null;
+          revisado_en?: string | null;
         };
         Relationships: [];
       };
