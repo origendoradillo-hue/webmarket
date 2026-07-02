@@ -3,27 +3,41 @@
 import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { CATEGORIES } from "@/lib/data";
-import { CategoryKey } from "@/lib/types";
+import { CategoryKey, TipoPublicacion } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 
-type Tipo = "oferta" | "demanda" | "evento";
-type Rol = "negocio" | "vecino";
+type Intencion = "ofrezco" | "busco";
 
 interface PublishData {
-  tipo: Tipo | null;
-  rol: Rol | null;
+  intencion: Intencion | null;
+  tipo: TipoPublicacion | null;
   cat: CategoryKey | null;
   sub: string | null;
   nombre: string;
   desc: string;
   fotoData: string | null;
   tags: string;
+  precio: string;
+  precioConsultar: boolean;
   modalidad: string[];
+  // Producto
   disponibilidad: "recurrente" | "limitada";
   qty: string;
-  evNombre: string;
-  evFecha: string;
-  evLugar: string;
+  // Servicio
+  zonaCobertura: string;
+  disponibilidadServicio: string;
+  // Experiencia
+  fechaTemporada: string;
+  cupos: string;
+  duracion: string;
+  // Inmueble
+  superficie: string;
+  mejoras: string;
+  // Usado o herramienta
+  estadoArticulo: string;
+  // Busco
+  urgencia: boolean;
+  // Ubicación / contacto
   zona: string;
   cuadrante: string | null;
   direccion: string;
@@ -32,20 +46,28 @@ interface PublishData {
 }
 
 const DEFAULTS: PublishData = {
+  intencion: null,
   tipo: null,
-  rol: null,
   cat: null,
   sub: null,
   nombre: "",
   desc: "",
   fotoData: null,
   tags: "",
+  precio: "",
+  precioConsultar: false,
   modalidad: [],
   disponibilidad: "recurrente",
   qty: "",
-  evNombre: "",
-  evFecha: "",
-  evLugar: "",
+  zonaCobertura: "",
+  disponibilidadServicio: "",
+  fechaTemporada: "",
+  cupos: "",
+  duracion: "",
+  superficie: "",
+  mejoras: "",
+  estadoArticulo: "",
+  urgencia: false,
   zona: "",
   cuadrante: null,
   direccion: "",
@@ -53,27 +75,44 @@ const DEFAULTS: PublishData = {
   whatsapp: "",
 };
 
-function stepsFor(tipo: Tipo | null): string[] {
-  if (!tipo) return ["tipo"];
-  if (tipo === "evento") return ["tipo", "evento", "ubicacion", "contacto"];
-  if (tipo === "oferta") return ["tipo", "rol", "categoria", "datos", "detalles", "ubicacion", "contacto"];
-  return ["tipo", "categoria", "datos", "ubicacion", "contacto"];
+const TIPO_OPTIONS: { value: TipoPublicacion; icon: string; label: string }[] = [
+  { value: "producto", icon: "ti-box", label: "Producto" },
+  { value: "servicio", icon: "ti-tools", label: "Servicio" },
+  { value: "experiencia", icon: "ti-compass", label: "Experiencia" },
+  { value: "inmueble", icon: "ti-home", label: "Inmueble / lote / chacra" },
+  { value: "usado_herramienta", icon: "ti-recycle", label: "Usado o herramienta" },
+  { value: "otro", icon: "ti-dots", label: "Otro" },
+];
+
+function fotoRequerida(d: PublishData): boolean {
+  if (d.intencion !== "ofrezco" || !d.tipo) return false;
+  return ["producto", "experiencia", "inmueble", "usado_herramienta"].includes(d.tipo);
+}
+
+function stepsFor(d: PublishData): string[] {
+  if (!d.intencion) return ["intencion"];
+  if (d.intencion === "busco") return ["intencion", "categoria", "datos", "ubicacion", "contacto"];
+  // ofrezco
+  if (!d.tipo) return ["intencion", "tipo"];
+  const steps = ["intencion", "tipo"];
+  if (d.tipo !== "otro") steps.push("categoria");
+  steps.push("datos", "detalles", "ubicacion", "contacto");
+  return steps;
 }
 
 function isValid(step: string, d: PublishData): boolean {
   switch (step) {
+    case "intencion":
+      return !!d.intencion;
     case "tipo":
       return !!d.tipo;
-    case "rol":
-      return !!d.rol;
     case "categoria":
+      if (d.tipo === "usado_herramienta") return !!d.sub;
       return !!d.cat && !!d.sub;
     case "datos":
-      return d.nombre.trim() !== "" && d.desc.trim() !== "" && (d.tipo === "demanda" || !!d.fotoData);
+      return d.nombre.trim() !== "" && d.desc.trim() !== "" && (!fotoRequerida(d) || !!d.fotoData);
     case "detalles":
       return d.modalidad.length > 0;
-    case "evento":
-      return d.evNombre.trim() !== "" && d.evFecha !== "" && d.evLugar.trim() !== "";
     case "ubicacion":
       return !!d.zona;
     case "contacto":
@@ -88,9 +127,10 @@ interface PublishWizardProps {
   onClose: () => void;
   user: User;
   onPublished: () => void;
+  onRequestAnuncio: () => void;
 }
 
-export default function PublishWizard({ open, onClose, user, onPublished }: PublishWizardProps) {
+export default function PublishWizard({ open, onClose, user, onPublished, onRequestAnuncio }: PublishWizardProps) {
   const [stepIndex, setStepIndex] = useState(0);
   const [data, setData] = useState<PublishData>(DEFAULTS);
   const [submitting, setSubmitting] = useState(false);
@@ -106,7 +146,7 @@ export default function PublishWizard({ open, onClose, user, onPublished }: Publ
 
   if (!open) return null;
 
-  const steps = stepsFor(data.tipo);
+  const steps = stepsFor(data);
   const step = stepIndex === -1 ? null : steps[stepIndex];
   const pct = step ? Math.round(((stepIndex + 1) / steps.length) * 100) : 100;
 
@@ -161,27 +201,53 @@ export default function PublishWizard({ open, onClose, user, onPublished }: Publ
         fotoUrl = supabase.storage.from("listing-photos").getPublicUrl(path).data.publicUrl;
       }
 
-      const isEvento = data.tipo === "evento";
+      const detalles: Record<string, unknown> = {};
+      let cantidad: number | null = null;
+      if (data.intencion === "ofrezco") {
+        if (data.tipo === "producto") {
+          detalles.disponibilidad = data.disponibilidad;
+          if (data.disponibilidad === "limitada" && data.qty) cantidad = Number(data.qty);
+        } else if (data.tipo === "servicio") {
+          if (data.zonaCobertura) detalles.zona_cobertura = data.zonaCobertura;
+          if (data.disponibilidadServicio) detalles.disponibilidad = data.disponibilidadServicio;
+        } else if (data.tipo === "experiencia") {
+          if (data.fechaTemporada) detalles.fecha = data.fechaTemporada;
+          if (data.cupos) detalles.cupos = Number(data.cupos);
+          if (data.duracion) detalles.duracion = data.duracion;
+        } else if (data.tipo === "inmueble") {
+          if (data.superficie) detalles.superficie = data.superficie;
+          if (data.mejoras) detalles.mejoras = data.mejoras;
+        } else if (data.tipo === "usado_herramienta") {
+          if (data.estadoArticulo) detalles.estado = data.estadoArticulo;
+          if (data.qty) cantidad = Number(data.qty);
+        }
+      } else if (data.urgencia) {
+        detalles.urgencia = true;
+      }
+
+      const precioNum = data.intencion === "busco" || data.precio.trim() === "" ? null : Number(data.precio);
+
       const { error: insertError } = await supabase.from("listings").insert({
         publisher_id: user.id,
-        tipo_aviso: data.tipo!,
-        rol: data.tipo === "oferta" ? data.rol : null,
-        categoria: isEvento ? "turismo" : data.cat!,
-        subcategoria: isEvento ? "Eventos y celebraciones" : data.sub!,
+        intencion: data.intencion!,
+        tipo: data.intencion === "ofrezco" ? data.tipo : null,
+        categoria: data.cat,
+        subcategoria: data.sub,
         zona: data.zona,
         cuadrante: data.cuadrante,
         direccion: data.direccion || null,
-        nombre: isEvento ? data.evNombre : data.nombre,
-        descripcion: isEvento
-          ? `Evento el ${data.evFecha} en ${data.evLugar}.${data.desc ? " " + data.desc : ""}`
-          : data.desc,
+        nombre: data.nombre,
+        descripcion: data.desc,
         foto_url: fotoUrl,
         modalidad: data.modalidad,
         tags: data.tags
           .split(",")
           .map((t) => t.trim())
           .filter(Boolean),
-        cantidad: data.disponibilidad === "limitada" && data.qty ? Number(data.qty) : null,
+        cantidad,
+        precio: precioNum,
+        precio_a_consultar: data.intencion === "busco" ? false : data.precioConsultar,
+        detalles,
       });
       if (insertError) throw insertError;
 
@@ -201,6 +267,8 @@ export default function PublishWizard({ open, onClose, user, onPublished }: Publ
 
   const isFirst = stepIndex === 0;
   const isLast = stepIndex === steps.length - 1;
+  const direccionRequiereRetiro = data.tipo === "producto" || data.tipo === "usado_herramienta";
+  const direccionAplica = !direccionRequiereRetiro || data.modalidad.includes("Retiro");
 
   return (
     <div
@@ -213,8 +281,7 @@ export default function PublishWizard({ open, onClose, user, onPublished }: Publ
             <i className="ti ti-circle-check mx-auto text-5xl text-oliva" aria-hidden />
             <h3 className="mt-4 font-slab text-lg font-semibold text-tinta">Publicación enviada</h3>
             <p className="mt-1.5 text-[13px] leading-relaxed text-tinta-suave">
-              Ya quedó guardada. Antes de aparecer en el sitio, alguien del equipo la revisa rápido —
-              normalmente en menos de 48h.
+              Ya está activa y visible en el sitio. El equipo puede revisarla, editarla o pausarla más adelante si hace falta.
             </p>
             <button onClick={onClose} className="mx-auto mt-6 rounded-lg bg-oliva px-6 py-2.5 text-[13.5px] font-semibold text-hueso">
               Listo
@@ -230,106 +297,118 @@ export default function PublishWizard({ open, onClose, user, onPublished }: Publ
                 Paso {stepIndex + 1} de {steps.length}
               </p>
 
-              {step === "tipo" && (
+              {step === "intencion" && (
                 <>
                   <p className="mb-1 font-slab text-lg font-semibold text-tinta">¿Qué querés publicar?</p>
-                  <p className="mb-4 text-[13px] text-tinta-suave">Elegí el tipo de publicación</p>
+                  <p className="mb-4 text-[13px] text-tinta-suave">Elegí una opción</p>
                   <div className="grid grid-cols-2 gap-2.5">
                     <OptionCard
                       icon="ti-tag"
                       label="Ofrezco algo"
-                      selected={data.tipo === "oferta"}
+                      selected={data.intencion === "ofrezco"}
                       onClick={() => {
-                        update("tipo", "oferta");
+                        update("intencion", "ofrezco");
                         setStepIndex(1);
                       }}
                     />
                     <OptionCard
                       icon="ti-search"
                       label="Busco algo"
-                      selected={data.tipo === "demanda"}
+                      selected={data.intencion === "busco"}
                       onClick={() => {
-                        update("tipo", "demanda");
+                        update("intencion", "busco");
                         setStepIndex(1);
                       }}
                     />
                     <OptionCard
-                      icon="ti-calendar-event"
-                      label="Un evento del barrio"
-                      selected={data.tipo === "evento"}
+                      icon="ti-speakerphone"
+                      label="Publicar un anuncio (evento, aviso, sponsor...)"
+                      selected={false}
                       className="col-span-2"
-                      onClick={() => {
-                        update("tipo", "evento");
-                        setStepIndex(1);
-                      }}
+                      onClick={onRequestAnuncio}
                     />
                   </div>
                 </>
               )}
 
-              {step === "rol" && (
+              {step === "tipo" && (
                 <>
-                  <p className="mb-1 font-slab text-lg font-semibold text-tinta">¿Cómo publicás?</p>
-                  <p className="mb-4 text-[13px] text-tinta-suave">Esto define si cargás logo y banner, o una foto de producto</p>
-                  <div className="flex flex-col gap-2.5">
-                    <RolOption
-                      icon="ti-building-store"
-                      title="Soy un emprendimiento"
-                      subtitle="Puedo cargar logo y banner propio"
-                      selected={data.rol === "negocio"}
-                      onClick={() => {
-                        update("rol", "negocio");
-                        setStepIndex((i) => i + 1);
-                      }}
-                    />
-                    <RolOption
-                      icon="ti-user"
-                      title="Es algo puntual"
-                      subtitle="Vendo o busco algo suelto, sin marca"
-                      selected={data.rol === "vecino"}
-                      onClick={() => {
-                        update("rol", "vecino");
-                        setStepIndex((i) => i + 1);
-                      }}
-                    />
+                  <p className="mb-1 font-slab text-lg font-semibold text-tinta">¿Qué tipo de publicación es?</p>
+                  <p className="mb-4 text-[13px] text-tinta-suave">Esto define qué datos te vamos a pedir</p>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {TIPO_OPTIONS.map((t) => (
+                      <OptionCard
+                        key={t.value}
+                        icon={t.icon}
+                        label={t.label}
+                        selected={data.tipo === t.value}
+                        onClick={() => {
+                          update("tipo", t.value);
+                          if (t.value === "usado_herramienta") update("cat", "usados");
+                          setStepIndex((i) => i + 1);
+                        }}
+                      />
+                    ))}
                   </div>
                 </>
               )}
 
               {step === "categoria" && (
                 <>
-                  <p className="mb-1 font-slab text-lg font-semibold text-tinta">Categoría</p>
-                  <p className="mb-4 text-[13px] text-tinta-suave">Elegí el rubro y después la subcategoría</p>
-                  <div className="mb-3.5 grid grid-cols-2 gap-2">
-                    {(Object.entries(CATEGORIES) as [CategoryKey, (typeof CATEGORIES)[CategoryKey]][]).map(([key, c]) => (
-                      <button
-                        key={key}
-                        onClick={() => {
-                          update("cat", key);
-                          update("sub", null);
-                        }}
-                        className={`flex items-center gap-2 rounded-lg border px-2.5 py-2.5 text-left text-[12.5px] text-tinta ${
-                          data.cat === key ? "border-2 border-oliva bg-[#F1F4EE]" : "border-piedra/70"
-                        }`}
-                      >
-                        <i className={`ti ${c.icon} text-oliva`} aria-hidden /> {c.label}
-                      </button>
-                    ))}
-                  </div>
-                  {data.cat && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {CATEGORIES[data.cat].subs.map((s) => (
-                        <button
-                          key={s}
-                          onClick={() => update("sub", s)}
-                          className={`rounded-full border px-3 py-1.5 text-xs ${
-                            data.sub === s ? "border-dorado bg-dorado text-white" : "border-arena bg-hueso-2 text-tinta"
-                          }`}
-                        >
-                          {s}
-                        </button>
-                      ))}
-                    </div>
+                  {data.tipo === "usado_herramienta" ? (
+                    <>
+                      <p className="mb-1 font-slab text-lg font-semibold text-tinta">Usados y herramientas</p>
+                      <p className="mb-4 text-[13px] text-tinta-suave">Elegí qué tipo de artículo es</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {CATEGORIES.usados.subs.map((s) => (
+                          <button
+                            key={s}
+                            onClick={() => update("sub", s)}
+                            className={`rounded-full border px-3 py-1.5 text-xs ${
+                              data.sub === s ? "border-dorado bg-dorado text-white" : "border-arena bg-hueso-2 text-tinta"
+                            }`}
+                          >
+                            {s}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <p className="mb-1 font-slab text-lg font-semibold text-tinta">Categoría</p>
+                      <p className="mb-4 text-[13px] text-tinta-suave">Elegí el rubro y después la subcategoría</p>
+                      <div className="mb-3.5 grid grid-cols-2 gap-2">
+                        {(Object.entries(CATEGORIES) as [CategoryKey, (typeof CATEGORIES)[CategoryKey]][]).map(([key, c]) => (
+                          <button
+                            key={key}
+                            onClick={() => {
+                              update("cat", key);
+                              update("sub", null);
+                            }}
+                            className={`flex items-center gap-2 rounded-lg border px-2.5 py-2.5 text-left text-[12.5px] text-tinta ${
+                              data.cat === key ? "border-2 border-oliva bg-[#F1F4EE]" : "border-piedra/70"
+                            }`}
+                          >
+                            <i className={`ti ${c.icon} text-oliva`} aria-hidden /> {c.label}
+                          </button>
+                        ))}
+                      </div>
+                      {data.cat && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {CATEGORIES[data.cat].subs.map((s) => (
+                            <button
+                              key={s}
+                              onClick={() => update("sub", s)}
+                              className={`rounded-full border px-3 py-1.5 text-xs ${
+                                data.sub === s ? "border-dorado bg-dorado text-white" : "border-arena bg-hueso-2 text-tinta"
+                              }`}
+                            >
+                              {s}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </>
                   )}
                 </>
               )}
@@ -346,10 +425,10 @@ export default function PublishWizard({ open, onClose, user, onPublished }: Publ
                       className="w-full rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta"
                     />
                   </Field>
-                  {data.tipo !== "demanda" && (
-                    <Field label="Foto">
+                  {(data.intencion === "busco" || fotoRequerida(data) || data.tipo === "servicio" || data.tipo === "otro") && (
+                    <Field label={fotoRequerida(data) ? "Foto" : "Foto (opcional)"}>
                       <PhotoDropzone
-                        label={data.rol === "negocio" ? "Subí el logo, un flyer o una foto de tu emprendimiento" : "Subí una foto real del producto, como en Mercado Libre"}
+                        label={data.intencion === "busco" ? "Foto de referencia si tenés (opcional)" : "Subí una foto real, como en Mercado Libre"}
                         value={data.fotoData}
                         onChange={handleFoto}
                       />
@@ -357,12 +436,43 @@ export default function PublishWizard({ open, onClose, user, onPublished }: Publ
                   )}
                   <Field label="Descripción">
                     <textarea
-                      placeholder={data.tipo === "demanda" ? "Contá qué estás buscando" : "Contá brevemente de qué se trata"}
+                      placeholder={data.intencion === "busco" ? "Contá qué estás buscando" : "Contá brevemente de qué se trata"}
                       value={data.desc}
                       onChange={(e) => update("desc", e.target.value)}
                       className="min-h-[64px] w-full resize-y rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta"
                     />
                   </Field>
+                  {data.intencion === "ofrezco" && (
+                    <Field label="Precio">
+                      <div className="flex items-center gap-2.5">
+                        <input
+                          type="number"
+                          min={0}
+                          placeholder="Monto"
+                          disabled={data.precioConsultar}
+                          value={data.precio}
+                          onChange={(e) => update("precio", e.target.value)}
+                          className="w-full rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta disabled:bg-hueso-2"
+                        />
+                        <label className="flex flex-shrink-0 items-center gap-1.5 text-[12px] text-tinta">
+                          <input
+                            type="checkbox"
+                            checked={data.precioConsultar}
+                            onChange={(e) => update("precioConsultar", e.target.checked)}
+                          />
+                          A consultar
+                        </label>
+                      </div>
+                    </Field>
+                  )}
+                  {data.intencion === "busco" && (
+                    <Field label="¿Es urgente?">
+                      <label className="flex items-center gap-1.5 text-[12.5px] text-tinta">
+                        <input type="checkbox" checked={data.urgencia} onChange={(e) => update("urgencia", e.target.checked)} />
+                        Sí, lo necesito con urgencia
+                      </label>
+                    </Field>
+                  )}
                   <Field label="Palabras clave (opcional)">
                     <input
                       type="text"
@@ -378,7 +488,7 @@ export default function PublishWizard({ open, onClose, user, onPublished }: Publ
 
               {step === "detalles" && (
                 <>
-                  <p className="mb-4 font-slab text-lg font-semibold text-tinta">Modalidad y disponibilidad</p>
+                  <p className="mb-4 font-slab text-lg font-semibold text-tinta">Detalles</p>
                   <Field label="¿Cómo se entrega? (elegí una o más)">
                     <div className="flex flex-wrap gap-2">
                       {["A domicilio", "Retiro", "Envío"].map((m) => (
@@ -394,73 +504,148 @@ export default function PublishWizard({ open, onClose, user, onPublished }: Publ
                       ))}
                     </div>
                   </Field>
-                  <Field label="Disponibilidad">
-                    <div className="mb-2.5 flex gap-2.5">
-                      <button
-                        onClick={() => update("disponibilidad", "recurrente")}
-                        className={`flex-1 rounded-lg border px-2.5 py-2.5 text-center text-[12.5px] text-tinta ${
-                          data.disponibilidad === "recurrente" ? "border-2 border-oliva bg-[#F1F4EE]" : "border-piedra/70"
-                        }`}
-                      >
-                        Recurrente
-                        <br />
-                        <span className="font-normal">(stock continuo)</span>
-                      </button>
-                      <button
-                        onClick={() => update("disponibilidad", "limitada")}
-                        className={`flex-1 rounded-lg border px-2.5 py-2.5 text-center text-[12.5px] text-tinta ${
-                          data.disponibilidad === "limitada" ? "border-2 border-oliva bg-[#F1F4EE]" : "border-piedra/70"
-                        }`}
-                      >
-                        Cantidad limitada
-                      </button>
-                    </div>
-                    {data.disponibilidad === "limitada" && (
-                      <input
-                        type="number"
-                        min={1}
-                        placeholder="¿Cuántas unidades?"
-                        value={data.qty}
-                        onChange={(e) => update("qty", e.target.value)}
-                        className="w-full rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta"
-                      />
-                    )}
-                  </Field>
-                </>
-              )}
 
-              {step === "evento" && (
-                <>
-                  <p className="mb-4 font-slab text-lg font-semibold text-tinta">Datos del evento</p>
-                  <Field label="Nombre del evento">
-                    <input
-                      type="text"
-                      placeholder="Ej: Feria de productores"
-                      value={data.evNombre}
-                      onChange={(e) => update("evNombre", e.target.value)}
-                      className="w-full rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta"
-                    />
-                  </Field>
-                  <Field label="Fecha">
-                    <input
-                      type="date"
-                      value={data.evFecha}
-                      onChange={(e) => update("evFecha", e.target.value)}
-                      className="w-full rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta"
-                    />
-                  </Field>
-                  <Field label="Lugar">
-                    <input
-                      type="text"
-                      placeholder="Ej: Club de campo"
-                      value={data.evLugar}
-                      onChange={(e) => update("evLugar", e.target.value)}
-                      className="w-full rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta"
-                    />
-                  </Field>
-                  <Field label="Flyer o foto (opcional)">
-                    <PhotoDropzone label="Subí un flyer o foto del evento" value={data.fotoData} onChange={handleFoto} />
-                  </Field>
+                  {data.tipo === "producto" && (
+                    <Field label="Disponibilidad">
+                      <div className="mb-2.5 flex gap-2.5">
+                        <button
+                          onClick={() => update("disponibilidad", "recurrente")}
+                          className={`flex-1 rounded-lg border px-2.5 py-2.5 text-center text-[12.5px] text-tinta ${
+                            data.disponibilidad === "recurrente" ? "border-2 border-oliva bg-[#F1F4EE]" : "border-piedra/70"
+                          }`}
+                        >
+                          Recurrente
+                          <br />
+                          <span className="font-normal">(stock continuo)</span>
+                        </button>
+                        <button
+                          onClick={() => update("disponibilidad", "limitada")}
+                          className={`flex-1 rounded-lg border px-2.5 py-2.5 text-center text-[12.5px] text-tinta ${
+                            data.disponibilidad === "limitada" ? "border-2 border-oliva bg-[#F1F4EE]" : "border-piedra/70"
+                          }`}
+                        >
+                          Cantidad limitada
+                        </button>
+                      </div>
+                      {data.disponibilidad === "limitada" && (
+                        <input
+                          type="number"
+                          min={1}
+                          placeholder="¿Cuántas unidades?"
+                          value={data.qty}
+                          onChange={(e) => update("qty", e.target.value)}
+                          className="w-full rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta"
+                        />
+                      )}
+                    </Field>
+                  )}
+
+                  {data.tipo === "servicio" && (
+                    <>
+                      <Field label="Zona de cobertura (opcional)">
+                        <input
+                          type="text"
+                          placeholder="Ej: Todo el barrio, o Zona 1 y 2"
+                          value={data.zonaCobertura}
+                          onChange={(e) => update("zonaCobertura", e.target.value)}
+                          className="w-full rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta"
+                        />
+                      </Field>
+                      <Field label="Disponibilidad (opcional)">
+                        <input
+                          type="text"
+                          placeholder="Ej: Lunes a viernes por la tarde"
+                          value={data.disponibilidadServicio}
+                          onChange={(e) => update("disponibilidadServicio", e.target.value)}
+                          className="w-full rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta"
+                        />
+                      </Field>
+                    </>
+                  )}
+
+                  {data.tipo === "experiencia" && (
+                    <>
+                      <Field label="Fecha o temporada (opcional)">
+                        <input
+                          type="text"
+                          placeholder="Ej: Todo el año, o Diciembre-Marzo"
+                          value={data.fechaTemporada}
+                          onChange={(e) => update("fechaTemporada", e.target.value)}
+                          className="w-full rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta"
+                        />
+                      </Field>
+                      <Field label="Cupos (opcional)">
+                        <input
+                          type="number"
+                          min={1}
+                          placeholder="Máximo de personas"
+                          value={data.cupos}
+                          onChange={(e) => update("cupos", e.target.value)}
+                          className="w-full rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta"
+                        />
+                      </Field>
+                      <Field label="Duración (opcional)">
+                        <input
+                          type="text"
+                          placeholder="Ej: 2 horas"
+                          value={data.duracion}
+                          onChange={(e) => update("duracion", e.target.value)}
+                          className="w-full rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta"
+                        />
+                      </Field>
+                    </>
+                  )}
+
+                  {data.tipo === "inmueble" && (
+                    <>
+                      <Field label="Superficie (opcional)">
+                        <input
+                          type="text"
+                          placeholder="Ej: 8 hectáreas, o 300m²"
+                          value={data.superficie}
+                          onChange={(e) => update("superficie", e.target.value)}
+                          className="w-full rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta"
+                        />
+                      </Field>
+                      <Field label="Servicios y mejoras (opcional)">
+                        <input
+                          type="text"
+                          placeholder="Ej: luz, agua, forestación"
+                          value={data.mejoras}
+                          onChange={(e) => update("mejoras", e.target.value)}
+                          className="w-full rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta"
+                        />
+                      </Field>
+                    </>
+                  )}
+
+                  {data.tipo === "usado_herramienta" && (
+                    <>
+                      <Field label="Estado del artículo">
+                        <select
+                          value={data.estadoArticulo}
+                          onChange={(e) => update("estadoArticulo", e.target.value)}
+                          className="w-full rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta"
+                        >
+                          <option value="">Elegí una opción</option>
+                          <option value="Nuevo">Nuevo, sin uso</option>
+                          <option value="Muy bueno">Muy bueno</option>
+                          <option value="Bueno">Bueno</option>
+                          <option value="Para reparar">Para reparar / repuestos</option>
+                        </select>
+                      </Field>
+                      <Field label="Cantidad (opcional)">
+                        <input
+                          type="number"
+                          min={1}
+                          placeholder="Ej: 3"
+                          value={data.qty}
+                          onChange={(e) => update("qty", e.target.value)}
+                          className="w-full rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta"
+                        />
+                      </Field>
+                    </>
+                  )}
                 </>
               )}
 
@@ -498,13 +683,14 @@ export default function PublishWizard({ open, onClose, user, onPublished }: Publ
                       ))}
                     </div>
                   </Field>
-                  <Field label="Dirección exacta (opcional)">
+                  <Field label={direccionAplica ? "Dirección exacta (opcional)" : "Dirección exacta"}>
                     <input
                       type="text"
-                      placeholder="Solo si querés que te encuentren fácil"
+                      disabled={!direccionAplica}
+                      placeholder={direccionAplica ? "Solo si querés que te encuentren fácil" : "No aplica: elegiste solo entrega a domicilio/envío"}
                       value={data.direccion}
                       onChange={(e) => update("direccion", e.target.value)}
-                      className="w-full rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta"
+                      className="w-full rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta disabled:bg-hueso-2 disabled:text-piedra"
                     />
                   </Field>
                 </>
@@ -539,9 +725,7 @@ export default function PublishWizard({ open, onClose, user, onPublished }: Publ
               )}
             </div>
 
-            {submitError && (
-              <p className="bg-white px-5 pt-3 text-[12px] text-red-700 sm:px-6">{submitError}</p>
-            )}
+            {submitError && <p className="bg-white px-5 pt-3 text-[12px] text-red-700 sm:px-6">{submitError}</p>}
             <div className="flex justify-between gap-2.5 border-t border-piedra/40 bg-white px-5 py-3.5 sm:px-6">
               <button onClick={goBack} disabled={submitting} className="rounded-lg border border-piedra/70 px-4 py-2.5 text-[13.5px] text-tinta">
                 {isFirst ? "Cancelar" : "Atrás"}
@@ -569,18 +753,6 @@ function OptionCard({ icon, label, selected, onClick, className = "" }: { icon: 
     >
       <i className={`ti ${icon} mb-2 block text-2xl text-oliva`} aria-hidden />
       <span className="text-[13px] font-medium text-tinta">{label}</span>
-    </button>
-  );
-}
-
-function RolOption({ icon, title, subtitle, selected, onClick }: { icon: string; title: string; subtitle: string; selected: boolean; onClick: () => void }) {
-  return (
-    <button onClick={onClick} className={`flex items-center gap-3 rounded-lg border p-3.5 text-left ${selected ? "border-2 border-oliva bg-[#F1F4EE]" : "border-piedra/70"}`}>
-      <i className={`ti ${icon} text-2xl text-oliva`} aria-hidden />
-      <div>
-        <span className="block text-[13px] font-medium text-tinta">{title}</span>
-        <span className="text-[11.5px] text-tinta-suave">{subtitle}</span>
-      </div>
     </button>
   );
 }

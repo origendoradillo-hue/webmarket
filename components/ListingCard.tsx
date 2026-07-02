@@ -13,7 +13,7 @@ export default function ListingCard({ listing: l, onOpen }: ListingCardProps) {
   const fallbackColor = fallbackColorFor(l.id);
   const isVecino = l.tipoPublicador === "vecino";
   const isNegocio = l.tipoPublicador === "negocio";
-  const isDemanda = l.tipoAviso === "demanda";
+  const isDemanda = l.intencion === "busco";
 
   return (
     <div
@@ -71,12 +71,17 @@ export default function ListingCard({ listing: l, onOpen }: ListingCardProps) {
       </div>
 
       <div className="px-3 pb-3 pt-[18px]">
-        <p className="mb-1 text-[10px] uppercase tracking-wide text-piedra">{l.subcategoria}</p>
+        <p className="mb-1 text-[10px] uppercase tracking-wide text-piedra">{l.subcategoria || "Otro"}</p>
         <h3 className="mb-0.5 font-slab text-sm font-semibold leading-tight text-tinta">{l.nombre}</h3>
         <p className="mb-2 text-[11.5px] text-piedra">
           {l.barrio || "El Doradillo"} · {l.zona}
           {l.cuadrante ? ` ${l.cuadrante}` : ""}
         </p>
+        {(l.precio || l.precioConsultar) && (
+          <p className="mb-1.5 font-slab text-[13px] font-semibold text-tinta">
+            {l.precioConsultar ? "A consultar" : `$${l.precio!.toLocaleString("es-AR")}`}
+          </p>
+        )}
         {l.tags && l.tags.length > 0 && (
           <p className="mb-2 truncate text-[10.5px] text-golfo">{l.tags.slice(0, 3).map((t) => `#${t.replace(/\s+/g, "")}`).join(" ")}</p>
         )}

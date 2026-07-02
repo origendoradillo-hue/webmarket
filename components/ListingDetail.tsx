@@ -23,7 +23,7 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, onRequi
   const fallbackColor = fallbackColorFor(l.id);
   const isVecino = l.tipoPublicador === "vecino";
   const isNegocio = l.tipoPublicador === "negocio";
-  const isDemanda = l.tipoAviso === "demanda";
+  const isDemanda = l.intencion === "busco";
   const mapsUrl = l.direccion
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(l.direccion + " Puerto Madryn")}`
     : null;
@@ -101,8 +101,13 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, onRequi
 
           <h2 className="mb-1 font-slab text-xl font-semibold text-tinta sm:text-[22px]">{l.nombre}</h2>
           <p className="mb-1 text-[13px] text-tinta-suave">
-            {CATEGORIES[l.categoria].label} · {l.subcategoria}
+            {l.categoria ? `${CATEGORIES[l.categoria].label}${l.subcategoria ? ` · ${l.subcategoria}` : ""}` : "Otro"}
           </p>
+          {(l.precio || l.precioConsultar) && (
+            <p className="mb-1 font-slab text-lg font-semibold text-tinta">
+              {l.precioConsultar ? "Precio a consultar" : `$${l.precio!.toLocaleString("es-AR")}`}
+            </p>
+          )}
           <p className="mb-3 flex items-center gap-1 text-[13.5px] font-medium text-tinta">
             <i className="ti ti-map-pin-filled text-xs" aria-hidden />
             {l.barrio || "El Doradillo"} · {l.zona}

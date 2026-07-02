@@ -1,23 +1,35 @@
 import { CATEGORIES } from "@/lib/data";
-import { CategoryKey, Listing } from "@/lib/types";
+import { CategoryKey, Listing, TipoPublicacion } from "@/lib/types";
 import { ListingRow } from "./types";
 
+const TIPO_ICON: Record<TipoPublicacion, string> = {
+  producto: "ti-box",
+  servicio: "ti-tools",
+  experiencia: "ti-compass",
+  inmueble: "ti-home",
+  usado_herramienta: "ti-recycle",
+  otro: "ti-dots",
+};
+
 export function mapListingRow(row: ListingRow, publisherName: string | null): Listing {
-  const categoria = (row.categoria as CategoryKey) in CATEGORIES ? (row.categoria as CategoryKey) : "otro";
+  const categoria = row.categoria && row.categoria in CATEGORIES ? (row.categoria as CategoryKey) : undefined;
   const nombrePublicador = publisherName?.trim() || "Vecino de la zona";
+  const tipo = (row.tipo as TipoPublicacion) || undefined;
 
   return {
     id: row.id,
     isReal: true,
     nombre: row.nombre,
-    tipoAviso: row.tipo_aviso,
+    intencion: row.intencion,
+    tipo,
     categoria,
-    subcategoria: row.subcategoria,
+    subcategoria: row.subcategoria || undefined,
     zona: row.zona,
     cuadrante: (row.cuadrante as Listing["cuadrante"]) || undefined,
     direccion: row.direccion || undefined,
-    icono: CATEGORIES[categoria].icon,
-    sello: false,
+    icono: categoria ? CATEGORIES[categoria].icon : tipo ? TIPO_ICON[tipo] : "ti-search",
+    sello: row.sello,
+    destacada: row.destacada,
     rating: 0,
     reseñas: 0,
     modalidad: row.modalidad,
@@ -29,8 +41,11 @@ export function mapListingRow(row: ListingRow, publisherName: string | null): Li
       .join("")
       .toUpperCase(),
     foto: row.foto_url || undefined,
-    tipoPublicador: row.tipo_aviso !== "oferta" ? "vecino" : row.rol === "negocio" ? "negocio" : "vecino",
+    tipoPublicador: row.intencion !== "ofrezco" ? "vecino" : row.rol === "negocio" ? "negocio" : "vecino",
     cantidad: row.cantidad || undefined,
     tags: row.tags,
+    precio: row.precio || undefined,
+    precioConsultar: row.precio_a_consultar,
+    detalles: row.detalles || undefined,
   };
 }

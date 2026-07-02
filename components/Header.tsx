@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 
 interface HeaderProps {
   onOpenMap: () => void;
@@ -9,9 +10,10 @@ interface HeaderProps {
   userEmail: string | null;
   onOpenAuth: () => void;
   onSignOut: () => void;
+  isStaff?: boolean;
 }
 
-export default function Header({ onOpenMap, onOpenPublish, onLogoClick, userEmail, onOpenAuth, onSignOut }: HeaderProps) {
+export default function Header({ onOpenMap, onOpenPublish, onLogoClick, userEmail, onOpenAuth, onSignOut, isStaff }: HeaderProps) {
   return (
     <header className="sticky top-0 z-20 flex items-center justify-between gap-2 border-b border-piedra/50 bg-hueso-2 px-4 py-3 sm:px-7 sm:py-4">
       <button
@@ -49,6 +51,15 @@ export default function Header({ onOpenMap, onOpenPublish, onLogoClick, userEmai
         >
           Publicar
         </button>
+        {isStaff && (
+          <Link
+            href="/admin"
+            className="flex items-center gap-1.5 rounded-lg border border-dorado px-2.5 py-2 text-xs font-medium text-dorado sm:px-4 sm:text-sm"
+          >
+            <i className="ti ti-shield-star text-base" aria-hidden />
+            <span className="hidden sm:inline">Panel admin</span>
+          </Link>
+        )}
         {userEmail ? (
           <button
             onClick={onSignOut}

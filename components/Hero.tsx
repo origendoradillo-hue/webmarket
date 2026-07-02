@@ -27,7 +27,7 @@ export default function Hero({ query, onQueryChange }: HeroProps) {
           type="text"
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
-          placeholder="Buscar: aceite, jardinero, alojamiento…"
+          placeholder="¿Qué estás buscando en El Doradillo?"
           className="flex-1 rounded-lg border-none px-3.5 py-3 font-sans text-sm text-tinta outline-none"
         />
         <button
