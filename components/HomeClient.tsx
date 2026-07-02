@@ -190,6 +190,7 @@ export default function HomeClient() {
   }, [allListings, cat, sub, query, intencionFilter, tipoFilter, etiquetaFilter]);
 
   const seleccionOrigen = useMemo(() => allListings.filter((l) => l.sello), [allListings]);
+  const destacados = useMemo(() => allListings.filter((l) => l.destacada), [allListings]);
   const productosRecientes = useMemo(() => allListings.filter((l) => l.tipo === "producto").slice(0, 10), [allListings]);
   const serviciosDisponibles = useMemo(() => allListings.filter((l) => l.tipo === "servicio").slice(0, 10), [allListings]);
   const usadosRecientes = useMemo(() => allListings.filter((l) => l.tipo === "usado").slice(0, 10), [allListings]);
@@ -224,7 +225,12 @@ export default function HomeClient() {
       )}
 
       <main className="mx-auto max-w-[1240px] px-4 pb-12 sm:px-7">
-        {screen === "home" && <CuratedRow title="Selección Origen" icon="ti-sparkles" listings={seleccionOrigen.slice(0, 4)} onOpen={setActiveListing} />}
+        {screen === "home" && (
+          <>
+            <CuratedRow title="Selección Origen" icon="ti-sparkles" listings={seleccionOrigen.slice(0, 4)} onOpen={setActiveListing} />
+            <CuratedRow title="Productos destacados" icon="ti-star" listings={destacados.slice(0, 4)} onOpen={setActiveListing} />
+          </>
+        )}
 
         {screen === "explorar" && (
           <div className="pt-2">
