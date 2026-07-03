@@ -42,6 +42,7 @@ interface EditForm {
   cuadrante: string;
   direccion: string;
   tags: string;
+  whatsappPublico: boolean;
 }
 
 export default function MyListingsModal({ open, onClose, user }: MyListingsModalProps) {
@@ -90,6 +91,7 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
       cuadrante: l.cuadrante || "",
       direccion: l.direccion || "",
       tags: (l.tags || []).join(", "),
+      whatsappPublico: l.whatsapp_publico,
     });
     const supabase = createClient();
     const { data } = await supabase.from("listing_images").select("id, url").eq("listing_id", l.id).order("orden");
@@ -152,6 +154,7 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
         .split(",")
         .map((t) => t.trim())
         .filter(Boolean),
+      p_whatsapp_publico: editForm.whatsappPublico,
       ...(fotoUrlParam ? { p_foto_url: fotoUrlParam } : {}),
     });
     if (error) {
@@ -294,6 +297,16 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
                           className="w-full rounded-lg border border-piedra/70 bg-white px-2.5 py-2 text-[13px] text-tinta"
                         />
                       </MiniField>
+
+                      <label className="mb-2.5 flex items-start gap-2 text-[12px] text-tinta">
+                        <input
+                          type="checkbox"
+                          className="mt-0.5"
+                          checked={editForm.whatsappPublico}
+                          onChange={(e) => setEditForm({ ...editForm, whatsappPublico: e.target.checked })}
+                        />
+                        Mostrar mi WhatsApp sin pedir inicio de sesión
+                      </label>
 
                       <MiniField label="Fotos">
                         <div className="grid grid-cols-4 gap-2">

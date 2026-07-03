@@ -48,5 +48,6 @@ export function mapListingRow(row: ListingRow, publisherName: string | null, cat
     precio: row.precio || undefined,
     precioConsultar: row.precio_a_consultar,
     detalles: row.detalles || undefined,
+    whatsappPublico: row.whatsapp_publico,
   };
 }

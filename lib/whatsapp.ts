@@ -6,6 +6,6 @@ import { Listing } from "./types";
 const DEMO_WHATSAPP = "5491136450498";
 
 export function buildWhatsappLink(listing: Listing): string {
-  const mensaje = `Hola, vi tu publicación de ${listing.nombre} en Origen El Doradillo`;
+  const mensaje = `Hola, vi tu publicación en Origen El Doradillo sobre ${listing.nombre}. Quería consultar si sigue disponible.`;
   return `https://wa.me/${DEMO_WHATSAPP}?text=${encodeURIComponent(mensaje)}`;
 }

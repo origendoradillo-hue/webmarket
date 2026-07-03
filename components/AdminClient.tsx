@@ -661,6 +661,7 @@ function AdminListingRow({
     cuadrante: l.cuadrante || "",
     direccion: l.direccion || "",
     tags: l.tags.join(", "),
+    whatsappPublico: l.whatsapp_publico,
   });
 
   const [images, setImages] = useState<{ id: string; url: string }[]>([]);
@@ -745,6 +746,7 @@ function AdminListingRow({
       p_cuadrante: form.cuadrante || null,
       p_direccion: form.direccion || null,
       p_tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
+      p_whatsapp_publico: form.whatsappPublico,
     });
     setSaving(false);
     if (error) alert(error.message);
@@ -898,6 +900,15 @@ function AdminListingRow({
             />
           </div>
           <LabeledInput label="Palabras clave (separadas por coma)" value={form.tags} onChange={(v) => setForm({ ...form, tags: v })} />
+
+          <label className="flex items-center gap-1.5 text-[11.5px] text-tinta">
+            <input
+              type="checkbox"
+              checked={form.whatsappPublico}
+              onChange={(e) => setForm({ ...form, whatsappPublico: e.target.checked })}
+            />
+            WhatsApp público (sin login)
+          </label>
 
           <div>
             <label className="mb-1 block text-[11px] font-medium text-tinta">Foto de portada (cargar/reemplazar en nombre del vecino)</label>

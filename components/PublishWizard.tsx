@@ -44,6 +44,7 @@ interface PublishData {
   direccion: string;
   nombreVecino: string;
   whatsapp: string;
+  whatsappPublico: boolean;
 }
 
 const DEFAULTS: PublishData = {
@@ -75,6 +76,7 @@ const DEFAULTS: PublishData = {
   direccion: "",
   nombreVecino: "",
   whatsapp: "",
+  whatsappPublico: false,
 };
 
 const TIPO_OPTIONS: { value: TipoPublicacion; icon: string; label: string }[] = [
@@ -271,6 +273,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
           cantidad,
           precio: precioNum,
           precio_a_consultar: data.intencion === "busco" ? false : data.precioConsultar,
+          whatsapp_publico: data.whatsappPublico,
           detalles,
         })
         .select("id")
@@ -782,6 +785,21 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
                       className="w-full rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta"
                     />
                   </Field>
+                  <label className="flex items-start gap-2 text-[12.5px] text-tinta">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5"
+                      checked={data.whatsappPublico}
+                      onChange={(e) => update("whatsappPublico", e.target.checked)}
+                    />
+                    <span>
+                      Mostrar mi WhatsApp sin pedir inicio de sesión
+                      <span className="mt-0.5 block text-[11px] text-tinta-suave">
+                        Útil para alojamientos, experiencias o gastronomía: cualquier visitante puede contactarte directo.
+                        Si lo dejás sin marcar, van a necesitar iniciar sesión para ver tu contacto.
+                      </span>
+                    </span>
+                  </label>
                 </>
               )}
             </div>

@@ -53,6 +53,7 @@ export interface Listing {
   precio?: number;
   precioConsultar?: boolean;
   detalles?: Record<string, unknown>;
+  whatsappPublico?: boolean;
 }
 
 // Anuncios: eventos, avisos barriales, sponsors, promos, comunicados, ferias,

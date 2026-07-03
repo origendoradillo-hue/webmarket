@@ -54,8 +54,10 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, onRequi
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(l.direccion + " Puerto Madryn")}`
     : null;
 
+  const requiereLogin = listing.isReal && !listing.whatsappPublico;
+
   async function handleContact() {
-    if (!isLoggedIn) {
+    if (requiereLogin && !isLoggedIn) {
       onRequireAuth();
       return;
     }
@@ -78,7 +80,7 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, onRequi
       return;
     }
 
-    const mensaje = `Hola, vi tu publicación de ${listing.nombre} en Origen El Doradillo`;
+    const mensaje = `Hola, vi tu publicación en Origen El Doradillo sobre ${listing.nombre}. Quería consultar si sigue disponible.`;
     window.open(`https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}`, "_blank");
   }
 
@@ -237,13 +239,18 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, onRequi
             </div>
           </div>
 
+          {requiereLogin && !isLoggedIn && (
+            <p className="mb-2.5 text-[12px] text-tinta-suave">
+              Para cuidar la seguridad de la comunidad, necesitás iniciar sesión para ver este contacto.
+            </p>
+          )}
           <button
             onClick={handleContact}
             disabled={contacting}
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-oliva py-3.5 text-[14.5px] font-semibold text-hueso disabled:opacity-60"
           >
             <i className="ti ti-brand-whatsapp text-lg" aria-hidden />
-            {contacting ? "Un momento..." : isLoggedIn ? "Contactar por WhatsApp" : "Ingresá para contactar"}
+            {contacting ? "Un momento..." : requiereLogin && !isLoggedIn ? "Ingresá para contactar" : "Contactar por WhatsApp"}
           </button>
         </div>
       </div>

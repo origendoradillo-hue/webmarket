@@ -74,6 +74,7 @@ export interface Database {
           cantidad: number | null;
           precio: number | null;
           precio_a_consultar: boolean;
+          whatsapp_publico: boolean;
           sello: boolean;
           destacada: boolean;
           detalles: Record<string, unknown>;
@@ -100,6 +101,7 @@ export interface Database {
           cantidad?: number | null;
           precio?: number | null;
           precio_a_consultar?: boolean;
+          whatsapp_publico?: boolean;
           detalles?: Record<string, unknown>;
           status?: "activa";
         };
@@ -165,12 +167,14 @@ export interface Database {
         Row: {
           id: string;
           listing_id: string;
-          clicked_by: string;
+          clicked_by: string | null;
+          tipo_contacto: "publico" | "con_login";
           created_at: string;
         };
         Insert: {
           listing_id: string;
-          clicked_by: string;
+          clicked_by?: string | null;
+          tipo_contacto?: "publico" | "con_login";
         };
         Update: {
           listing_id?: string;
@@ -273,6 +277,7 @@ export interface Database {
           p_zona?: string | null;
           p_cuadrante?: string | null;
           p_direccion?: string | null;
+          p_whatsapp_publico?: boolean | null;
         };
         Returns: undefined;
       };
@@ -294,6 +299,7 @@ export interface Database {
           p_cuadrante?: string | null;
           p_direccion?: string | null;
           p_nota?: string | null;
+          p_whatsapp_publico?: boolean | null;
         };
         Returns: undefined;
       };
