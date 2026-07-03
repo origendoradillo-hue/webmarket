@@ -144,7 +144,7 @@ export interface Database {
       moderacion_log: {
         Row: {
           id: string;
-          entity_type: "listing" | "anuncio";
+          entity_type: "listing" | "anuncio" | "denuncia";
           entity_id: string;
           actor_id: string | null;
           accion: string;
@@ -152,7 +152,7 @@ export interface Database {
           created_at: string;
         };
         Insert: {
-          entity_type: "listing" | "anuncio";
+          entity_type: "listing" | "anuncio" | "denuncia";
           entity_id: string;
           actor_id?: string | null;
           accion: string;
@@ -217,6 +217,50 @@ export interface Database {
         Update: { label?: string; orden?: number };
         Relationships: [];
       };
+      listing_reports: {
+        Row: {
+          id: string;
+          listing_id: string;
+          reporter_id: string;
+          motivo:
+            | "informacion_falsa"
+            | "producto_no_disponible"
+            | "precio_no_coincide"
+            | "publicador_no_responde"
+            | "sospecha_estafa"
+            | "contenido_inapropiado"
+            | "categoria_incorrecta"
+            | "publicacion_duplicada"
+            | "fotos_falsas"
+            | "otro";
+          justificacion: string;
+          evidencia_url: string | null;
+          estado: "pendiente" | "en_revision" | "resuelta" | "rechazada";
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          listing_id: string;
+          reporter_id: string;
+          motivo:
+            | "informacion_falsa"
+            | "producto_no_disponible"
+            | "precio_no_coincide"
+            | "publicador_no_responde"
+            | "sospecha_estafa"
+            | "contenido_inapropiado"
+            | "categoria_incorrecta"
+            | "publicacion_duplicada"
+            | "fotos_falsas"
+            | "otro";
+          justificacion: string;
+          evidencia_url?: string | null;
+        };
+        Update: {
+          estado?: "pendiente" | "en_revision" | "resuelta" | "rechazada";
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -254,6 +298,10 @@ export interface Database {
       };
       admin_add_nota: {
         Args: { p_entity_type: string; p_entity_id: string; p_nota: string };
+        Returns: undefined;
+      };
+      admin_set_report_status: {
+        Args: { p_report_id: string; p_estado: string; p_nota?: string | null };
         Returns: undefined;
       };
       mi_set_listing_status: {
@@ -339,3 +387,4 @@ export type ModeracionLogRow = Database["public"]["Tables"]["moderacion_log"]["R
 export type CategoryRow = Database["public"]["Tables"]["categories"]["Row"];
 export type SubcategoryRow = Database["public"]["Tables"]["subcategories"]["Row"];
 export type ZoneRow = Database["public"]["Tables"]["zones"]["Row"];
+export type ListingReportRow = Database["public"]["Tables"]["listing_reports"]["Row"];

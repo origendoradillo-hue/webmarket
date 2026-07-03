@@ -13,9 +13,10 @@ interface ListingDetailProps {
   onClose: () => void;
   isLoggedIn: boolean;
   onRequireAuth: () => void;
+  onReport: () => void;
 }
 
-export default function ListingDetail({ listing: l, onClose, isLoggedIn, onRequireAuth }: ListingDetailProps) {
+export default function ListingDetail({ listing: l, onClose, isLoggedIn, onRequireAuth, onReport }: ListingDetailProps) {
   const { categories } = useCategories();
   const [contacting, setContacting] = useState(false);
   const [images, setImages] = useState<string[]>([]);
@@ -252,6 +253,16 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, onRequi
             <i className="ti ti-brand-whatsapp text-lg" aria-hidden />
             {contacting ? "Un momento..." : requiereLogin && !isLoggedIn ? "Ingresá para contactar" : "Contactar por WhatsApp"}
           </button>
+
+          {listing.isReal && (
+            <button
+              onClick={() => (isLoggedIn ? onReport() : onRequireAuth())}
+              className="mt-3 flex w-full items-center justify-center gap-1.5 text-[12px] text-tinta-suave"
+            >
+              <i className="ti ti-flag text-sm" aria-hidden />
+              Denunciar publicación
+            </button>
+          )}
         </div>
       </div>
     </div>

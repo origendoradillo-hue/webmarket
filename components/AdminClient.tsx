@@ -3,9 +3,39 @@
 import { useCallback, useEffect, useState } from "react";
 import { useCategories } from "@/lib/useCategories";
 import { createClient } from "@/lib/supabase/client";
-import type { AnuncioRow, CategoryRow, ListingRow, ModeracionLogRow, ProfileRow, SubcategoryRow, ZoneRow } from "@/lib/supabase/types";
+import type {
+  AnuncioRow,
+  CategoryRow,
+  ListingReportRow,
+  ListingRow,
+  ModeracionLogRow,
+  ProfileRow,
+  SubcategoryRow,
+  ZoneRow,
+} from "@/lib/supabase/types";
 
-type Tab = "publicaciones" | "anuncios" | "usuarios" | "categorias";
+type Tab = "publicaciones" | "anuncios" | "denuncias" | "usuarios" | "categorias";
+
+const REPORT_MOTIVO_LABELS: Record<string, string> = {
+  informacion_falsa: "Información falsa o engañosa",
+  producto_no_disponible: "Producto no disponible",
+  precio_no_coincide: "Precio o condiciones no coinciden",
+  publicador_no_responde: "Publicador no responde",
+  sospecha_estafa: "Sospecha de estafa",
+  contenido_inapropiado: "Contenido inapropiado",
+  categoria_incorrecta: "Categoría incorrecta",
+  publicacion_duplicada: "Publicación duplicada",
+  fotos_falsas: "Fotos falsas o robadas",
+  otro: "Otro",
+};
+
+const REPORT_STATUS_LABELS: Record<string, string> = {
+  pendiente: "Pendiente",
+  en_revision: "En revisión",
+  resuelta: "Resuelta",
+  rechazada: "Rechazada",
+};
+const REPORT_STATUS_OPTIONS = Object.keys(REPORT_STATUS_LABELS);
 
 const LISTING_STATUS_LABELS: Record<string, string> = {
   borrador: "Borrador",
@@ -35,6 +65,10 @@ const ROLE_OPTIONS = ["publicador", "admin", "superadmin"];
 
 type ListingWithPublisher = ListingRow & { profiles: { full_name: string | null; email: string | null; whatsapp_number: string | null } | null };
 type AnuncioWithSolicitante = AnuncioRow & { profiles: { full_name: string | null; email: string | null; whatsapp_number: string | null } | null };
+type ReportWithDetails = ListingReportRow & {
+  profiles: { full_name: string | null; email: string | null } | null;
+  listings: { nombre: string } | null;
+};
 
 interface AdminClientProps {
   role: string;
@@ -47,10 +81,12 @@ export default function AdminClient({ role }: AdminClientProps) {
   const [tab, setTab] = useState<Tab>("publicaciones");
   const [listings, setListings] = useState<ListingWithPublisher[]>([]);
   const [anuncios, setAnuncios] = useState<AnuncioWithSolicitante[]>([]);
+  const [reports, setReports] = useState<ReportWithDetails[]>([]);
   const [users, setUsers] = useState<ProfileRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedListing, setExpandedListing] = useState<string | null>(null);
   const [expandedAnuncio, setExpandedAnuncio] = useState<string | null>(null);
+  const [expandedReport, setExpandedReport] = useState<string | null>(null);
   const [filtroEstado, setFiltroEstado] = useState("todos");
   const [filtroTexto, setFiltroTexto] = useState("");
   const [filtroCategoria, setFiltroCategoria] = useState("todas");
@@ -84,6 +120,15 @@ export default function AdminClient({ role }: AdminClientProps) {
     setAnuncios((data as never as AnuncioWithSolicitante[]) || []);
   }, []);
 
+  const loadReports = useCallback(async () => {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("listing_reports")
+      .select("*, profiles(full_name, email), listings(nombre)")
+      .order("created_at", { ascending: false });
+    setReports((data as never as ReportWithDetails[]) || []);
+  }, []);
+
   const loadUsers = useCallback(async () => {
     const supabase = createClient();
     const { data } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
@@ -91,8 +136,8 @@ export default function AdminClient({ role }: AdminClientProps) {
   }, []);
 
   useEffect(() => {
-    Promise.all([loadListings(), loadAnuncios(), loadUsers()]).finally(() => setLoading(false));
-  }, [loadListings, loadAnuncios, loadUsers]);
+    Promise.all([loadListings(), loadAnuncios(), loadReports(), loadUsers()]).finally(() => setLoading(false));
+  }, [loadListings, loadAnuncios, loadReports, loadUsers]);
 
   async function changeRole(userId: string, newRole: string) {
     const supabase = createClient();
@@ -145,6 +190,7 @@ export default function AdminClient({ role }: AdminClientProps) {
 
   const pendingListings = listings.filter((l) => l.status === "activa" && Date.now() - new Date(l.created_at).getTime() < 1000 * 60 * 60 * 24);
   const solicitadosAnuncios = anuncios.filter((a) => a.status === "solicitado" || a.status === "en_conversacion");
+  const denunciasPendientes = reports.filter((r) => r.estado === "pendiente" || r.estado === "en_revision");
 
   const filteredListings = listings.filter((l) => {
     if (filtroEstado !== "todos" && l.status !== filtroEstado) return false;
@@ -172,6 +218,9 @@ export default function AdminClient({ role }: AdminClientProps) {
           </TabButton>
           <TabButton active={tab === "anuncios"} onClick={() => setTab("anuncios")}>
             Anuncios {solicitadosAnuncios.length > 0 && `(${solicitadosAnuncios.length})`}
+          </TabButton>
+          <TabButton active={tab === "denuncias"} onClick={() => setTab("denuncias")}>
+            Denuncias {denunciasPendientes.length > 0 && `(${denunciasPendientes.length})`}
           </TabButton>
           {isSuperadmin && (
             <TabButton active={tab === "usuarios"} onClick={() => setTab("usuarios")}>
@@ -294,6 +343,19 @@ export default function AdminClient({ role }: AdminClientProps) {
                 expanded={expandedAnuncio === a.id}
                 onToggle={() => setExpandedAnuncio(expandedAnuncio === a.id ? null : a.id)}
                 onSaved={loadAnuncios}
+              />
+            ))}
+          </div>
+        ) : tab === "denuncias" ? (
+          <div className="flex flex-col gap-2">
+            {reports.length === 0 && <p className="text-sm text-tinta-suave">Todavía no hay denuncias.</p>}
+            {reports.map((r) => (
+              <AdminReportRow
+                key={r.id}
+                report={r}
+                expanded={expandedReport === r.id}
+                onToggle={() => setExpandedReport(expandedReport === r.id ? null : r.id)}
+                onSaved={loadReports}
               />
             ))}
           </div>
@@ -1146,6 +1208,134 @@ function AdminAnuncioRow({
                 value={nota}
                 onChange={(e) => setNota(e.target.value)}
                 placeholder="Ej: acordamos publicarlo la semana que viene"
+                className="w-full rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
+              />
+              <button onClick={agregarNota} className="flex-shrink-0 rounded-lg border border-piedra/70 px-3 py-1.5 text-xs text-tinta">
+                Agregar
+              </button>
+            </div>
+            {historial.length > 0 && (
+              <div className="mt-2 flex flex-col gap-1.5">
+                {historial.map((h) => (
+                  <p key={h.id} className="text-[11px] text-tinta-suave">
+                    <span className="font-medium text-tinta">{h.accion}</span>
+                    {h.detalle ? ` — ${h.detalle}` : ""} · {new Date(h.created_at).toLocaleString("es-AR")}
+                  </p>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------- Denuncias ----------
+
+function AdminReportRow({
+  report: r,
+  expanded,
+  onToggle,
+  onSaved,
+}: {
+  report: ReportWithDetails;
+  expanded: boolean;
+  onToggle: () => void;
+  onSaved: () => void;
+}) {
+  const [saving, setSaving] = useState(false);
+  const [nota, setNota] = useState("");
+  const [historial, setHistorial] = useState<ModeracionLogRow[]>([]);
+
+  const loadHistorial = useCallback(async () => {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("moderacion_log")
+      .select("*")
+      .eq("entity_type", "denuncia")
+      .eq("entity_id", r.id)
+      .order("created_at", { ascending: false });
+    setHistorial(data || []);
+  }, [r.id]);
+
+  useEffect(() => {
+    if (expanded) loadHistorial();
+  }, [expanded, loadHistorial]);
+
+  async function cambiarEstado(estado: string) {
+    setSaving(true);
+    const supabase = createClient();
+    const { error } = await supabase.rpc("admin_set_report_status", { p_report_id: r.id, p_estado: estado });
+    setSaving(false);
+    if (error) alert(error.message);
+    else {
+      onSaved();
+      loadHistorial();
+    }
+  }
+
+  async function agregarNota() {
+    if (!nota.trim()) return;
+    const supabase = createClient();
+    const { error } = await supabase.rpc("admin_add_nota", { p_entity_type: "denuncia", p_entity_id: r.id, p_nota: nota });
+    if (error) alert(error.message);
+    else {
+      setNota("");
+      loadHistorial();
+    }
+  }
+
+  return (
+    <div className="rounded-lg border border-piedra/50 bg-white p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="cursor-pointer" onClick={onToggle}>
+          <p className="text-sm font-semibold text-tinta">{REPORT_MOTIVO_LABELS[r.motivo] ?? r.motivo}</p>
+          <p className="text-xs text-tinta-suave">
+            Publicación: {r.listings?.nombre ?? "(eliminada)"} · Denunciante: {r.profiles?.full_name || r.profiles?.email || "?"}
+          </p>
+          <p className="text-xs text-tinta-suave">{new Date(r.created_at).toLocaleString("es-AR")}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="rounded-full border border-piedra/60 px-2 py-1 text-[11px] text-tinta">{REPORT_STATUS_LABELS[r.estado]}</span>
+          <button onClick={onToggle} className="rounded-lg border border-piedra/70 px-2.5 py-1.5 text-xs text-tinta">
+            {expanded ? "Cerrar" : "Revisar"}
+          </button>
+        </div>
+      </div>
+
+      {expanded && (
+        <div className="mt-3 flex flex-col gap-3 border-t border-piedra/40 pt-3">
+          <p className="text-xs text-tinta">
+            <span className="font-medium">Justificación:</span> {r.justificacion}
+          </p>
+          {r.evidencia_url && (
+            <a href={r.evidencia_url} target="_blank" rel="noreferrer" className="text-xs text-golfo">
+              Ver evidencia
+            </a>
+          )}
+
+          <div className="flex flex-wrap gap-2">
+            {REPORT_STATUS_OPTIONS.map((s) => (
+              <button
+                key={s}
+                disabled={saving}
+                onClick={() => cambiarEstado(s)}
+                className={`rounded-lg border px-2.5 py-1.5 text-xs ${r.estado === s ? "border-oliva bg-oliva text-hueso" : "border-piedra/70 text-tinta"}`}
+              >
+                {REPORT_STATUS_LABELS[s]}
+              </button>
+            ))}
+          </div>
+
+          <div className="border-t border-piedra/40 pt-3">
+            <label className="mb-1 block text-[11px] font-medium text-tinta">Nota interna</label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={nota}
+                onChange={(e) => setNota(e.target.value)}
+                placeholder="Ej: contacté al publicador, aclaró el precio"
                 className="w-full rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
               />
               <button onClick={agregarNota} className="flex-shrink-0 rounded-lg border border-piedra/70 px-3 py-1.5 text-xs text-tinta">
