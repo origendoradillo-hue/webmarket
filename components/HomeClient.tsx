@@ -21,6 +21,7 @@ import MapModal from "./MapModal";
 import PublishWizard from "./PublishWizard";
 import AnuncioRequestForm from "./AnuncioRequestForm";
 import AuthModal from "./AuthModal";
+import ProfileModal from "./ProfileModal";
 import Footer from "./Footer";
 
 const ETIQUETAS: { value: Etiqueta; label: string }[] = [
@@ -47,6 +48,7 @@ export default function HomeClient() {
   const [anuncioFormOpen, setAnuncioFormOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "signup" | "forgot" | "reset">("login");
+  const [profileOpen, setProfileOpen] = useState(false);
   const [realListings, setRealListings] = useState<Listing[]>([]);
   const [realAnuncios, setRealAnuncios] = useState<Anuncio[]>([]);
 
@@ -171,7 +173,7 @@ export default function HomeClient() {
     await supabase.auth.signOut();
   }
 
-  const modalOpen = !!activeListing || mapOpen || publishOpen || anuncioFormOpen || authOpen;
+  const modalOpen = !!activeListing || mapOpen || publishOpen || anuncioFormOpen || authOpen || profileOpen;
   useEffect(() => {
     document.body.style.overflow = modalOpen ? "hidden" : "";
     return () => {
@@ -221,6 +223,7 @@ export default function HomeClient() {
         onLogoClick={resetFilters}
         userEmail={user?.email ?? null}
         onOpenAuth={openAuth}
+        onOpenProfile={() => setProfileOpen(true)}
         onSignOut={handleSignOut}
         isStaff={isStaff}
       />
@@ -316,6 +319,7 @@ export default function HomeClient() {
       )}
       {user && <AnuncioRequestForm open={anuncioFormOpen} onClose={() => setAnuncioFormOpen(false)} user={user} />}
       <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} initialMode={authMode} />
+      {user && <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} user={user} />}
     </>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -9,11 +10,24 @@ interface HeaderProps {
   onLogoClick: () => void;
   userEmail: string | null;
   onOpenAuth: () => void;
+  onOpenProfile: () => void;
   onSignOut: () => void;
   isStaff?: boolean;
 }
 
-export default function Header({ onOpenMap, onOpenPublish, onLogoClick, userEmail, onOpenAuth, onSignOut, isStaff }: HeaderProps) {
+export default function Header({ onOpenMap, onOpenPublish, onLogoClick, userEmail, onOpenAuth, onOpenProfile, onSignOut, isStaff }: HeaderProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    }
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, [menuOpen]);
+
   return (
     <header className="sticky top-0 z-20 flex items-center justify-between gap-2 border-b border-piedra/50 bg-hueso-2 px-4 py-3 sm:px-7 sm:py-4">
       <button
@@ -61,14 +75,41 @@ export default function Header({ onOpenMap, onOpenPublish, onLogoClick, userEmai
           </Link>
         )}
         {userEmail ? (
-          <button
-            onClick={onSignOut}
-            title={userEmail}
-            className="flex items-center gap-1.5 rounded-lg border border-piedra/70 px-2.5 py-2 text-xs font-medium text-nogal sm:px-4 sm:text-sm"
-          >
-            <i className="ti ti-user-circle text-base" aria-hidden />
-            <span className="hidden max-w-[120px] truncate sm:inline">{userEmail}</span>
-          </button>
+          <div ref={menuRef} className="relative">
+            <button
+              onClick={() => setMenuOpen((o) => !o)}
+              title={userEmail}
+              className="flex items-center gap-1.5 rounded-lg border border-piedra/70 px-2.5 py-2 text-xs font-medium text-nogal sm:px-4 sm:text-sm"
+            >
+              <i className="ti ti-user-circle text-base" aria-hidden />
+              <span className="hidden max-w-[120px] truncate sm:inline">{userEmail}</span>
+              <i className="ti ti-chevron-down text-sm" aria-hidden />
+            </button>
+            {menuOpen && (
+              <div className="absolute right-0 top-[calc(100%+6px)] z-30 w-44 overflow-hidden rounded-lg border border-piedra/50 bg-white shadow-lg">
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onOpenProfile();
+                  }}
+                  className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-[13px] text-tinta hover:bg-hueso-2"
+                >
+                  <i className="ti ti-user text-base text-oliva" aria-hidden />
+                  Mi perfil
+                </button>
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onSignOut();
+                  }}
+                  className="flex w-full items-center gap-2 border-t border-piedra/30 px-3.5 py-2.5 text-left text-[13px] text-tinta hover:bg-hueso-2"
+                >
+                  <i className="ti ti-logout text-base text-golfo" aria-hidden />
+                  Cerrar sesión
+                </button>
+              </div>
+            )}
+          </div>
         ) : (
           <button
             onClick={onOpenAuth}
