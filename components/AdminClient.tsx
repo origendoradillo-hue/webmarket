@@ -57,6 +57,13 @@ export default function AdminClient({ role }: AdminClientProps) {
   const [filtroTipo, setFiltroTipo] = useState("todos");
   const [filtroDesde, setFiltroDesde] = useState("");
   const [filtroHasta, setFiltroHasta] = useState("");
+  const [newUserEmail, setNewUserEmail] = useState("");
+  const [newUserName, setNewUserName] = useState("");
+  const [newUserWhatsapp, setNewUserWhatsapp] = useState("");
+  const [newUserRole, setNewUserRole] = useState("publicador");
+  const [creatingUser, setCreatingUser] = useState(false);
+  const [createUserError, setCreateUserError] = useState("");
+  const [createdCredentials, setCreatedCredentials] = useState<{ email: string; tempPassword: string } | null>(null);
   const isSuperadmin = role === "superadmin";
 
   const loadListings = useCallback(async () => {
@@ -92,6 +99,48 @@ export default function AdminClient({ role }: AdminClientProps) {
     const { error } = await supabase.rpc("admin_set_role", { p_user_id: userId, p_role: newRole });
     if (error) alert(error.message);
     else await loadUsers();
+  }
+
+  async function toggleBlocked(userId: string, blocked: boolean) {
+    const supabase = createClient();
+    const { error } = await supabase.rpc("admin_set_blocked", { p_user_id: userId, p_blocked: blocked });
+    if (error) alert(error.message);
+    else await loadUsers();
+  }
+
+  async function updateProfileField(userId: string, patch: { full_name?: string; whatsapp_number?: string }) {
+    const supabase = createClient();
+    const { error } = await supabase.rpc("admin_update_profile", {
+      p_user_id: userId,
+      p_full_name: patch.full_name,
+      p_whatsapp_number: patch.whatsapp_number,
+    });
+    if (error) alert(error.message);
+    else await loadUsers();
+  }
+
+  async function createUser() {
+    if (!newUserEmail.trim()) return;
+    setCreatingUser(true);
+    setCreateUserError("");
+    setCreatedCredentials(null);
+    const res = await fetch("/api/admin/create-user", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: newUserEmail, fullName: newUserName, whatsapp: newUserWhatsapp, role: newUserRole }),
+    });
+    const body = await res.json();
+    setCreatingUser(false);
+    if (!res.ok) {
+      setCreateUserError(body.error || "No se pudo crear el usuario.");
+      return;
+    }
+    setCreatedCredentials({ email: body.email, tempPassword: body.tempPassword });
+    setNewUserEmail("");
+    setNewUserName("");
+    setNewUserWhatsapp("");
+    setNewUserRole("publicador");
+    await loadUsers();
   }
 
   const pendingListings = listings.filter((l) => l.status === "activa" && Date.now() - new Date(l.created_at).getTime() < 1000 * 60 * 60 * 24);
@@ -153,6 +202,8 @@ export default function AdminClient({ role }: AdminClientProps) {
                       expanded={expandedListing === l.id}
                       onToggle={() => setExpandedListing(expandedListing === l.id ? null : l.id)}
                       onSaved={loadListings}
+                      users={users}
+                      isSuperadmin={isSuperadmin}
                     />
                   ))}
                 </div>
@@ -226,6 +277,8 @@ export default function AdminClient({ role }: AdminClientProps) {
                     expanded={expandedListing === l.id}
                     onToggle={() => setExpandedListing(expandedListing === l.id ? null : l.id)}
                     onSaved={loadListings}
+                    users={users}
+                    isSuperadmin={isSuperadmin}
                   />
                 ))}
               </div>
@@ -245,17 +298,32 @@ export default function AdminClient({ role }: AdminClientProps) {
             ))}
           </div>
         ) : tab === "usuarios" ? (
-          <div className="flex flex-col gap-2">
-            {users.map((u) => (
-              <div key={u.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-piedra/50 bg-white p-3">
-                <div>
-                  <p className="text-sm font-semibold text-tinta">{u.full_name || "(sin nombre)"}</p>
-                  <p className="text-xs text-tinta-suave">{u.email}</p>
-                  <p className="text-xs text-tinta-suave">{u.whatsapp_number}</p>
-                </div>
+          <div className="flex flex-col gap-6">
+            <div className="rounded-lg border border-dashed border-piedra/70 p-3">
+              <h2 className="mb-2 font-slab text-sm font-semibold uppercase tracking-wide text-piedra">Crear usuario</h2>
+              <div className="flex flex-wrap gap-2">
+                <input
+                  type="email"
+                  value={newUserEmail}
+                  onChange={(e) => setNewUserEmail(e.target.value)}
+                  placeholder="Email"
+                  className="w-52 rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
+                />
+                <input
+                  value={newUserName}
+                  onChange={(e) => setNewUserName(e.target.value)}
+                  placeholder="Nombre"
+                  className="w-40 rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
+                />
+                <input
+                  value={newUserWhatsapp}
+                  onChange={(e) => setNewUserWhatsapp(e.target.value)}
+                  placeholder="WhatsApp"
+                  className="w-36 rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
+                />
                 <select
-                  value={u.role}
-                  onChange={(e) => changeRole(u.id, e.target.value)}
+                  value={newUserRole}
+                  onChange={(e) => setNewUserRole(e.target.value)}
                   className="rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
                 >
                   {ROLE_OPTIONS.map((r) => (
@@ -264,8 +332,69 @@ export default function AdminClient({ role }: AdminClientProps) {
                     </option>
                   ))}
                 </select>
+                <button
+                  onClick={createUser}
+                  disabled={creatingUser}
+                  className="rounded-lg bg-oliva px-3 py-1.5 text-xs font-semibold text-hueso disabled:bg-piedra"
+                >
+                  {creatingUser ? "Creando..." : "Crear usuario"}
+                </button>
               </div>
-            ))}
+              {createUserError && <p className="mt-2 text-xs text-red-700">{createUserError}</p>}
+              {createdCredentials && (
+                <p className="mt-2 rounded-lg bg-[#F1F4EE] px-3 py-2 text-xs text-tinta">
+                  Usuario creado: <strong>{createdCredentials.email}</strong> · Contraseña temporal:{" "}
+                  <strong>{createdCredentials.tempPassword}</strong> — copiala ahora, no se vuelve a mostrar. Va a tener que
+                  cambiarla al ingresar.
+                </p>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2">
+              {users.map((u) => (
+                <div key={u.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-piedra/50 bg-white p-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      defaultValue={u.full_name || ""}
+                      onBlur={(e) => e.target.value.trim() !== (u.full_name || "") && updateProfileField(u.id, { full_name: e.target.value.trim() })}
+                      placeholder="(sin nombre)"
+                      className="w-36 rounded-lg border border-piedra/70 px-2 py-1 text-xs text-tinta"
+                    />
+                    <input
+                      defaultValue={u.whatsapp_number || ""}
+                      onBlur={(e) =>
+                        e.target.value.trim() !== (u.whatsapp_number || "") && updateProfileField(u.id, { whatsapp_number: e.target.value.trim() })
+                      }
+                      placeholder="WhatsApp"
+                      className="w-32 rounded-lg border border-piedra/70 px-2 py-1 text-xs text-tinta"
+                    />
+                    <div>
+                      <p className="text-xs text-tinta-suave">{u.email}</p>
+                      {u.blocked_at && <p className="text-[10px] font-medium text-red-700">Bloqueado</p>}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={u.role}
+                      onChange={(e) => changeRole(u.id, e.target.value)}
+                      className="rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
+                    >
+                      {ROLE_OPTIONS.map((r) => (
+                        <option key={r} value={r}>
+                          {r}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={() => toggleBlocked(u.id, !u.blocked_at)}
+                      className={`rounded-lg border px-2.5 py-1.5 text-xs ${u.blocked_at ? "border-oliva text-oliva" : "border-red-700 text-red-700"}`}
+                    >
+                      {u.blocked_at ? "Desbloquear" : "Bloquear"}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         ) : (
           <CategoriasAdmin />
@@ -506,16 +635,21 @@ function AdminListingRow({
   expanded,
   onToggle,
   onSaved,
+  users,
+  isSuperadmin,
 }: {
   listing: ListingWithPublisher;
   expanded: boolean;
   onToggle: () => void;
   onSaved: () => void;
+  users: ProfileRow[];
+  isSuperadmin: boolean;
 }) {
   const { categories } = useCategories();
   const [saving, setSaving] = useState(false);
   const [nota, setNota] = useState("");
   const [historial, setHistorial] = useState<ModeracionLogRow[]>([]);
+  const [reassignTo, setReassignTo] = useState("");
   const [form, setForm] = useState({
     nombre: l.nombre,
     descripcion: l.descripcion,
@@ -581,6 +715,19 @@ function AdminListingRow({
     const supabase = createClient();
     await supabase.from("listing_images").delete().eq("id", imageId);
     loadImages();
+  }
+
+  async function reasignar() {
+    if (!reassignTo) return;
+    setSaving(true);
+    const supabase = createClient();
+    const { error } = await supabase.rpc("admin_reassign_listing", { p_listing_id: l.id, p_new_publisher_id: reassignTo });
+    setSaving(false);
+    if (error) alert(error.message);
+    else {
+      setReassignTo("");
+      onSaved();
+    }
   }
 
   async function guardarCambios() {
@@ -784,6 +931,35 @@ function AdminListingRow({
           <button onClick={guardarCambios} disabled={saving} className="w-fit rounded-lg bg-oliva px-4 py-2 text-xs font-semibold text-hueso disabled:bg-piedra">
             {saving ? "Guardando..." : "Guardar cambios"}
           </button>
+
+          {isSuperadmin && (
+            <div className="border-t border-piedra/40 pt-3">
+              <label className="mb-1 block text-[11px] font-medium text-tinta">Reasignar a otro usuario</label>
+              <div className="flex gap-2">
+                <select
+                  value={reassignTo}
+                  onChange={(e) => setReassignTo(e.target.value)}
+                  className="flex-1 rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
+                >
+                  <option value="">Elegí un usuario</option>
+                  {users
+                    .filter((u) => u.id !== l.publisher_id)
+                    .map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.full_name || u.email || u.id}
+                      </option>
+                    ))}
+                </select>
+                <button
+                  onClick={reasignar}
+                  disabled={saving || !reassignTo}
+                  className="rounded-lg border border-piedra/70 px-3 py-1.5 text-xs text-tinta disabled:opacity-60"
+                >
+                  Reasignar
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="border-t border-piedra/40 pt-3">
             <label className="mb-1 block text-[11px] font-medium text-tinta">Nota interna (no visible al público)</label>

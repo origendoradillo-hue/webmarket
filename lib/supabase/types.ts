@@ -24,6 +24,7 @@ export interface Database {
         Update: {
           full_name?: string | null;
           whatsapp_number?: string | null;
+          must_change_password?: boolean;
         };
         Relationships: [];
       };
@@ -221,6 +222,18 @@ export interface Database {
       };
       admin_set_role: {
         Args: { p_user_id: string; p_role: string };
+        Returns: undefined;
+      };
+      admin_set_blocked: {
+        Args: { p_user_id: string; p_blocked: boolean };
+        Returns: undefined;
+      };
+      admin_reassign_listing: {
+        Args: { p_listing_id: string; p_new_publisher_id: string };
+        Returns: undefined;
+      };
+      admin_update_profile: {
+        Args: { p_user_id: string; p_full_name?: string | null; p_whatsapp_number?: string | null };
         Returns: undefined;
       };
       admin_set_listing_status: {

@@ -24,6 +24,7 @@ import AnuncioRequestForm from "./AnuncioRequestForm";
 import AuthModal from "./AuthModal";
 import ProfileModal from "./ProfileModal";
 import MyListingsModal from "./MyListingsModal";
+import ForcePasswordModal from "./ForcePasswordModal";
 import Footer from "./Footer";
 
 const ETIQUETAS: { value: Etiqueta; label: string }[] = [
@@ -37,6 +38,8 @@ export default function HomeClient() {
   const { user } = useAuth();
   const { categories } = useCategories();
   const [isStaff, setIsStaff] = useState(false);
+  const [mustChangePassword, setMustChangePassword] = useState(false);
+  const [blocked, setBlocked] = useState(false);
   const [screen, setScreen] = useState<Screen>("home");
   const [resultadosIntencion, setResultadosIntencion] = useState<"ofrezco" | "busco" | null>(null);
   const [cat, setCat] = useState<CategoryKey | "all">("all");
@@ -102,15 +105,21 @@ export default function HomeClient() {
   useEffect(() => {
     if (!user) {
       setIsStaff(false);
+      setMustChangePassword(false);
+      setBlocked(false);
       return;
     }
     const supabase = createClient();
     supabase
       .from("profiles")
-      .select("role")
+      .select("role, must_change_password, blocked_at")
       .eq("id", user.id)
       .single()
-      .then(({ data }) => setIsStaff(!!data && ["admin", "superadmin"].includes(data.role)));
+      .then(({ data }) => {
+        setIsStaff(!!data && ["admin", "superadmin"].includes(data.role));
+        setMustChangePassword(!!data?.must_change_password);
+        setBlocked(!!data?.blocked_at);
+      });
   }, [user]);
 
   useEffect(() => {
@@ -218,6 +227,21 @@ export default function HomeClient() {
   const busquedasActivas = useMemo(() => allListings.filter((l) => l.intencion === "busco").slice(0, 10), [allListings]);
 
   const showingPicker = screen === "resultados" && !!resultadosIntencion && tipoFilter === "all";
+
+  if (user && blocked) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-oliva-dd px-6 text-center">
+        <i className="ti ti-lock text-4xl text-dorado" aria-hidden />
+        <p className="font-slab text-lg font-semibold text-hueso">Tu cuenta fue bloqueada</p>
+        <p className="max-w-sm text-[13px] text-hueso/80">
+          Si creés que es un error, escribinos a origendoradillo@gmail.com.
+        </p>
+        <button onClick={handleSignOut} className="rounded-lg bg-dorado px-5 py-2.5 text-[13.5px] font-semibold text-oliva-dd">
+          Cerrar sesión
+        </button>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -335,6 +359,7 @@ export default function HomeClient() {
           user={user}
         />
       )}
+      {user && <ForcePasswordModal open={mustChangePassword} user={user} onDone={() => setMustChangePassword(false)} />}
     </>
   );
 }
