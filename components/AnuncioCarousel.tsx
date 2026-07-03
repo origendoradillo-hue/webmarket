@@ -63,7 +63,7 @@ export default function AnuncioCarousel({ anuncios }: AnuncioCarouselProps) {
           <p className="mt-1 line-clamp-2 max-w-[560px] text-[12px] text-white/85 sm:text-[13px]">{a.descripcion}</p>
           {(a.fechaEvento || a.lugar) && (
             <p className="mt-1.5 text-[11px] font-medium text-dorado">
-              {a.fechaEvento ? new Date(a.fechaEvento).toLocaleDateString("es-AR") : ""}
+              {a.fechaEvento ? new Date(a.fechaEvento).toLocaleDateString("es-AR", { timeZone: "UTC" }) : ""}
               {a.fechaEvento && a.lugar ? " · " : ""}
               {a.lugar}
             </p>
