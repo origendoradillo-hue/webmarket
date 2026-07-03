@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
-import { CATEGORIES } from "@/lib/data";
+import { useCategories } from "@/lib/useCategories";
 import { CategoryKey, Etiqueta, TipoPublicacion } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 
@@ -133,6 +133,7 @@ interface PublishWizardProps {
 }
 
 export default function PublishWizard({ open, onClose, user, onPublished, onRequestAnuncio }: PublishWizardProps) {
+  const { categories, zones } = useCategories();
   const [stepIndex, setStepIndex] = useState(0);
   const [data, setData] = useState<PublishData>(DEFAULTS);
   const [submitting, setSubmitting] = useState(false);
@@ -398,7 +399,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
                       <p className="mb-1 font-slab text-lg font-semibold text-tinta">Usados</p>
                       <p className="mb-4 text-[13px] text-tinta-suave">Elegí qué tipo de artículo es</p>
                       <div className="flex flex-wrap gap-1.5">
-                        {CATEGORIES.usados.subs.filter((s) => s !== "Herramientas").map((s) => (
+                        {(categories.usados?.subs || []).filter((s) => s !== "Herramientas").map((s) => (
                           <button
                             key={s}
                             onClick={() => update("sub", s)}
@@ -416,7 +417,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
                       <p className="mb-1 font-slab text-lg font-semibold text-tinta">Categoría</p>
                       <p className="mb-4 text-[13px] text-tinta-suave">Elegí el rubro y después la subcategoría</p>
                       <div className="mb-3.5 grid grid-cols-2 gap-2">
-                        {(Object.entries(CATEGORIES) as [CategoryKey, (typeof CATEGORIES)[CategoryKey]][]).map(([key, c]) => (
+                        {Object.entries(categories).map(([key, c]) => (
                           <button
                             key={key}
                             onClick={() => {
@@ -433,7 +434,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
                       </div>
                       {data.cat && (
                         <div className="flex flex-wrap gap-1.5">
-                          {CATEGORIES[data.cat].subs.map((s) => (
+                          {(categories[data.cat]?.subs || []).map((s) => (
                             <button
                               key={s}
                               onClick={() => update("sub", s)}
@@ -721,9 +722,11 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
                       className="w-full rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta"
                     >
                       <option value="">Elegí una zona</option>
-                      <option value="Zona 1">Zona 1</option>
-                      <option value="Zona 2">Zona 2</option>
-                      <option value="Zona 3">Zona 3</option>
+                      {zones.map((z) => (
+                        <option key={z} value={z}>
+                          {z}
+                        </option>
+                      ))}
                     </select>
                   </Field>
                   <Field label="Cuadrante (opcional)">

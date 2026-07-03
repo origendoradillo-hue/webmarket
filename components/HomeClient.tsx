@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CATEGORIES, LISTINGS, ANUNCIOS } from "@/lib/data";
+import { LISTINGS, ANUNCIOS } from "@/lib/data";
+import { useCategories } from "@/lib/useCategories";
 import { Anuncio, CategoryKey, Etiqueta, Listing, TipoPublicacion } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import { mapListingRow } from "@/lib/supabase/mapListing";
@@ -34,6 +35,7 @@ type Screen = "home" | "explorar" | "resultados";
 
 export default function HomeClient() {
   const { user } = useAuth();
+  const { categories } = useCategories();
   const [isStaff, setIsStaff] = useState(false);
   const [screen, setScreen] = useState<Screen>("home");
   const [resultadosIntencion, setResultadosIntencion] = useState<"ofrezco" | "busco" | null>(null);
@@ -65,11 +67,11 @@ export default function HomeClient() {
     if (!error && data) {
       setRealListings(
         (data as unknown as Array<ListingRow & { profiles: { full_name: string | null } | null }>).map((row) =>
-          mapListingRow(row, row.profiles?.full_name ?? null)
+          mapListingRow(row, row.profiles?.full_name ?? null, categories)
         )
       );
     }
-  }, []);
+  }, [categories]);
 
   const loadRealAnuncios = useCallback(async () => {
     const supabase = createClient();
@@ -195,7 +197,7 @@ export default function HomeClient() {
       if (tipoFilter !== "all" && l.tipo !== tipoFilter) return false;
       if (etiquetaFilter !== "all" && !(l.etiquetas || []).includes(etiquetaFilter)) return false;
       if (q) {
-        const haystack = `${l.nombre} ${l.subcategoria || ""} ${l.categoria ? CATEGORIES[l.categoria].label : ""} ${(l.tags || []).join(" ")}`.toLowerCase();
+        const haystack = `${l.nombre} ${l.subcategoria || ""} ${l.categoria ? categories[l.categoria]?.label || "" : ""} ${(l.tags || []).join(" ")}`.toLowerCase();
         if (!haystack.includes(q)) return false;
       }
       return true;
@@ -205,7 +207,7 @@ export default function HomeClient() {
       return score(b) - score(a) || b.rating - a.rating;
     });
     return result;
-  }, [allListings, cat, sub, query, intencionFilter, tipoFilter, etiquetaFilter]);
+  }, [allListings, cat, sub, query, intencionFilter, tipoFilter, etiquetaFilter, categories]);
 
   const seleccionOrigen = useMemo(() => allListings.filter((l) => l.sello), [allListings]);
   const destacados = useMemo(() => allListings.filter((l) => l.destacada), [allListings]);

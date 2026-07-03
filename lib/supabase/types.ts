@@ -194,6 +194,24 @@ export interface Database {
         };
         Relationships: [];
       };
+      categories: {
+        Row: { id: string; label: string; icon: string; orden: number; created_at: string };
+        Insert: { id: string; label: string; icon: string; orden?: number };
+        Update: { id?: string; label?: string; icon?: string; orden?: number };
+        Relationships: [];
+      };
+      subcategories: {
+        Row: { id: string; category_id: string; label: string; orden: number };
+        Insert: { category_id: string; label: string; orden?: number };
+        Update: { label?: string; orden?: number };
+        Relationships: [];
+      };
+      zones: {
+        Row: { id: string; label: string; orden: number };
+        Insert: { label: string; orden?: number };
+        Update: { label?: string; orden?: number };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -299,3 +317,6 @@ export type ListingRow = Database["public"]["Tables"]["listings"]["Row"];
 export type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 export type AnuncioRow = Database["public"]["Tables"]["anuncios"]["Row"];
 export type ModeracionLogRow = Database["public"]["Tables"]["moderacion_log"]["Row"];
+export type CategoryRow = Database["public"]["Tables"]["categories"]["Row"];
+export type SubcategoryRow = Database["public"]["Tables"]["subcategories"]["Row"];
+export type ZoneRow = Database["public"]["Tables"]["zones"]["Row"];

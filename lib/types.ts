@@ -1,12 +1,7 @@
-export type CategoryKey =
-  | "productores"
-  | "gastronomia"
-  | "oficios"
-  | "construccion"
-  | "turismo"
-  | "hospedaje"
-  | "inmuebles"
-  | "usados";
+// Antes era una unión literal fija; ahora las categorías viven en la tabla
+// `categories` y son editables desde el panel admin, así que el tipo es
+// simplemente el id (slug) de la categoría.
+export type CategoryKey = string;
 
 export interface Category {
   label: string;

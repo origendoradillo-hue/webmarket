@@ -1,6 +1,6 @@
 "use client";
 
-import { CATEGORIES } from "@/lib/data";
+import { useCategories } from "@/lib/useCategories";
 import { CategoryKey } from "@/lib/types";
 
 interface CategoryFiltersProps {
@@ -11,7 +11,8 @@ interface CategoryFiltersProps {
 }
 
 export default function CategoryFilters({ cat, sub, onSelectCat, onSelectSub }: CategoryFiltersProps) {
-  const catEntries = Object.entries(CATEGORIES) as [CategoryKey, (typeof CATEGORIES)[CategoryKey]][];
+  const { categories } = useCategories();
+  const catEntries = Object.entries(categories);
 
   return (
     <div className="px-4 pt-4 sm:px-7 sm:pt-5">
@@ -37,7 +38,7 @@ export default function CategoryFilters({ cat, sub, onSelectCat, onSelectSub }: 
         ))}
       </div>
 
-      {cat !== "all" && (
+      {cat !== "all" && categories[cat] && (
         <div className="no-scrollbar mb-4 flex gap-1.5 overflow-x-auto border-b border-piedra/50 pb-4">
           <button
             onClick={() => onSelectSub("all")}
@@ -47,7 +48,7 @@ export default function CategoryFilters({ cat, sub, onSelectCat, onSelectSub }: 
           >
             Todas las subcategorías
           </button>
-          {CATEGORIES[cat].subs.map((s) => (
+          {categories[cat].subs.map((s) => (
             <button
               key={s}
               onClick={() => onSelectSub(s)}

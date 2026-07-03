@@ -1,12 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { CATEGORIES } from "@/lib/data";
-import { CategoryKey } from "@/lib/types";
+import { useCategories } from "@/lib/useCategories";
 import { createClient } from "@/lib/supabase/client";
-import type { AnuncioRow, ListingRow, ModeracionLogRow, ProfileRow } from "@/lib/supabase/types";
+import type { AnuncioRow, CategoryRow, ListingRow, ModeracionLogRow, ProfileRow, SubcategoryRow, ZoneRow } from "@/lib/supabase/types";
 
-type Tab = "publicaciones" | "anuncios" | "usuarios";
+type Tab = "publicaciones" | "anuncios" | "usuarios" | "categorias";
 
 const LISTING_STATUS_LABELS: Record<string, string> = {
   borrador: "Borrador",
@@ -41,7 +40,10 @@ interface AdminClientProps {
   role: string;
 }
 
+const TIPO_OPTIONS = ["producto", "servicio", "experiencia", "inmueble", "usado", "herramienta", "otro"];
+
 export default function AdminClient({ role }: AdminClientProps) {
+  const { categories } = useCategories();
   const [tab, setTab] = useState<Tab>("publicaciones");
   const [listings, setListings] = useState<ListingWithPublisher[]>([]);
   const [anuncios, setAnuncios] = useState<AnuncioWithSolicitante[]>([]);
@@ -49,7 +51,13 @@ export default function AdminClient({ role }: AdminClientProps) {
   const [loading, setLoading] = useState(true);
   const [expandedListing, setExpandedListing] = useState<string | null>(null);
   const [expandedAnuncio, setExpandedAnuncio] = useState<string | null>(null);
-  const canManageUsers = role === "superadmin";
+  const [filtroEstado, setFiltroEstado] = useState("todos");
+  const [filtroTexto, setFiltroTexto] = useState("");
+  const [filtroCategoria, setFiltroCategoria] = useState("todas");
+  const [filtroTipo, setFiltroTipo] = useState("todos");
+  const [filtroDesde, setFiltroDesde] = useState("");
+  const [filtroHasta, setFiltroHasta] = useState("");
+  const isSuperadmin = role === "superadmin";
 
   const loadListings = useCallback(async () => {
     const supabase = createClient();
@@ -89,6 +97,20 @@ export default function AdminClient({ role }: AdminClientProps) {
   const pendingListings = listings.filter((l) => l.status === "activa" && Date.now() - new Date(l.created_at).getTime() < 1000 * 60 * 60 * 24);
   const solicitadosAnuncios = anuncios.filter((a) => a.status === "solicitado" || a.status === "en_conversacion");
 
+  const filteredListings = listings.filter((l) => {
+    if (filtroEstado !== "todos" && l.status !== filtroEstado) return false;
+    if (filtroCategoria !== "todas" && l.categoria !== filtroCategoria) return false;
+    if (filtroTipo !== "todos" && l.tipo !== filtroTipo) return false;
+    if (filtroTexto.trim()) {
+      const q = filtroTexto.trim().toLowerCase();
+      const haystack = `${l.nombre} ${l.profiles?.full_name || ""} ${l.profiles?.email || ""}`.toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
+    if (filtroDesde && new Date(l.created_at) < new Date(filtroDesde)) return false;
+    if (filtroHasta && new Date(l.created_at) > new Date(`${filtroHasta}T23:59:59`)) return false;
+    return true;
+  });
+
   return (
     <div className="min-h-screen bg-hueso px-4 py-6 sm:px-8">
       <div className="mx-auto max-w-4xl">
@@ -102,9 +124,14 @@ export default function AdminClient({ role }: AdminClientProps) {
           <TabButton active={tab === "anuncios"} onClick={() => setTab("anuncios")}>
             Anuncios {solicitadosAnuncios.length > 0 && `(${solicitadosAnuncios.length})`}
           </TabButton>
-          {canManageUsers && (
+          {isSuperadmin && (
             <TabButton active={tab === "usuarios"} onClick={() => setTab("usuarios")}>
               Usuarios
+            </TabButton>
+          )}
+          {isSuperadmin && (
+            <TabButton active={tab === "categorias"} onClick={() => setTab("categorias")}>
+              Categorías
             </TabButton>
           )}
         </div>
@@ -133,10 +160,66 @@ export default function AdminClient({ role }: AdminClientProps) {
             )}
             <div>
               <h2 className="mb-2 font-slab text-sm font-semibold uppercase tracking-wide text-piedra">
-                Todas las publicaciones ({listings.length})
+                Todas las publicaciones ({filteredListings.length} de {listings.length})
               </h2>
+              <div className="mb-3 flex flex-wrap gap-2">
+                <input
+                  value={filtroTexto}
+                  onChange={(e) => setFiltroTexto(e.target.value)}
+                  placeholder="Buscar por nombre o usuario"
+                  className="w-48 rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
+                />
+                <select
+                  value={filtroEstado}
+                  onChange={(e) => setFiltroEstado(e.target.value)}
+                  className="rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
+                >
+                  <option value="todos">Todos los estados</option>
+                  {LISTING_STATUS_OPTIONS.map((s) => (
+                    <option key={s} value={s}>
+                      {LISTING_STATUS_LABELS[s]}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={filtroCategoria}
+                  onChange={(e) => setFiltroCategoria(e.target.value)}
+                  className="rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
+                >
+                  <option value="todas">Todas las categorías</option>
+                  {Object.entries(categories).map(([key, c]) => (
+                    <option key={key} value={key}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={filtroTipo}
+                  onChange={(e) => setFiltroTipo(e.target.value)}
+                  className="rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
+                >
+                  <option value="todos">Todos los tipos</option>
+                  {TIPO_OPTIONS.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="date"
+                  value={filtroDesde}
+                  onChange={(e) => setFiltroDesde(e.target.value)}
+                  className="rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
+                />
+                <input
+                  type="date"
+                  value={filtroHasta}
+                  onChange={(e) => setFiltroHasta(e.target.value)}
+                  className="rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
+                />
+              </div>
               <div className="flex flex-col gap-2">
-                {listings.map((l) => (
+                {filteredListings.map((l) => (
                   <AdminListingRow
                     key={l.id}
                     listing={l}
@@ -161,7 +244,7 @@ export default function AdminClient({ role }: AdminClientProps) {
               />
             ))}
           </div>
-        ) : (
+        ) : tab === "usuarios" ? (
           <div className="flex flex-col gap-2">
             {users.map((u) => (
               <div key={u.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-piedra/50 bg-white p-3">
@@ -184,6 +267,8 @@ export default function AdminClient({ role }: AdminClientProps) {
               </div>
             ))}
           </div>
+        ) : (
+          <CategoriasAdmin />
         )}
       </div>
     </div>
@@ -207,6 +292,213 @@ function contactUrl(whatsapp: string | null | undefined, email: string | null | 
   return null;
 }
 
+// ---------- Categorías / zonas (solo superadmin) ----------
+
+function CategoriasAdmin() {
+  const [categories, setCategories] = useState<CategoryRow[]>([]);
+  const [subs, setSubs] = useState<SubcategoryRow[]>([]);
+  const [zones, setZones] = useState<ZoneRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [newCatId, setNewCatId] = useState("");
+  const [newCatLabel, setNewCatLabel] = useState("");
+  const [newCatIcon, setNewCatIcon] = useState("");
+  const [newSubLabel, setNewSubLabel] = useState<Record<string, string>>({});
+  const [newZoneLabel, setNewZoneLabel] = useState("");
+
+  const load = useCallback(async () => {
+    const supabase = createClient();
+    const [catRes, subRes, zoneRes] = await Promise.all([
+      supabase.from("categories").select("*").order("orden"),
+      supabase.from("subcategories").select("*").order("orden"),
+      supabase.from("zones").select("*").order("orden"),
+    ]);
+    setCategories(catRes.data || []);
+    setSubs(subRes.data || []);
+    setZones(zoneRes.data || []);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  async function addCategory() {
+    if (!newCatId.trim() || !newCatLabel.trim() || !newCatIcon.trim()) return;
+    const supabase = createClient();
+    const { error } = await supabase.from("categories").insert({
+      id: newCatId.trim().toLowerCase().replace(/\s+/g, "_"),
+      label: newCatLabel.trim(),
+      icon: newCatIcon.trim(),
+      orden: categories.length + 1,
+    });
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    setNewCatId("");
+    setNewCatLabel("");
+    setNewCatIcon("");
+    load();
+  }
+
+  async function deleteCategory(id: string) {
+    if (!confirm("¿Eliminar esta categoría? También se borran sus subcategorías.")) return;
+    const supabase = createClient();
+    const { error } = await supabase.from("categories").delete().eq("id", id);
+    if (error) alert(error.message);
+    else load();
+  }
+
+  async function updateCategory(id: string, patch: { label?: string; icon?: string }) {
+    const supabase = createClient();
+    const { error } = await supabase.from("categories").update(patch).eq("id", id);
+    if (error) alert(error.message);
+    else load();
+  }
+
+  async function addSub(categoryId: string) {
+    const label = (newSubLabel[categoryId] || "").trim();
+    if (!label) return;
+    const supabase = createClient();
+    const orden = subs.filter((s) => s.category_id === categoryId).length + 1;
+    const { error } = await supabase.from("subcategories").insert({ category_id: categoryId, label, orden });
+    if (error) alert(error.message);
+    else {
+      setNewSubLabel((p) => ({ ...p, [categoryId]: "" }));
+      load();
+    }
+  }
+
+  async function deleteSub(id: string) {
+    const supabase = createClient();
+    const { error } = await supabase.from("subcategories").delete().eq("id", id);
+    if (error) alert(error.message);
+    else load();
+  }
+
+  async function addZone() {
+    if (!newZoneLabel.trim()) return;
+    const supabase = createClient();
+    const { error } = await supabase.from("zones").insert({ label: newZoneLabel.trim(), orden: zones.length + 1 });
+    if (error) alert(error.message);
+    else {
+      setNewZoneLabel("");
+      load();
+    }
+  }
+
+  async function deleteZone(id: string) {
+    const supabase = createClient();
+    const { error } = await supabase.from("zones").delete().eq("id", id);
+    if (error) alert(error.message);
+    else load();
+  }
+
+  if (loading) return <p className="text-sm text-tinta-suave">Cargando...</p>;
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div>
+        <h2 className="mb-2 font-slab text-sm font-semibold uppercase tracking-wide text-piedra">Categorías</h2>
+        <div className="flex flex-col gap-2">
+          {categories.map((c) => (
+            <div key={c.id} className="rounded-lg border border-piedra/50 bg-white p-3">
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <i className={`ti ${c.icon} text-oliva`} aria-hidden />
+                <input
+                  defaultValue={c.label}
+                  onBlur={(e) => e.target.value.trim() !== c.label && updateCategory(c.id, { label: e.target.value.trim() })}
+                  className="flex-1 rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
+                />
+                <input
+                  defaultValue={c.icon}
+                  onBlur={(e) => e.target.value.trim() !== c.icon && updateCategory(c.id, { icon: e.target.value.trim() })}
+                  placeholder="ti-icono"
+                  className="w-32 rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
+                />
+                <button onClick={() => deleteCategory(c.id)} className="rounded-lg border border-red-700 px-2 py-1.5 text-xs text-red-700">
+                  Eliminar
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {subs
+                  .filter((s) => s.category_id === c.id)
+                  .map((s) => (
+                    <span key={s.id} className="flex items-center gap-1 rounded-full bg-hueso-2 px-2.5 py-1 text-[11px] text-tinta">
+                      {s.label}
+                      <button onClick={() => deleteSub(s.id)} aria-label="Quitar subcategoría">
+                        <i className="ti ti-x text-[10px]" aria-hidden />
+                      </button>
+                    </span>
+                  ))}
+              </div>
+              <div className="mt-2 flex gap-1.5">
+                <input
+                  value={newSubLabel[c.id] || ""}
+                  onChange={(e) => setNewSubLabel((p) => ({ ...p, [c.id]: e.target.value }))}
+                  placeholder="Nueva subcategoría"
+                  className="flex-1 rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
+                />
+                <button onClick={() => addSub(c.id)} className="rounded-lg border border-oliva px-2.5 py-1.5 text-xs text-oliva">
+                  Agregar
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-3 flex flex-wrap gap-1.5 rounded-lg border border-dashed border-piedra/70 p-3">
+          <input
+            value={newCatId}
+            onChange={(e) => setNewCatId(e.target.value)}
+            placeholder="id (ej: mascotas)"
+            className="w-32 rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
+          />
+          <input
+            value={newCatLabel}
+            onChange={(e) => setNewCatLabel(e.target.value)}
+            placeholder="Nombre"
+            className="flex-1 rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
+          />
+          <input
+            value={newCatIcon}
+            onChange={(e) => setNewCatIcon(e.target.value)}
+            placeholder="ti-icono"
+            className="w-32 rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
+          />
+          <button onClick={addCategory} className="rounded-lg bg-oliva px-3 py-1.5 text-xs font-semibold text-hueso">
+            Agregar categoría
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <h2 className="mb-2 font-slab text-sm font-semibold uppercase tracking-wide text-piedra">Zonas</h2>
+        <div className="flex flex-wrap gap-1.5">
+          {zones.map((z) => (
+            <span key={z.id} className="flex items-center gap-1 rounded-full bg-hueso-2 px-2.5 py-1 text-[11px] text-tinta">
+              {z.label}
+              <button onClick={() => deleteZone(z.id)} aria-label="Quitar zona">
+                <i className="ti ti-x text-[10px]" aria-hidden />
+              </button>
+            </span>
+          ))}
+        </div>
+        <div className="mt-2 flex gap-1.5">
+          <input
+            value={newZoneLabel}
+            onChange={(e) => setNewZoneLabel(e.target.value)}
+            placeholder="Nueva zona"
+            className="flex-1 rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
+          />
+          <button onClick={addZone} className="rounded-lg border border-oliva px-2.5 py-1.5 text-xs text-oliva">
+            Agregar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ---------- Publicaciones ----------
 
 function AdminListingRow({
@@ -220,6 +512,7 @@ function AdminListingRow({
   onToggle: () => void;
   onSaved: () => void;
 }) {
+  const { categories } = useCategories();
   const [saving, setSaving] = useState(false);
   const [nota, setNota] = useState("");
   const [historial, setHistorial] = useState<ModeracionLogRow[]>([]);
@@ -236,6 +529,8 @@ function AdminListingRow({
     tags: l.tags.join(", "),
   });
 
+  const [images, setImages] = useState<{ id: string; url: string }[]>([]);
+
   const loadHistorial = useCallback(async () => {
     const supabase = createClient();
     const { data } = await supabase
@@ -247,9 +542,46 @@ function AdminListingRow({
     setHistorial(data || []);
   }, [l.id]);
 
+  const loadImages = useCallback(async () => {
+    const supabase = createClient();
+    const { data } = await supabase.from("listing_images").select("id, url").eq("listing_id", l.id).order("orden");
+    setImages(data || []);
+  }, [l.id]);
+
   useEffect(() => {
-    if (expanded) loadHistorial();
-  }, [expanded, loadHistorial]);
+    if (expanded) {
+      loadHistorial();
+      loadImages();
+    }
+  }, [expanded, loadHistorial, loadImages]);
+
+  async function agregarFotos(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
+    setSaving(true);
+    const supabase = createClient();
+    let orden = images.length;
+    for (const file of files) {
+      const path = `admin/${l.id}/${Date.now()}-${orden}.jpg`;
+      const { error: uploadError } = await supabase.storage.from("listing-photos").upload(path, file, { contentType: file.type || "image/jpeg" });
+      if (uploadError) {
+        alert(uploadError.message);
+        continue;
+      }
+      const url = supabase.storage.from("listing-photos").getPublicUrl(path).data.publicUrl;
+      await supabase.from("listing_images").insert({ listing_id: l.id, url, orden });
+      orden += 1;
+    }
+    e.target.value = "";
+    setSaving(false);
+    loadImages();
+  }
+
+  async function quitarFoto(imageId: string) {
+    const supabase = createClient();
+    await supabase.from("listing_images").delete().eq("id", imageId);
+    loadImages();
+  }
 
   async function guardarCambios() {
     setSaving(true);
@@ -392,7 +724,7 @@ function AdminListingRow({
                 className="w-full rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
               >
                 <option value="">(sin categoría)</option>
-                {(Object.entries(CATEGORIES) as [CategoryKey, (typeof CATEGORIES)[CategoryKey]][]).map(([key, c]) => (
+                {Object.entries(categories).map(([key, c]) => (
                   <option key={key} value={key}>
                     {c.label}
                   </option>
@@ -421,8 +753,32 @@ function AdminListingRow({
           <LabeledInput label="Palabras clave (separadas por coma)" value={form.tags} onChange={(v) => setForm({ ...form, tags: v })} />
 
           <div>
-            <label className="mb-1 block text-[11px] font-medium text-tinta">Foto (cargar/reemplazar en nombre del vecino)</label>
+            <label className="mb-1 block text-[11px] font-medium text-tinta">Foto de portada (cargar/reemplazar en nombre del vecino)</label>
             <input type="file" accept="image/*" onChange={subirFoto} className="text-xs" />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-[11px] font-medium text-tinta">Fotos adicionales</label>
+            <div className="flex flex-wrap gap-2">
+              {images.map((im) => (
+                <div key={im.id} className="relative h-16 w-16 overflow-hidden rounded-md border border-piedra/70">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={im.url} alt="Foto" className="h-full w-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => quitarFoto(im.id)}
+                    aria-label="Quitar foto"
+                    className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-white"
+                  >
+                    <i className="ti ti-x text-[9px]" aria-hidden />
+                  </button>
+                </div>
+              ))}
+              <label className="flex h-16 w-16 cursor-pointer items-center justify-center rounded-md border-[1.5px] border-dashed border-piedra/70 text-oliva">
+                <i className="ti ti-plus text-lg" aria-hidden />
+                <input type="file" accept="image/*" multiple onChange={agregarFotos} className="hidden" />
+              </label>
+            </div>
           </div>
 
           <button onClick={guardarCambios} disabled={saving} className="w-fit rounded-lg bg-oliva px-4 py-2 text-xs font-semibold text-hueso disabled:bg-piedra">

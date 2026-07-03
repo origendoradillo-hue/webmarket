@@ -1,5 +1,4 @@
-import { CATEGORIES } from "@/lib/data";
-import { CategoryKey, Listing, TipoPublicacion } from "@/lib/types";
+import { Category, CategoryKey, Listing, TipoPublicacion } from "@/lib/types";
 import { ListingRow } from "./types";
 
 const TIPO_ICON: Record<TipoPublicacion, string> = {
@@ -12,8 +11,8 @@ const TIPO_ICON: Record<TipoPublicacion, string> = {
   otro: "ti-dots",
 };
 
-export function mapListingRow(row: ListingRow, publisherName: string | null): Listing {
-  const categoria = row.categoria && row.categoria in CATEGORIES ? (row.categoria as CategoryKey) : undefined;
+export function mapListingRow(row: ListingRow, publisherName: string | null, categories: Record<string, Category>): Listing {
+  const categoria = row.categoria && row.categoria in categories ? (row.categoria as CategoryKey) : undefined;
   const nombrePublicador = publisherName?.trim() || "Vecino de la zona";
   const tipo = (row.tipo as TipoPublicacion) || undefined;
 
@@ -28,7 +27,7 @@ export function mapListingRow(row: ListingRow, publisherName: string | null): Li
     zona: row.zona,
     cuadrante: (row.cuadrante as Listing["cuadrante"]) || undefined,
     direccion: row.direccion || undefined,
-    icono: categoria ? CATEGORIES[categoria].icon : tipo ? TIPO_ICON[tipo] : "ti-search",
+    icono: categoria ? categories[categoria].icon : tipo ? TIPO_ICON[tipo] : "ti-search",
     sello: row.sello,
     destacada: row.destacada,
     rating: 0,

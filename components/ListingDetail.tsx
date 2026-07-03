@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { fallbackColorFor } from "@/lib/data";
-import { CATEGORIES } from "@/lib/data";
+import { useCategories } from "@/lib/useCategories";
 import { Listing } from "@/lib/types";
 import { buildWhatsappLink } from "@/lib/whatsapp";
 import { createClient } from "@/lib/supabase/client";
@@ -16,6 +16,7 @@ interface ListingDetailProps {
 }
 
 export default function ListingDetail({ listing: l, onClose, isLoggedIn, onRequireAuth }: ListingDetailProps) {
+  const { categories } = useCategories();
   const [contacting, setContacting] = useState(false);
   const [images, setImages] = useState<string[]>([]);
   const [imgIndex, setImgIndex] = useState(0);
@@ -153,7 +154,7 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, onRequi
 
           <h2 className="mb-1 font-slab text-xl font-semibold text-tinta sm:text-[22px]">{l.nombre}</h2>
           <p className="mb-1 text-[13px] text-tinta-suave">
-            {l.categoria ? `${CATEGORIES[l.categoria].label}${l.subcategoria ? ` · ${l.subcategoria}` : ""}` : "Otro"}
+            {l.categoria && categories[l.categoria] ? `${categories[l.categoria].label}${l.subcategoria ? ` · ${l.subcategoria}` : ""}` : "Otro"}
           </p>
           {(l.precio || l.precioConsultar) && (
             <p className="mb-1 font-slab text-lg font-semibold text-tinta">

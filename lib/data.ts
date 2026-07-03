@@ -1,5 +1,8 @@
 import { Anuncio, Category, CategoryKey, Listing } from "./types";
 
+// Valor de respaldo: la fuente de verdad ahora es la tabla `categories` en
+// Supabase (editable desde el panel admin). Esto se usa como estado inicial
+// de useCategories() hasta que el fetch resuelve, y como fallback si falla.
 export const CATEGORIES: Record<CategoryKey, Category> = {
   productores: {
     label: "Productores y chacras",
@@ -60,6 +63,10 @@ export const CATEGORIES: Record<CategoryKey, Category> = {
     subs: ["Herramientas", "Electrodomésticos", "Materiales de construcción", "Muebles", "Otros usados"],
   },
 };
+
+// Valor de respaldo mientras useCategories() todavía no trajo las zonas
+// reales desde la tabla `zones` (o si la tabla está vacía).
+export const ZONES = ["Zona 1", "Zona 2", "Zona 3"];
 
 // Colores de respaldo para thumbnails sin foto ni marca propia.
 export const FALLBACK_COLORS = ["#4A5D3A", "#5C3D2E", "#4C6B70", "#33402A", "#8A6A3A"];
