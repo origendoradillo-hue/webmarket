@@ -11,11 +11,22 @@ interface HeaderProps {
   userEmail: string | null;
   onOpenAuth: () => void;
   onOpenProfile: () => void;
+  onOpenMyListings: () => void;
   onSignOut: () => void;
   isStaff?: boolean;
 }
 
-export default function Header({ onOpenMap, onOpenPublish, onLogoClick, userEmail, onOpenAuth, onOpenProfile, onSignOut, isStaff }: HeaderProps) {
+export default function Header({
+  onOpenMap,
+  onOpenPublish,
+  onLogoClick,
+  userEmail,
+  onOpenAuth,
+  onOpenProfile,
+  onOpenMyListings,
+  onSignOut,
+  isStaff,
+}: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -96,6 +107,16 @@ export default function Header({ onOpenMap, onOpenPublish, onLogoClick, userEmai
                 >
                   <i className="ti ti-user text-base text-oliva" aria-hidden />
                   Mi perfil
+                </button>
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onOpenMyListings();
+                  }}
+                  className="flex w-full items-center gap-2 border-t border-piedra/30 px-3.5 py-2.5 text-left text-[13px] text-tinta hover:bg-hueso-2"
+                >
+                  <i className="ti ti-list-details text-base text-oliva" aria-hidden />
+                  Mis publicaciones
                 </button>
                 <button
                   onClick={() => {

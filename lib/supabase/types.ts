@@ -77,7 +77,7 @@ export interface Database {
           destacada: boolean;
           detalles: Record<string, unknown>;
           expires_at: string | null;
-          status: "activa" | "pausada" | "vencida" | "eliminada";
+          status: "borrador" | "en_revision" | "activa" | "observada" | "rechazada" | "pausada" | "vencida" | "eliminada";
           created_at: string;
           updated_at: string;
         };
@@ -176,6 +176,24 @@ export interface Database {
         };
         Relationships: [];
       };
+      listing_images: {
+        Row: {
+          id: string;
+          listing_id: string;
+          url: string;
+          orden: number;
+          created_at: string;
+        };
+        Insert: {
+          listing_id: string;
+          url: string;
+          orden?: number;
+        };
+        Update: {
+          orden?: number;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -201,6 +219,30 @@ export interface Database {
       };
       admin_add_nota: {
         Args: { p_entity_type: string; p_entity_id: string; p_nota: string };
+        Returns: undefined;
+      };
+      mi_set_listing_status: {
+        Args: { p_listing_id: string; p_status: string };
+        Returns: undefined;
+      };
+      mi_update_listing: {
+        Args: {
+          p_listing_id: string;
+          p_nombre?: string | null;
+          p_descripcion?: string | null;
+          p_categoria?: string | null;
+          p_subcategoria?: string | null;
+          p_precio?: number | null;
+          p_precio_a_consultar?: boolean | null;
+          p_foto_url?: string | null;
+          p_modalidad?: string[] | null;
+          p_tags?: string[] | null;
+          p_cantidad?: number | null;
+          p_detalles?: Record<string, unknown> | null;
+          p_zona?: string | null;
+          p_cuadrante?: string | null;
+          p_direccion?: string | null;
+        };
         Returns: undefined;
       };
       admin_update_listing: {

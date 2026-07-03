@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { fallbackColorFor } from "@/lib/data";
 import { CATEGORIES } from "@/lib/data";
@@ -17,6 +17,31 @@ interface ListingDetailProps {
 
 export default function ListingDetail({ listing: l, onClose, isLoggedIn, onRequireAuth }: ListingDetailProps) {
   const [contacting, setContacting] = useState(false);
+  const [images, setImages] = useState<string[]>([]);
+  const [imgIndex, setImgIndex] = useState(0);
+
+  useEffect(() => {
+    setImgIndex(0);
+    if (!l) {
+      setImages([]);
+      return;
+    }
+    if (!l.isReal) {
+      setImages(l.foto ? [l.foto] : []);
+      return;
+    }
+    const supabase = createClient();
+    supabase
+      .from("listing_images")
+      .select("url")
+      .eq("listing_id", String(l.id))
+      .order("orden")
+      .then(({ data }) => {
+        const extra = (data || []).map((r) => r.url);
+        setImages(l.foto ? [l.foto, ...extra] : extra);
+      });
+  }, [l?.id, l?.isReal, l?.foto]);
+
   if (!l) return null;
   const listing = l;
 
@@ -72,13 +97,40 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, onRequi
         <div
           className="relative h-60"
           style={{
-            backgroundColor: isDemanda ? "#E4EDEE" : l.foto ? undefined : isVecino ? "#DCD7C9" : fallbackColor,
+            backgroundColor: isDemanda ? "#E4EDEE" : images.length > 0 ? undefined : isVecino ? "#DCD7C9" : fallbackColor,
           }}
         >
           {isDemanda ? (
             <i className="ti ti-search absolute inset-0 m-auto flex h-14 w-14 items-center justify-center text-6xl text-golfo/70" aria-hidden />
-          ) : l.foto ? (
-            <Image src={l.foto} alt={l.nombre} fill className="object-cover" sizes="480px" />
+          ) : images.length > 0 ? (
+            <>
+              <Image src={images[imgIndex]} alt={l.nombre} fill className="object-cover" sizes="480px" />
+              {images.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setImgIndex((i) => (i - 1 + images.length) % images.length)}
+                    aria-label="Foto anterior"
+                    className="absolute left-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white"
+                  >
+                    <i className="ti ti-chevron-left text-lg" aria-hidden />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImgIndex((i) => (i + 1) % images.length)}
+                    aria-label="Foto siguiente"
+                    className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white"
+                  >
+                    <i className="ti ti-chevron-right text-lg" aria-hidden />
+                  </button>
+                  <div className="absolute inset-x-0 bottom-2 flex justify-center gap-1.5">
+                    {images.map((_, i) => (
+                      <span key={i} className={`h-1.5 rounded-full ${i === imgIndex ? "w-4 bg-white" : "w-1.5 bg-white/50"}`} />
+                    ))}
+                  </div>
+                </>
+              )}
+            </>
           ) : (
             <i
               className={`ti ${isVecino ? "ti-photo" : l.icono} absolute inset-0 m-auto flex h-14 w-14 items-center justify-center text-6xl ${

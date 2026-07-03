@@ -22,6 +22,7 @@ import PublishWizard from "./PublishWizard";
 import AnuncioRequestForm from "./AnuncioRequestForm";
 import AuthModal from "./AuthModal";
 import ProfileModal from "./ProfileModal";
+import MyListingsModal from "./MyListingsModal";
 import Footer from "./Footer";
 
 const ETIQUETAS: { value: Etiqueta; label: string }[] = [
@@ -49,6 +50,7 @@ export default function HomeClient() {
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "signup" | "forgot" | "reset">("login");
   const [profileOpen, setProfileOpen] = useState(false);
+  const [myListingsOpen, setMyListingsOpen] = useState(false);
   const [realListings, setRealListings] = useState<Listing[]>([]);
   const [realAnuncios, setRealAnuncios] = useState<Anuncio[]>([]);
 
@@ -173,7 +175,7 @@ export default function HomeClient() {
     await supabase.auth.signOut();
   }
 
-  const modalOpen = !!activeListing || mapOpen || publishOpen || anuncioFormOpen || authOpen || profileOpen;
+  const modalOpen = !!activeListing || mapOpen || publishOpen || anuncioFormOpen || authOpen || profileOpen || myListingsOpen;
   useEffect(() => {
     document.body.style.overflow = modalOpen ? "hidden" : "";
     return () => {
@@ -224,6 +226,7 @@ export default function HomeClient() {
         userEmail={user?.email ?? null}
         onOpenAuth={openAuth}
         onOpenProfile={() => setProfileOpen(true)}
+        onOpenMyListings={() => setMyListingsOpen(true)}
         onSignOut={handleSignOut}
         isStaff={isStaff}
       />
@@ -320,6 +323,16 @@ export default function HomeClient() {
       {user && <AnuncioRequestForm open={anuncioFormOpen} onClose={() => setAnuncioFormOpen(false)} user={user} />}
       <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} initialMode={authMode} />
       {user && <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} user={user} />}
+      {user && (
+        <MyListingsModal
+          open={myListingsOpen}
+          onClose={() => {
+            setMyListingsOpen(false);
+            loadRealListings();
+          }}
+          user={user}
+        />
+      )}
     </>
   );
 }

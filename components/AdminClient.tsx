@@ -9,7 +9,11 @@ import type { AnuncioRow, ListingRow, ModeracionLogRow, ProfileRow } from "@/lib
 type Tab = "publicaciones" | "anuncios" | "usuarios";
 
 const LISTING_STATUS_LABELS: Record<string, string> = {
+  borrador: "Borrador",
+  en_revision: "En revisión",
   activa: "Activa",
+  observada: "Observada",
+  rechazada: "Rechazada",
   pausada: "Pausada",
   vencida: "Vencida",
   eliminada: "Eliminada",

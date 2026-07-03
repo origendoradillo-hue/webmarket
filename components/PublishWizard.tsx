@@ -15,7 +15,7 @@ interface PublishData {
   sub: string | null;
   nombre: string;
   desc: string;
-  fotoData: string | null;
+  fotosData: string[];
   tags: string;
   precio: string;
   precioConsultar: boolean;
@@ -53,7 +53,7 @@ const DEFAULTS: PublishData = {
   sub: null,
   nombre: "",
   desc: "",
-  fotoData: null,
+  fotosData: [],
   tags: "",
   precio: "",
   precioConsultar: false,
@@ -112,7 +112,7 @@ function isValid(step: string, d: PublishData): boolean {
       if (d.tipo === "usado") return !!d.sub;
       return !!d.cat && !!d.sub;
     case "datos":
-      return d.nombre.trim() !== "" && d.desc.trim() !== "" && (!fotoRequerida(d) || !!d.fotoData);
+      return d.nombre.trim() !== "" && d.desc.trim() !== "" && (!fotoRequerida(d) || d.fotosData.length > 0);
     case "detalles":
       return d.modalidad.length > 0;
     case "ubicacion":
@@ -171,11 +171,21 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
   }
 
   function handleFoto(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => update("fotoData", ev.target?.result as string);
-    reader.readAsDataURL(file);
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const dataUrl = ev.target?.result as string;
+        setData((prev) => ({ ...prev, fotosData: [...prev.fotosData, dataUrl] }));
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = "";
+  }
+
+  function removeFoto(index: number) {
+    setData((prev) => ({ ...prev, fotosData: prev.fotosData.filter((_, i) => i !== index) }));
   }
 
   async function goNext() {
@@ -199,16 +209,17 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
         .eq("id", user.id);
       if (profileError) throw profileError;
 
-      let fotoUrl: string | null = null;
-      if (data.fotoData) {
-        const blob = await (await fetch(data.fotoData)).blob();
-        const path = `${user.id}/${Date.now()}.jpg`;
+      const fotoUrls: string[] = [];
+      for (const fotoData of data.fotosData) {
+        const blob = await (await fetch(fotoData)).blob();
+        const path = `${user.id}/${Date.now()}-${fotoUrls.length}.jpg`;
         const { error: uploadError } = await supabase.storage.from("listing-photos").upload(path, blob, {
           contentType: blob.type || "image/jpeg",
         });
         if (uploadError) throw uploadError;
-        fotoUrl = supabase.storage.from("listing-photos").getPublicUrl(path).data.publicUrl;
+        fotoUrls.push(supabase.storage.from("listing-photos").getPublicUrl(path).data.publicUrl);
       }
+      const fotoUrl = fotoUrls[0] ?? null;
 
       const detalles: Record<string, unknown> = {};
       let cantidad: number | null = null;
@@ -236,30 +247,41 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
 
       const precioNum = data.intencion === "busco" || data.precio.trim() === "" ? null : Number(data.precio);
 
-      const { error: insertError } = await supabase.from("listings").insert({
-        publisher_id: user.id,
-        intencion: data.intencion!,
-        tipo: data.tipo!,
-        categoria: data.cat,
-        subcategoria: data.sub,
-        zona: data.zona,
-        cuadrante: data.cuadrante,
-        direccion: data.direccion || null,
-        nombre: data.nombre,
-        descripcion: data.desc,
-        foto_url: fotoUrl,
-        modalidad: data.modalidad,
-        tags: data.tags
-          .split(",")
-          .map((t) => t.trim())
-          .filter(Boolean),
-        etiquetas: data.etiquetas,
-        cantidad,
-        precio: precioNum,
-        precio_a_consultar: data.intencion === "busco" ? false : data.precioConsultar,
-        detalles,
-      });
+      const { data: inserted, error: insertError } = await supabase
+        .from("listings")
+        .insert({
+          publisher_id: user.id,
+          intencion: data.intencion!,
+          tipo: data.tipo!,
+          categoria: data.cat,
+          subcategoria: data.sub,
+          zona: data.zona,
+          cuadrante: data.cuadrante,
+          direccion: data.direccion || null,
+          nombre: data.nombre,
+          descripcion: data.desc,
+          foto_url: fotoUrl,
+          modalidad: data.modalidad,
+          tags: data.tags
+            .split(",")
+            .map((t) => t.trim())
+            .filter(Boolean),
+          etiquetas: data.etiquetas,
+          cantidad,
+          precio: precioNum,
+          precio_a_consultar: data.intencion === "busco" ? false : data.precioConsultar,
+          detalles,
+        })
+        .select("id")
+        .single();
       if (insertError) throw insertError;
+
+      const extraFotos = fotoUrls.slice(1);
+      if (extraFotos.length > 0 && inserted) {
+        await supabase.from("listing_images").insert(
+          extraFotos.map((url, i) => ({ listing_id: inserted.id, url, orden: i }))
+        );
+      }
 
       onPublished();
       setStepIndex(-1);
@@ -442,11 +464,12 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
                     />
                   </Field>
                   {(data.intencion === "busco" || fotoRequerida(data) || data.tipo === "servicio" || data.tipo === "otro") && (
-                    <Field label={fotoRequerida(data) ? "Foto" : "Foto (opcional)"}>
+                    <Field label={fotoRequerida(data) ? "Fotos" : "Fotos (opcional)"}>
                       <PhotoDropzone
-                        label={data.intencion === "busco" ? "Foto de referencia si tenés (opcional)" : "Subí una foto real, como en Mercado Libre"}
-                        value={data.fotoData}
+                        label={data.intencion === "busco" ? "Foto de referencia si tenés (opcional)" : "Subí una o más fotos reales, como en Mercado Libre"}
+                        values={data.fotosData}
                         onChange={handleFoto}
+                        onRemove={removeFoto}
                       />
                     </Field>
                   )}
@@ -801,18 +824,40 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function PhotoDropzone({ label, value, onChange }: { label: string; value: string | null; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void }) {
+function PhotoDropzone({
+  label,
+  values,
+  onChange,
+  onRemove,
+}: {
+  label: string;
+  values: string[];
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onRemove: (index: number) => void;
+}) {
   return (
     <div>
       <div className="relative rounded-lg border-[1.5px] border-dashed border-piedra/70 p-4 text-center">
         <i className="ti ti-camera text-2xl text-oliva" aria-hidden />
         <p className="mt-2 text-[12.5px] text-tinta">{label}</p>
-        <input type="file" accept="image/*" onChange={onChange} className="absolute inset-0 cursor-pointer opacity-0" />
+        <input type="file" accept="image/*" multiple onChange={onChange} className="absolute inset-0 cursor-pointer opacity-0" />
       </div>
-      {value && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <div className="mt-2.5 overflow-hidden rounded-lg border border-piedra/70">
-          <img src={value} alt="Vista previa" className="block max-h-[140px] w-full object-cover" />
+      {values.length > 0 && (
+        <div className="mt-2.5 grid grid-cols-3 gap-2">
+          {values.map((v, i) => (
+            <div key={i} className="relative overflow-hidden rounded-lg border border-piedra/70">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={v} alt={`Vista previa ${i + 1}`} className="block h-20 w-full object-cover" />
+              <button
+                type="button"
+                onClick={() => onRemove(i)}
+                aria-label="Quitar foto"
+                className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white"
+              >
+                <i className="ti ti-x text-xs" aria-hidden />
+              </button>
+            </div>
+          ))}
         </div>
       )}
     </div>
