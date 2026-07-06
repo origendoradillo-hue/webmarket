@@ -304,6 +304,10 @@ export interface Database {
         Args: { p_report_id: string; p_estado: string; p_nota?: string | null };
         Returns: undefined;
       };
+      admin_delete_listing: {
+        Args: { p_listing_id: string };
+        Returns: undefined;
+      };
       mi_set_listing_status: {
         Args: { p_listing_id: string; p_status: string };
         Returns: undefined;

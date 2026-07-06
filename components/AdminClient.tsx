@@ -72,11 +72,12 @@ type ReportWithDetails = ListingReportRow & {
 
 interface AdminClientProps {
   role: string;
+  currentUserId: string;
 }
 
 const TIPO_OPTIONS = ["producto", "servicio", "experiencia", "inmueble", "usado", "herramienta", "otro"];
 
-export default function AdminClient({ role }: AdminClientProps) {
+export default function AdminClient({ role, currentUserId }: AdminClientProps) {
   const { categories } = useCategories();
   const [tab, setTab] = useState<Tab>("publicaciones");
   const [listings, setListings] = useState<ListingWithPublisher[]>([]);
@@ -151,6 +152,21 @@ export default function AdminClient({ role }: AdminClientProps) {
     const { error } = await supabase.rpc("admin_set_blocked", { p_user_id: userId, p_blocked: blocked });
     if (error) alert(error.message);
     else await loadUsers();
+  }
+
+  async function deleteUser(userId: string, label: string) {
+    if (!confirm(`¿Eliminar definitivamente a ${label}? También se borran todas sus publicaciones. Esta acción no se puede deshacer.`)) return;
+    const res = await fetch("/api/admin/delete-user", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId }),
+    });
+    const body = await res.json();
+    if (!res.ok) {
+      alert(body.error || "No se pudo eliminar el usuario.");
+      return;
+    }
+    await Promise.all([loadUsers(), loadListings()]);
   }
 
   async function updateProfileField(userId: string, patch: { full_name?: string; whatsapp_number?: string }) {
@@ -453,6 +469,14 @@ export default function AdminClient({ role }: AdminClientProps) {
                     >
                       {u.blocked_at ? "Desbloquear" : "Bloquear"}
                     </button>
+                    {u.id !== currentUserId && (
+                      <button
+                        onClick={() => deleteUser(u.id, u.full_name || u.email || u.id)}
+                        className="rounded-lg border border-red-700 bg-red-700 px-2.5 py-1.5 text-xs text-hueso"
+                      >
+                        Eliminar
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -830,6 +854,16 @@ function AdminListingRow({
     }
   }
 
+  async function eliminarPermanente() {
+    if (!confirm(`¿Eliminar definitivamente "${l.nombre}"? Esta acción no se puede deshacer.`)) return;
+    setSaving(true);
+    const supabase = createClient();
+    const { error } = await supabase.rpc("admin_delete_listing", { p_listing_id: l.id });
+    setSaving(false);
+    if (error) alert(error.message);
+    else onSaved();
+  }
+
   async function toggleSello() {
     const supabase = createClient();
     const { error } = await supabase.rpc("admin_set_sello", { p_listing_id: l.id, p_value: !l.sello });
@@ -1031,6 +1065,13 @@ function AdminListingRow({
                   Reasignar
                 </button>
               </div>
+              <button
+                onClick={eliminarPermanente}
+                disabled={saving}
+                className="mt-2 w-fit rounded-lg border border-red-700 bg-red-700 px-3 py-1.5 text-xs font-semibold text-hueso disabled:opacity-60"
+              >
+                Eliminar publicación definitivamente
+              </button>
             </div>
           )}
 

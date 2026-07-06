@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { updatePassword } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/client";
+import PasswordInput from "./PasswordInput";
 
 interface ForcePasswordModalProps {
   open: boolean;
@@ -54,21 +55,19 @@ export default function ForcePasswordModal({ open, user, onDone }: ForcePassword
             Tu cuenta se creó con una contraseña temporal. Antes de seguir, elegí una contraseña propia.
           </p>
           <form onSubmit={handleSubmit}>
-            <input
-              type="password"
+            <PasswordInput
               required
               placeholder="Contraseña nueva (mínimo 8 caracteres)"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mb-2.5 w-full rounded-lg border border-piedra/70 px-3 py-2.5 text-[13.5px] text-tinta"
+              onChange={setPassword}
+              wrapperClassName="mb-2.5"
             />
-            <input
-              type="password"
+            <PasswordInput
               required
               placeholder="Repetí la contraseña"
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="mb-3 w-full rounded-lg border border-piedra/70 px-3 py-2.5 text-[13.5px] text-tinta"
+              onChange={setConfirmPassword}
+              wrapperClassName="mb-3"
             />
             {status === "error" && <p className="mb-3 text-[12px] text-red-700">{message}</p>}
             <button

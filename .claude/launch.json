@@ -3,7 +3,7 @@
   "configurations": [
     {
       "name": "origen-el-doradillo-dev",
-      "runtimeExecutable": "C:\\Users\\ezequ\\OneDrive\\Escritorio\\web doradillo\\scripts\\dev.cmd",
+      "runtimeExecutable": "C:\\Users\\ezequ\\OneDrive\\EL DORA\\Escritorio\\web doradillo\\scripts\\dev.cmd",
       "runtimeArgs": [],
       "port": 3000
     }

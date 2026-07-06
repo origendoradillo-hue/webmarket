@@ -8,6 +8,7 @@ import {
   signUpWithPassword,
   updatePassword,
 } from "@/lib/supabase/auth";
+import PasswordInput from "./PasswordInput";
 
 type Mode = "login" | "signup" | "forgot" | "reset";
 
@@ -162,13 +163,12 @@ export default function AuthModal({ open, onClose, initialMode = "login" }: Auth
                   onChange={(e) => setEmail(e.target.value)}
                   className="mb-2.5 w-full rounded-lg border border-piedra/70 px-3 py-2.5 text-[13.5px] text-tinta"
                 />
-                <input
-                  type="password"
+                <PasswordInput
                   required
                   placeholder="Contraseña"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="mb-2 w-full rounded-lg border border-piedra/70 px-3 py-2.5 text-[13.5px] text-tinta"
+                  onChange={setPassword}
+                  wrapperClassName="mb-2"
                 />
                 <button
                   type="button"
@@ -225,21 +225,19 @@ export default function AuthModal({ open, onClose, initialMode = "login" }: Auth
                   onChange={(e) => setWhatsapp(e.target.value)}
                   className="mb-2.5 w-full rounded-lg border border-piedra/70 px-3 py-2.5 text-[13.5px] text-tinta"
                 />
-                <input
-                  type="password"
+                <PasswordInput
                   required
                   placeholder="Contraseña (mínimo 8 caracteres)"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="mb-2.5 w-full rounded-lg border border-piedra/70 px-3 py-2.5 text-[13.5px] text-tinta"
+                  onChange={setPassword}
+                  wrapperClassName="mb-2.5"
                 />
-                <input
-                  type="password"
+                <PasswordInput
                   required
                   placeholder="Repetí la contraseña"
                   value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="mb-3 w-full rounded-lg border border-piedra/70 px-3 py-2.5 text-[13.5px] text-tinta"
+                  onChange={setConfirmPassword}
+                  wrapperClassName="mb-3"
                 />
                 <StatusMessage status={status} message={message} />
                 <button
@@ -298,21 +296,19 @@ export default function AuthModal({ open, onClose, initialMode = "login" }: Auth
             <>
               <p className="mb-5 text-[13px] text-tinta-suave">Elegí tu nueva contraseña.</p>
               <form onSubmit={handleReset}>
-                <input
-                  type="password"
+                <PasswordInput
                   required
                   placeholder="Contraseña nueva (mínimo 8 caracteres)"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="mb-2.5 w-full rounded-lg border border-piedra/70 px-3 py-2.5 text-[13.5px] text-tinta"
+                  onChange={setPassword}
+                  wrapperClassName="mb-2.5"
                 />
-                <input
-                  type="password"
+                <PasswordInput
                   required
                   placeholder="Repetí la contraseña"
                   value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="mb-3 w-full rounded-lg border border-piedra/70 px-3 py-2.5 text-[13.5px] text-tinta"
+                  onChange={setConfirmPassword}
+                  wrapperClassName="mb-3"
                 />
                 <StatusMessage status={status} message={message} />
                 <button

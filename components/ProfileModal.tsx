@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { updatePassword } from "@/lib/supabase/auth";
+import PasswordInput from "./PasswordInput";
 
 interface ProfileModalProps {
   open: boolean;
@@ -252,19 +253,17 @@ export default function ProfileModal({ open, onClose, user }: ProfileModalProps)
             <div>
               <p className="mb-3 font-slab text-[13.5px] font-semibold text-tinta">Cambiar contraseña</p>
               <form onSubmit={handleChangePassword}>
-                <input
-                  type="password"
+                <PasswordInput
                   placeholder="Contraseña nueva (mínimo 8 caracteres)"
                   value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="mb-2.5 w-full rounded-lg border border-piedra/70 px-3 py-2.5 text-[13.5px] text-tinta"
+                  onChange={setNewPassword}
+                  wrapperClassName="mb-2.5"
                 />
-                <input
-                  type="password"
+                <PasswordInput
                   placeholder="Repetí la contraseña"
                   value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="mb-3 w-full rounded-lg border border-piedra/70 px-3 py-2.5 text-[13.5px] text-tinta"
+                  onChange={setConfirmPassword}
+                  wrapperClassName="mb-3"
                 />
                 <StatusMessage status={passwordStatus} message={passwordMessage} />
                 <button

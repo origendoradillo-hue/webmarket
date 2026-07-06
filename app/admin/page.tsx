@@ -15,5 +15,5 @@ export default async function AdminPage() {
   const isStaff = profile && ["admin", "superadmin"].includes(profile.role);
   if (!isStaff) redirect("/");
 
-  return <AdminClient role={profile.role} />;
+  return <AdminClient role={profile.role} currentUserId={user.id} />;
 }
