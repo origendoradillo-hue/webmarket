@@ -13,6 +13,7 @@ export interface Database {
           verification_level: 1 | 2 | 3;
           blocked_at: string | null;
           must_change_password: boolean;
+          zona: string | null;
           created_at: string;
         };
         Insert: {
@@ -25,6 +26,7 @@ export interface Database {
           full_name?: string | null;
           whatsapp_number?: string | null;
           must_change_password?: boolean;
+          zona?: string | null;
         };
         Relationships: [];
       };
@@ -38,6 +40,7 @@ export interface Database {
           estado: "pendiente" | "aprobada" | "rechazada";
           revisado_por: string | null;
           revisado_en: string | null;
+          nota_revision: string | null;
           created_at: string;
         };
         Insert: {
@@ -50,6 +53,7 @@ export interface Database {
           estado?: "pendiente" | "aprobada" | "rechazada";
           revisado_por?: string | null;
           revisado_en?: string | null;
+          nota_revision?: string | null;
         };
         Relationships: [];
       };
@@ -308,6 +312,10 @@ export interface Database {
         Args: { p_listing_id: string };
         Returns: undefined;
       };
+      admin_set_verification_status: {
+        Args: { p_request_id: string; p_estado: string; p_nota?: string | null };
+        Returns: undefined;
+      };
       mi_set_listing_status: {
         Args: { p_listing_id: string; p_status: string };
         Returns: undefined;
@@ -392,3 +400,4 @@ export type CategoryRow = Database["public"]["Tables"]["categories"]["Row"];
 export type SubcategoryRow = Database["public"]["Tables"]["subcategories"]["Row"];
 export type ZoneRow = Database["public"]["Tables"]["zones"]["Row"];
 export type ListingReportRow = Database["public"]["Tables"]["listing_reports"]["Row"];
+export type UserVerificationRow = Database["public"]["Tables"]["user_verifications"]["Row"];

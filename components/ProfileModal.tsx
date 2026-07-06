@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { updatePassword } from "@/lib/supabase/auth";
+import { useCategories } from "@/lib/useCategories";
 import PasswordInput from "./PasswordInput";
 
 interface ProfileModalProps {
@@ -18,14 +19,28 @@ const NIVEL_LABEL: Record<number, string> = {
   3: "Nivel 3 · Verificación reforzada",
 };
 
+const NIVEL_DESCRIPCION: Record<number, string> = {
+  1: "Te registraste con email o Google. Ya podés publicar y contactar.",
+  2: "El equipo confirmó tu identidad o tu WhatsApp. Da más confianza a quien te contacta.",
+  3: "Verificación reforzada, para publicaciones sensibles (inmuebles, alojamientos, alto valor).",
+};
+
 type SaveStatus = "idle" | "sending" | "error" | "info";
 
+type LastRequest = {
+  nivel_solicitado: number;
+  estado: "pendiente" | "aprobada" | "rechazada";
+  nota_revision: string | null;
+} | null;
+
 export default function ProfileModal({ open, onClose, user }: ProfileModalProps) {
+  const { zones } = useCategories();
   const [loading, setLoading] = useState(true);
   const [fullName, setFullName] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
+  const [zona, setZona] = useState("");
   const [verificationLevel, setVerificationLevel] = useState(1);
-  const [pendingRequest, setPendingRequest] = useState<{ nivel_solicitado: number } | null>(null);
+  const [lastRequest, setLastRequest] = useState<LastRequest>(null);
 
   const [profileStatus, setProfileStatus] = useState<SaveStatus>("idle");
   const [profileMessage, setProfileMessage] = useState("");
@@ -52,12 +67,11 @@ export default function ProfileModal({ open, onClose, user }: ProfileModalProps)
 
     const supabase = createClient();
     Promise.all([
-      supabase.from("profiles").select("full_name, whatsapp_number, verification_level").eq("id", user.id).single(),
+      supabase.from("profiles").select("full_name, whatsapp_number, verification_level, zona").eq("id", user.id).single(),
       supabase
         .from("user_verifications")
-        .select("nivel_solicitado")
+        .select("nivel_solicitado, estado, nota_revision")
         .eq("user_id", user.id)
-        .eq("estado", "pendiente")
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle(),
@@ -65,9 +79,10 @@ export default function ProfileModal({ open, onClose, user }: ProfileModalProps)
       if (profileRes.data) {
         setFullName(profileRes.data.full_name ?? "");
         setWhatsapp(profileRes.data.whatsapp_number ?? "");
+        setZona(profileRes.data.zona ?? "");
         setVerificationLevel(profileRes.data.verification_level ?? 1);
       }
-      setPendingRequest(verifRes.data ?? null);
+      setLastRequest(verifRes.data ?? null);
       setLoading(false);
     });
   }, [open, user.id]);
@@ -82,7 +97,7 @@ export default function ProfileModal({ open, onClose, user }: ProfileModalProps)
     const supabase = createClient();
     const { error } = await supabase
       .from("profiles")
-      .update({ full_name: fullName.trim(), whatsapp_number: whatsapp.trim() })
+      .update({ full_name: fullName.trim(), whatsapp_number: whatsapp.trim(), zona: zona || null })
       .eq("id", user.id);
     if (error) {
       setProfileStatus("error");
@@ -110,7 +125,7 @@ export default function ProfileModal({ open, onClose, user }: ProfileModalProps)
       setVerifMessage(error.message);
       return;
     }
-    setPendingRequest({ nivel_solicitado: nivelSolicitado });
+    setLastRequest({ nivel_solicitado: nivelSolicitado, estado: "pendiente", nota_revision: null });
     setVerifStatus("info");
     setVerifMessage("Solicitud enviada. El equipo la revisa a la brevedad.");
   }
@@ -188,6 +203,20 @@ export default function ProfileModal({ open, onClose, user }: ProfileModalProps)
                   )}
                 </div>
               </Field>
+              <Field label="Barrio / zona">
+                <select
+                  value={zona}
+                  onChange={(e) => setZona(e.target.value)}
+                  className="w-full rounded-lg border border-piedra/70 px-3 py-2.5 text-[13.5px] text-tinta"
+                >
+                  <option value="">Preferí no decirlo</option>
+                  {zones.map((z) => (
+                    <option key={z} value={z}>
+                      {z}
+                    </option>
+                  ))}
+                </select>
+              </Field>
               <StatusMessage status={profileStatus} message={profileMessage} />
               <button
                 type="submit"
@@ -200,11 +229,28 @@ export default function ProfileModal({ open, onClose, user }: ProfileModalProps)
 
             <div className="mb-6 rounded-lg bg-[#F7F3EC] p-3.5">
               <p className="mb-1 text-[12px] font-semibold text-tinta">{NIVEL_LABEL[verificationLevel]}</p>
-              <p className="text-[11.5px] leading-relaxed text-tinta-suave">
-                Solicitamos estos datos para cuidar la seguridad de la comunidad, evitar publicaciones falsas y mantener
-                un entorno confiable para vecinos, productores, prestadores y visitantes.
-              </p>
+              <p className="mb-3 text-[11.5px] leading-relaxed text-tinta-suave">{NIVEL_DESCRIPCION[verificationLevel]}</p>
+              <div className="flex flex-col gap-1 border-t border-piedra/30 pt-2.5">
+                {[1, 2, 3].map((n) => (
+                  <p key={n} className={`text-[11px] leading-snug ${n === verificationLevel ? "font-semibold text-tinta" : "text-tinta-suave"}`}>
+                    {NIVEL_LABEL[n]}: {NIVEL_DESCRIPCION[n]}
+                  </p>
+                ))}
+              </div>
             </div>
+
+            {lastRequest && lastRequest.estado !== "pendiente" && (
+              <div
+                className={`mb-4 rounded-lg px-3 py-2.5 text-[12.5px] ${
+                  lastRequest.estado === "aprobada" ? "bg-[#EEF2E9] text-oliva" : "bg-red-50 text-red-800"
+                }`}
+              >
+                {lastRequest.estado === "aprobada"
+                  ? `Tu pedido de Nivel ${lastRequest.nivel_solicitado} fue aprobado.`
+                  : `Tu pedido de Nivel ${lastRequest.nivel_solicitado} fue rechazado.`}
+                {lastRequest.nota_revision && <span className="block text-[11.5px] opacity-80">{lastRequest.nota_revision}</span>}
+              </div>
+            )}
 
             {verificationLevel < 3 && (
               <div className="mb-6">
@@ -213,9 +259,9 @@ export default function ProfileModal({ open, onClose, user }: ProfileModalProps)
                   Solo hace falta para casos puntuales: inmuebles, alojamientos, publicaciones de alto valor u otro pedido
                   del equipo.
                 </p>
-                {pendingRequest ? (
+                {lastRequest?.estado === "pendiente" ? (
                   <p className="rounded-lg bg-hueso-2 px-3 py-2.5 text-[12.5px] text-tinta-suave">
-                    Ya tenés una solicitud de Nivel {pendingRequest.nivel_solicitado} en revisión.
+                    Ya tenés una solicitud de Nivel {lastRequest.nivel_solicitado} en revisión.
                   </p>
                 ) : (
                   <form onSubmit={handleRequestVerification}>

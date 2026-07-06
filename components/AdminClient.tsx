@@ -11,10 +11,13 @@ import type {
   ModeracionLogRow,
   ProfileRow,
   SubcategoryRow,
+  UserVerificationRow,
   ZoneRow,
 } from "@/lib/supabase/types";
 
-type Tab = "publicaciones" | "anuncios" | "denuncias" | "usuarios" | "categorias";
+type Tab = "publicaciones" | "anuncios" | "denuncias" | "verificaciones" | "usuarios" | "categorias";
+
+const NIVEL_LABELS: Record<number, string> = { 2: "Nivel 2 · Publicador verificado", 3: "Nivel 3 · Verificación reforzada" };
 
 const REPORT_MOTIVO_LABELS: Record<string, string> = {
   informacion_falsa: "Información falsa o engañosa",
@@ -69,6 +72,9 @@ type ReportWithDetails = ListingReportRow & {
   profiles: { full_name: string | null; email: string | null } | null;
   listings: { nombre: string } | null;
 };
+type VerificationWithUser = UserVerificationRow & {
+  profiles: { full_name: string | null; email: string | null; whatsapp_number: string | null } | null;
+};
 
 interface AdminClientProps {
   role: string;
@@ -83,11 +89,13 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
   const [listings, setListings] = useState<ListingWithPublisher[]>([]);
   const [anuncios, setAnuncios] = useState<AnuncioWithSolicitante[]>([]);
   const [reports, setReports] = useState<ReportWithDetails[]>([]);
+  const [verifications, setVerifications] = useState<VerificationWithUser[]>([]);
   const [users, setUsers] = useState<ProfileRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedListing, setExpandedListing] = useState<string | null>(null);
   const [expandedAnuncio, setExpandedAnuncio] = useState<string | null>(null);
   const [expandedReport, setExpandedReport] = useState<string | null>(null);
+  const [expandedVerification, setExpandedVerification] = useState<string | null>(null);
   const [filtroEstado, setFiltroEstado] = useState("todos");
   const [filtroTexto, setFiltroTexto] = useState("");
   const [filtroCategoria, setFiltroCategoria] = useState("todas");
@@ -130,6 +138,15 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
     setReports((data as never as ReportWithDetails[]) || []);
   }, []);
 
+  const loadVerifications = useCallback(async () => {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("user_verifications")
+      .select("*, profiles!user_verifications_user_id_fkey(full_name, email, whatsapp_number)")
+      .order("created_at", { ascending: false });
+    setVerifications((data as never as VerificationWithUser[]) || []);
+  }, []);
+
   const loadUsers = useCallback(async () => {
     const supabase = createClient();
     const { data } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
@@ -137,8 +154,31 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
   }, []);
 
   useEffect(() => {
-    Promise.all([loadListings(), loadAnuncios(), loadReports(), loadUsers()]).finally(() => setLoading(false));
-  }, [loadListings, loadAnuncios, loadReports, loadUsers]);
+    Promise.all([loadListings(), loadAnuncios(), loadReports(), loadVerifications(), loadUsers()]).finally(() => setLoading(false));
+  }, [loadListings, loadAnuncios, loadReports, loadVerifications, loadUsers]);
+
+  function downloadUsersCsv() {
+    const headers = ["Nombre", "Email", "WhatsApp", "Rol", "Nivel", "Zona", "Bloqueado", "Creado"];
+    const rows = users.map((u) => [
+      u.full_name || "",
+      u.email || "",
+      u.whatsapp_number || "",
+      u.role,
+      String(u.verification_level),
+      u.zona || "",
+      u.blocked_at ? "Sí" : "No",
+      new Date(u.created_at).toLocaleDateString("es-AR"),
+    ]);
+    const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
+    const csv = [headers, ...rows].map((row) => row.map(escape).join(",")).join("\n");
+    const blob = new Blob([`﻿${csv}`], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `usuarios-origen-el-doradillo-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   async function changeRole(userId: string, newRole: string) {
     const supabase = createClient();
@@ -207,6 +247,7 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
   const pendingListings = listings.filter((l) => l.status === "activa" && Date.now() - new Date(l.created_at).getTime() < 1000 * 60 * 60 * 24);
   const solicitadosAnuncios = anuncios.filter((a) => a.status === "solicitado" || a.status === "en_conversacion");
   const denunciasPendientes = reports.filter((r) => r.estado === "pendiente" || r.estado === "en_revision");
+  const verificacionesPendientes = verifications.filter((v) => v.estado === "pendiente");
 
   const filteredListings = listings.filter((l) => {
     if (filtroEstado !== "todos" && l.status !== filtroEstado) return false;
@@ -237,6 +278,9 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
           </TabButton>
           <TabButton active={tab === "denuncias"} onClick={() => setTab("denuncias")}>
             Denuncias {denunciasPendientes.length > 0 && `(${denunciasPendientes.length})`}
+          </TabButton>
+          <TabButton active={tab === "verificaciones"} onClick={() => setTab("verificaciones")}>
+            Verificaciones {verificacionesPendientes.length > 0 && `(${verificacionesPendientes.length})`}
           </TabButton>
           {isSuperadmin && (
             <TabButton active={tab === "usuarios"} onClick={() => setTab("usuarios")}>
@@ -375,8 +419,27 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
               />
             ))}
           </div>
+        ) : tab === "verificaciones" ? (
+          <div className="flex flex-col gap-2">
+            {verifications.length === 0 && <p className="text-sm text-tinta-suave">Todavía no hay solicitudes de verificación.</p>}
+            {verifications.map((v) => (
+              <AdminVerificationRow
+                key={v.id}
+                verification={v}
+                expanded={expandedVerification === v.id}
+                onToggle={() => setExpandedVerification(expandedVerification === v.id ? null : v.id)}
+                onSaved={loadVerifications}
+              />
+            ))}
+          </div>
         ) : tab === "usuarios" ? (
           <div className="flex flex-col gap-6">
+            <div className="flex items-center justify-between">
+              <h2 className="font-slab text-sm font-semibold uppercase tracking-wide text-piedra">Usuarios</h2>
+              <button onClick={downloadUsersCsv} className="rounded-lg border border-piedra/70 px-3 py-1.5 text-xs font-medium text-tinta">
+                <i className="ti ti-download mr-1" aria-hidden /> Descargar CSV
+              </button>
+            </div>
             <div className="rounded-lg border border-dashed border-piedra/70 p-3">
               <h2 className="mb-2 font-slab text-sm font-semibold uppercase tracking-wide text-piedra">Crear usuario</h2>
               <div className="flex flex-wrap gap-2">
@@ -1394,6 +1457,102 @@ function AdminReportRow({
               </div>
             )}
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AdminVerificationRow({
+  verification: v,
+  expanded,
+  onToggle,
+  onSaved,
+}: {
+  verification: VerificationWithUser;
+  expanded: boolean;
+  onToggle: () => void;
+  onSaved: () => void;
+}) {
+  const [saving, setSaving] = useState(false);
+  const [nota, setNota] = useState("");
+
+  async function resolver(estado: "aprobada" | "rechazada") {
+    setSaving(true);
+    const supabase = createClient();
+    const { error } = await supabase.rpc("admin_set_verification_status", {
+      p_request_id: v.id,
+      p_estado: estado,
+      p_nota: nota.trim() || null,
+    });
+    setSaving(false);
+    if (error) alert(error.message);
+    else {
+      setNota("");
+      onSaved();
+    }
+  }
+
+  return (
+    <div className="rounded-lg border border-piedra/50 bg-white p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="cursor-pointer" onClick={onToggle}>
+          <p className="text-sm font-semibold text-tinta">{NIVEL_LABELS[v.nivel_solicitado] ?? `Nivel ${v.nivel_solicitado}`}</p>
+          <p className="text-xs text-tinta-suave">{v.profiles?.full_name || v.profiles?.email || "?"}</p>
+          <p className="text-xs text-tinta-suave">{new Date(v.created_at).toLocaleString("es-AR")}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="rounded-full border border-piedra/60 px-2 py-1 text-[11px] text-tinta">{REPORT_STATUS_LABELS[v.estado] ?? v.estado}</span>
+          <button onClick={onToggle} className="rounded-lg border border-piedra/70 px-2.5 py-1.5 text-xs text-tinta">
+            {expanded ? "Cerrar" : "Revisar"}
+          </button>
+        </div>
+      </div>
+
+      {expanded && (
+        <div className="mt-3 flex flex-col gap-3 border-t border-piedra/40 pt-3">
+          <p className="text-xs text-tinta">
+            <span className="font-medium">Motivo:</span> {v.motivo}
+          </p>
+          {v.profiles?.whatsapp_number && <p className="text-xs text-tinta-suave">WhatsApp: {v.profiles.whatsapp_number}</p>}
+          {v.evidencia_url && (
+            <a href={v.evidencia_url} target="_blank" rel="noreferrer" className="text-xs text-golfo">
+              Ver evidencia
+            </a>
+          )}
+
+          {v.estado === "pendiente" ? (
+            <>
+              <input
+                type="text"
+                value={nota}
+                onChange={(e) => setNota(e.target.value)}
+                placeholder="Nota para el usuario (opcional)"
+                className="w-full rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
+              />
+              <div className="flex gap-2">
+                <button
+                  disabled={saving}
+                  onClick={() => resolver("aprobada")}
+                  className="rounded-lg border border-oliva bg-oliva px-3 py-1.5 text-xs font-semibold text-hueso disabled:opacity-60"
+                >
+                  Aprobar
+                </button>
+                <button
+                  disabled={saving}
+                  onClick={() => resolver("rechazada")}
+                  className="rounded-lg border border-red-700 px-3 py-1.5 text-xs text-red-700 disabled:opacity-60"
+                >
+                  Rechazar
+                </button>
+              </div>
+            </>
+          ) : (
+            <p className="text-xs text-tinta-suave">
+              Resuelta el {v.revisado_en ? new Date(v.revisado_en).toLocaleString("es-AR") : "?"}
+              {v.nota_revision ? ` — ${v.nota_revision}` : ""}
+            </p>
+          )}
         </div>
       )}
     </div>
