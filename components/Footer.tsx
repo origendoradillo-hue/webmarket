@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 export default function Footer() {
   const [sent, setSent] = useState(false);
@@ -73,9 +74,9 @@ export default function Footer() {
               <a href="#" onClick={(e) => e.preventDefault()} className="text-xs text-hueso/70">
                 Términos y condiciones
               </a>
-              <a href="#" onClick={(e) => e.preventDefault()} className="text-xs text-hueso/70">
+              <Link href="/privacidad" className="text-xs text-hueso/70">
                 Política de privacidad
-              </a>
+              </Link>
               <a href="#" onClick={(e) => e.preventDefault()} className="text-xs text-hueso/70">
                 Cómo funciona el sello
               </a>
