@@ -763,6 +763,13 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
               {step === "contacto" && (
                 <>
                   <p className="mb-4 font-slab text-lg font-semibold text-tinta">Tus datos de contacto</p>
+                  {data.tipo === "inmueble" && (
+                    <div className="mb-3.5 flex gap-2 rounded-lg bg-[#FBF3E4] p-2.5 text-xs text-tinta">
+                      <i className="ti ti-shield-check mt-0.5 flex-shrink-0 text-dorado" aria-hidden />
+                      Las publicaciones de inmuebles pueden requerir autorización adicional del equipo. Te recomendamos
+                      completar tu verificación en "Mi perfil" — igual podés enviar tu publicación ahora.
+                    </div>
+                  )}
                   <div className="mb-3.5 flex gap-2 rounded-lg bg-[#F7F3EC] p-2.5 text-xs text-tinta-suave">
                     <i className="ti ti-brand-whatsapp mt-0.5 flex-shrink-0 text-dorado" aria-hidden />
                     Este es el WhatsApp que va a ver quien te contacte por esta publicación.
