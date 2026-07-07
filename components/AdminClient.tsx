@@ -10,12 +10,27 @@ import type {
   ListingRow,
   ModeracionLogRow,
   ProfileRow,
+  ReviewReportRow,
   SubcategoryRow,
   UserVerificationRow,
   ZoneRow,
 } from "@/lib/supabase/types";
 
-type Tab = "publicaciones" | "anuncios" | "denuncias" | "verificaciones" | "usuarios" | "categorias";
+type Tab = "publicaciones" | "anuncios" | "denuncias" | "verificaciones" | "reseñas" | "usuarios" | "categorias";
+
+const REVIEW_MOTIVO_LABELS: Record<string, string> = {
+  informacion_falsa: "Información falsa",
+  contenido_inapropiado: "Contenido inapropiado",
+  sospecha_falsa: "Sospecha de reseña falsa",
+  otro: "Otro",
+};
+
+const REVIEW_REPORT_STATUS_LABELS: Record<string, string> = {
+  pendiente: "Pendiente",
+  resuelta: "Resuelta (reseña oculta)",
+  rechazada: "Rechazada",
+};
+const REVIEW_REPORT_STATUS_OPTIONS = ["resuelta", "rechazada"];
 
 const NIVEL_LABELS: Record<number, string> = { 2: "Nivel 2 · Publicador verificado", 3: "Nivel 3 · Verificación reforzada" };
 
@@ -75,6 +90,10 @@ type ReportWithDetails = ListingReportRow & {
 type VerificationWithUser = UserVerificationRow & {
   profiles: { full_name: string | null; email: string | null; whatsapp_number: string | null } | null;
 };
+type ReviewReportWithDetails = ReviewReportRow & {
+  profiles: { full_name: string | null; email: string | null } | null;
+  reviews: { rating: number; comentario: string | null; estado: string; target_user_id: string } | null;
+};
 
 interface AdminClientProps {
   role: string;
@@ -90,12 +109,14 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
   const [anuncios, setAnuncios] = useState<AnuncioWithSolicitante[]>([]);
   const [reports, setReports] = useState<ReportWithDetails[]>([]);
   const [verifications, setVerifications] = useState<VerificationWithUser[]>([]);
+  const [reviewReports, setReviewReports] = useState<ReviewReportWithDetails[]>([]);
   const [users, setUsers] = useState<ProfileRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedListing, setExpandedListing] = useState<string | null>(null);
   const [expandedAnuncio, setExpandedAnuncio] = useState<string | null>(null);
   const [expandedReport, setExpandedReport] = useState<string | null>(null);
   const [expandedVerification, setExpandedVerification] = useState<string | null>(null);
+  const [expandedReviewReport, setExpandedReviewReport] = useState<string | null>(null);
   const [filtroEstado, setFiltroEstado] = useState("todos");
   const [filtroTexto, setFiltroTexto] = useState("");
   const [filtroCategoria, setFiltroCategoria] = useState("todas");
@@ -147,6 +168,15 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
     setVerifications((data as never as VerificationWithUser[]) || []);
   }, []);
 
+  const loadReviewReports = useCallback(async () => {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("review_reports")
+      .select("*, profiles!review_reports_reporter_id_fkey(full_name, email), reviews(rating, comentario, estado, target_user_id)")
+      .order("created_at", { ascending: false });
+    setReviewReports((data as never as ReviewReportWithDetails[]) || []);
+  }, []);
+
   const loadUsers = useCallback(async () => {
     const supabase = createClient();
     const { data } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
@@ -154,8 +184,10 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
   }, []);
 
   useEffect(() => {
-    Promise.all([loadListings(), loadAnuncios(), loadReports(), loadVerifications(), loadUsers()]).finally(() => setLoading(false));
-  }, [loadListings, loadAnuncios, loadReports, loadVerifications, loadUsers]);
+    Promise.all([loadListings(), loadAnuncios(), loadReports(), loadVerifications(), loadReviewReports(), loadUsers()]).finally(() =>
+      setLoading(false)
+    );
+  }, [loadListings, loadAnuncios, loadReports, loadVerifications, loadReviewReports, loadUsers]);
 
   function downloadUsersCsv() {
     const headers = ["Nombre", "Email", "WhatsApp", "Rol", "Nivel", "Zona", "Bloqueado", "Creado"];
@@ -248,6 +280,7 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
   const solicitadosAnuncios = anuncios.filter((a) => a.status === "solicitado" || a.status === "en_conversacion");
   const denunciasPendientes = reports.filter((r) => r.estado === "pendiente" || r.estado === "en_revision");
   const verificacionesPendientes = verifications.filter((v) => v.estado === "pendiente");
+  const reseñasPendientes = reviewReports.filter((r) => r.estado === "pendiente");
 
   const filteredListings = listings.filter((l) => {
     if (filtroEstado !== "todos" && l.status !== filtroEstado) return false;
@@ -281,6 +314,9 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
           </TabButton>
           <TabButton active={tab === "verificaciones"} onClick={() => setTab("verificaciones")}>
             Verificaciones {verificacionesPendientes.length > 0 && `(${verificacionesPendientes.length})`}
+          </TabButton>
+          <TabButton active={tab === "reseñas"} onClick={() => setTab("reseñas")}>
+            Reseñas {reseñasPendientes.length > 0 && `(${reseñasPendientes.length})`}
           </TabButton>
           {isSuperadmin && (
             <TabButton active={tab === "usuarios"} onClick={() => setTab("usuarios")}>
@@ -429,6 +465,19 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
                 expanded={expandedVerification === v.id}
                 onToggle={() => setExpandedVerification(expandedVerification === v.id ? null : v.id)}
                 onSaved={loadVerifications}
+              />
+            ))}
+          </div>
+        ) : tab === "reseñas" ? (
+          <div className="flex flex-col gap-2">
+            {reviewReports.length === 0 && <p className="text-sm text-tinta-suave">Todavía no hay reportes de reseñas.</p>}
+            {reviewReports.map((r) => (
+              <AdminReviewReportRow
+                key={r.id}
+                report={r}
+                expanded={expandedReviewReport === r.id}
+                onToggle={() => setExpandedReviewReport(expandedReviewReport === r.id ? null : r.id)}
+                onSaved={loadReviewReports}
               />
             ))}
           </div>
@@ -1552,6 +1601,82 @@ function AdminVerificationRow({
               Resuelta el {v.revisado_en ? new Date(v.revisado_en).toLocaleString("es-AR") : "?"}
               {v.nota_revision ? ` — ${v.nota_revision}` : ""}
             </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AdminReviewReportRow({
+  report: r,
+  expanded,
+  onToggle,
+  onSaved,
+}: {
+  report: ReviewReportWithDetails;
+  expanded: boolean;
+  onToggle: () => void;
+  onSaved: () => void;
+}) {
+  const [saving, setSaving] = useState(false);
+
+  async function cambiarEstado(estado: "resuelta" | "rechazada") {
+    setSaving(true);
+    const supabase = createClient();
+    const { error } = await supabase.rpc("admin_set_review_report_status", { p_report_id: r.id, p_estado: estado });
+    setSaving(false);
+    if (error) alert(error.message);
+    else onSaved();
+  }
+
+  return (
+    <div className="rounded-lg border border-piedra/50 bg-white p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="cursor-pointer" onClick={onToggle}>
+          <p className="text-sm font-semibold text-tinta">{REVIEW_MOTIVO_LABELS[r.motivo] ?? r.motivo}</p>
+          <p className="text-xs text-tinta-suave">
+            Reseña: {r.reviews ? `${r.reviews.rating}★ — ${r.reviews.estado}` : "(eliminada)"} · Reportante:{" "}
+            {r.profiles?.full_name || r.profiles?.email || "?"}
+          </p>
+          <p className="text-xs text-tinta-suave">{new Date(r.created_at).toLocaleString("es-AR")}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="rounded-full border border-piedra/60 px-2 py-1 text-[11px] text-tinta">
+            {REVIEW_REPORT_STATUS_LABELS[r.estado] ?? r.estado}
+          </span>
+          <button onClick={onToggle} className="rounded-lg border border-piedra/70 px-2.5 py-1.5 text-xs text-tinta">
+            {expanded ? "Cerrar" : "Revisar"}
+          </button>
+        </div>
+      </div>
+
+      {expanded && (
+        <div className="mt-3 flex flex-col gap-3 border-t border-piedra/40 pt-3">
+          <p className="text-xs text-tinta">
+            <span className="font-medium">Justificación:</span> {r.justificacion}
+          </p>
+          {r.reviews?.comentario && (
+            <p className="text-xs text-tinta">
+              <span className="font-medium">Comentario de la reseña:</span> {r.reviews.comentario}
+            </p>
+          )}
+
+          {r.estado === "pendiente" ? (
+            <div className="flex flex-wrap gap-2">
+              {REVIEW_REPORT_STATUS_OPTIONS.map((s) => (
+                <button
+                  key={s}
+                  disabled={saving}
+                  onClick={() => cambiarEstado(s as "resuelta" | "rechazada")}
+                  className="rounded-lg border border-piedra/70 px-2.5 py-1.5 text-xs text-tinta disabled:opacity-60"
+                >
+                  {REVIEW_REPORT_STATUS_LABELS[s]}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-tinta-suave">Ya resuelto: {REVIEW_REPORT_STATUS_LABELS[r.estado]}</p>
           )}
         </div>
       )}

@@ -54,6 +54,7 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
   const [newPhotos, setNewPhotos] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [statusBusyId, setStatusBusyId] = useState<string | null>(null);
+  const [ratingInfo, setRatingInfo] = useState<{ promedio: number | null; count: number }>({ promedio: null, count: 0 });
 
   const loadListings = useCallback(async () => {
     const supabase = createClient();
@@ -71,7 +72,14 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
     setLoading(true);
     setExpandedId(null);
     loadListings();
-  }, [open, loadListings]);
+    const supabase = createClient();
+    supabase
+      .from("profiles")
+      .select("rating_promedio, resenas_count")
+      .eq("id", user.id)
+      .single()
+      .then(({ data }) => setRatingInfo({ promedio: data?.rating_promedio ?? null, count: data?.resenas_count ?? 0 }));
+  }, [open, loadListings, user.id]);
 
   if (!open) return null;
 
@@ -198,6 +206,19 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
           </button>
         </div>
 
+        <div className="flex items-start gap-2 bg-[#FBF3E4] px-4 py-2.5 text-[12px] leading-relaxed text-tinta">
+          <i className="ti ti-star mt-0.5 flex-shrink-0 text-dorado" aria-hidden />
+          <span>
+            {ratingInfo.count > 0 ? (
+              <>
+                Tu calificación: <strong>{ratingInfo.promedio?.toFixed(1)}</strong> ({ratingInfo.count} reseña
+                {ratingInfo.count === 1 ? "" : "s"}).{" "}
+              </>
+            ) : null}
+            Invitá a quienes te contactan a dejar una reseña real — ayuda a que toda la comunidad confíe más en Origen El
+            Doradillo.
+          </span>
+        </div>
         <div className="overflow-y-auto px-4 py-4 sm:px-5">
           {loading ? (
             <p className="py-10 text-center text-[13px] text-tinta-suave">Cargando...</p>

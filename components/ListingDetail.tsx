@@ -2,25 +2,39 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import type { User } from "@supabase/supabase-js";
 import { fallbackColorFor } from "@/lib/data";
 import { useCategories } from "@/lib/useCategories";
 import { Listing } from "@/lib/types";
 import { buildWhatsappLink } from "@/lib/whatsapp";
 import { createClient } from "@/lib/supabase/client";
+import ReportReviewModal from "./ReportReviewModal";
+
+interface ReviewWithReviewer {
+  id: string;
+  rating: number;
+  comentario: string | null;
+  created_at: string;
+  profiles: { full_name: string | null } | null;
+}
 
 interface ListingDetailProps {
   listing: Listing | null;
   onClose: () => void;
   isLoggedIn: boolean;
+  user: User | null;
   onRequireAuth: () => void;
   onReport: () => void;
+  onReview: () => void;
 }
 
-export default function ListingDetail({ listing: l, onClose, isLoggedIn, onRequireAuth, onReport }: ListingDetailProps) {
+export default function ListingDetail({ listing: l, onClose, isLoggedIn, user, onRequireAuth, onReport, onReview }: ListingDetailProps) {
   const { categories } = useCategories();
   const [contacting, setContacting] = useState(false);
   const [images, setImages] = useState<string[]>([]);
   const [imgIndex, setImgIndex] = useState(0);
+  const [reviews, setReviews] = useState<ReviewWithReviewer[]>([]);
+  const [reportReviewId, setReportReviewId] = useState<string | null>(null);
 
   useEffect(() => {
     setImgIndex(0);
@@ -43,6 +57,22 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, onRequi
         setImages(l.foto ? [l.foto, ...extra] : extra);
       });
   }, [l?.id, l?.isReal, l?.foto]);
+
+  useEffect(() => {
+    if (!l || !l.isReal || !l.publisherId) {
+      setReviews([]);
+      return;
+    }
+    const supabase = createClient();
+    supabase
+      .from("reviews")
+      .select("id, rating, comentario, created_at, profiles!reviews_reviewer_id_fkey(full_name)")
+      .eq("target_user_id", l.publisherId)
+      .eq("estado", "publicada")
+      .order("created_at", { ascending: false })
+      .limit(10)
+      .then(({ data }) => setReviews((data as unknown as ReviewWithReviewer[]) || []));
+  }, [l?.publisherId, l?.isReal]);
 
   if (!l) return null;
   const listing = l;
@@ -254,6 +284,43 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, onRequi
             {contacting ? "Un momento..." : requiereLogin && !isLoggedIn ? "Ingresá para contactar" : "Contactar por WhatsApp"}
           </button>
 
+          {listing.isReal && user && user.id !== listing.publisherId && (
+            <button
+              onClick={onReview}
+              className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dorado py-2.5 text-[13px] font-semibold text-dorado"
+            >
+              <i className="ti ti-star text-sm" aria-hidden />
+              Dejar una reseña
+            </button>
+          )}
+
+          {listing.isReal && reviews.length > 0 && (
+            <div className="mt-5 border-t border-piedra/40 pt-4">
+              <p className="mb-3 font-slab text-[13.5px] font-semibold text-tinta">Reseñas de este publicador</p>
+              <div className="flex flex-col gap-3">
+                {reviews.map((r) => (
+                  <div key={r.id} className="rounded-lg bg-hueso-2 p-3">
+                    <div className="mb-1 flex items-center justify-between">
+                      <span className="text-[12.5px] font-semibold text-tinta">{r.profiles?.full_name || "Vecino"}</span>
+                      <span className="text-[11.5px] font-semibold text-dorado">
+                        <i className="ti ti-star" aria-hidden /> {r.rating}
+                      </span>
+                    </div>
+                    {r.comentario && <p className="mb-1.5 text-[12.5px] leading-relaxed text-tinta">{r.comentario}</p>}
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-tinta-suave">{new Date(r.created_at).toLocaleDateString("es-AR")}</span>
+                      {user && (
+                        <button onClick={() => setReportReviewId(r.id)} className="text-[11px] text-tinta-suave underline">
+                          Reportar
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {listing.isReal && (
             <button
               onClick={() => (isLoggedIn ? onReport() : onRequireAuth())}
@@ -265,6 +332,10 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, onRequi
           )}
         </div>
       </div>
+
+      {user && reportReviewId && (
+        <ReportReviewModal open={!!reportReviewId} onClose={() => setReportReviewId(null)} reviewId={reportReviewId} user={user} />
+      )}
     </div>
   );
 }

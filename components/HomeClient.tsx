@@ -26,6 +26,7 @@ import ProfileModal from "./ProfileModal";
 import MyListingsModal from "./MyListingsModal";
 import ForcePasswordModal from "./ForcePasswordModal";
 import ReportListingModal from "./ReportListingModal";
+import ReviewModal from "./ReviewModal";
 import Footer from "./Footer";
 
 const ETIQUETAS: { value: Etiqueta; label: string }[] = [
@@ -58,6 +59,8 @@ export default function HomeClient() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [myListingsOpen, setMyListingsOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  const [reviewListingId, setReviewListingId] = useState<string | null>(null);
+  const [reviewReminder, setReviewReminder] = useState<{ listingId: string; nombre: string } | null>(null);
   const [realListings, setRealListings] = useState<Listing[]>([]);
   const [realAnuncios, setRealAnuncios] = useState<Anuncio[]>([]);
 
@@ -65,15 +68,17 @@ export default function HomeClient() {
     const supabase = createClient();
     const { data, error } = await supabase
       .from("listings")
-      .select("*, profiles(full_name)")
+      .select("*, profiles(full_name, rating_promedio, resenas_count)")
       .eq("status", "activa")
       .order("created_at", { ascending: false });
 
     if (!error && data) {
       setRealListings(
-        (data as unknown as Array<ListingRow & { profiles: { full_name: string | null } | null }>).map((row) =>
-          mapListingRow(row, row.profiles?.full_name ?? null, categories)
-        )
+        (
+          data as unknown as Array<
+            ListingRow & { profiles: { full_name: string | null; rating_promedio: number | null; resenas_count: number } | null }
+          >
+        ).map((row) => mapListingRow(row, row.profiles, categories))
       );
     }
   }, [categories]);
@@ -91,10 +96,38 @@ export default function HomeClient() {
     }
   }, []);
 
+  const loadReviewReminder = useCallback(async () => {
+    if (!user) {
+      setReviewReminder(null);
+      return;
+    }
+    const supabase = createClient();
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { data: clicks } = await supabase
+      .from("whatsapp_clicks")
+      .select("listing_id, created_at, listings(nombre)")
+      .eq("clicked_by", user.id)
+      .lt("created_at", since)
+      .order("created_at", { ascending: false });
+    const clickRows = (clicks as unknown as Array<{ listing_id: string; listings: { nombre: string } | null }>) || [];
+    if (clickRows.length === 0) {
+      setReviewReminder(null);
+      return;
+    }
+    const { data: myReviews } = await supabase.from("reviews").select("listing_id").eq("reviewer_id", user.id);
+    const reviewedIds = new Set((myReviews || []).map((r) => r.listing_id));
+    const pending = clickRows.find((c) => !reviewedIds.has(c.listing_id));
+    setReviewReminder(pending ? { listingId: pending.listing_id, nombre: pending.listings?.nombre ?? "esa publicación" } : null);
+  }, [user]);
+
   useEffect(() => {
     loadRealListings();
     loadRealAnuncios();
   }, [loadRealListings, loadRealAnuncios]);
+
+  useEffect(() => {
+    loadReviewReminder();
+  }, [loadReviewReminder]);
 
   useEffect(() => {
     if (window.location.search.includes("reset=1")) {
@@ -189,7 +222,15 @@ export default function HomeClient() {
   }
 
   const modalOpen =
-    !!activeListing || mapOpen || publishOpen || anuncioFormOpen || authOpen || profileOpen || myListingsOpen || reportOpen;
+    !!activeListing ||
+    mapOpen ||
+    publishOpen ||
+    anuncioFormOpen ||
+    authOpen ||
+    profileOpen ||
+    myListingsOpen ||
+    reportOpen ||
+    !!reviewListingId;
   useEffect(() => {
     document.body.style.overflow = modalOpen ? "hidden" : "";
     return () => {
@@ -259,6 +300,23 @@ export default function HomeClient() {
         onSignOut={handleSignOut}
         isStaff={isStaff}
       />
+      {reviewReminder && (
+        <div className="flex flex-wrap items-center justify-between gap-2 bg-dorado/15 px-4 py-2.5 text-[12.5px] text-tinta sm:px-8">
+          <span>
+            <i className="ti ti-star mr-1.5 text-dorado" aria-hidden />
+            ¿Cómo te fue con tu contacto a <strong>{reviewReminder.nombre}</strong>? Contale a la comunidad — las reseñas reales
+            ayudan a todos.
+          </span>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setReviewListingId(reviewReminder.listingId)} className="rounded-lg bg-dorado px-3 py-1.5 text-[12px] font-semibold text-oliva-dd">
+              Dejar reseña
+            </button>
+            <button onClick={() => setReviewReminder(null)} aria-label="Cerrar aviso">
+              <i className="ti ti-x text-tinta-suave" aria-hidden />
+            </button>
+          </div>
+        </div>
+      )}
       <Hero query={query} onQueryChange={setQuery} />
       {screen === "home" && <AnuncioCarousel anuncios={allAnuncios} />}
       {screen === "home" && (
@@ -337,8 +395,10 @@ export default function HomeClient() {
         listing={activeListing}
         onClose={() => setActiveListing(null)}
         isLoggedIn={!!user}
+        user={user}
         onRequireAuth={openAuth}
         onReport={() => setReportOpen(true)}
+        onReview={() => setReviewListingId(activeListing ? String(activeListing.id) : null)}
       />
       {user && activeListing?.isReal && (
         <ReportListingModal
@@ -346,6 +406,18 @@ export default function HomeClient() {
           onClose={() => setReportOpen(false)}
           listingId={String(activeListing.id)}
           user={user}
+        />
+      )}
+      {user && reviewListingId && (
+        <ReviewModal
+          open={!!reviewListingId}
+          onClose={() => setReviewListingId(null)}
+          listingId={reviewListingId}
+          user={user}
+          onSubmitted={() => {
+            setReviewReminder(null);
+            loadRealListings();
+          }}
         />
       )}
       <MapModal open={mapOpen} onClose={() => setMapOpen(false)} />

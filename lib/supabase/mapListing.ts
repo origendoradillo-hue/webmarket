@@ -11,9 +11,15 @@ const TIPO_ICON: Record<TipoPublicacion, string> = {
   otro: "ti-dots",
 };
 
-export function mapListingRow(row: ListingRow, publisherName: string | null, categories: Record<string, Category>): Listing {
+interface PublisherInfo {
+  full_name: string | null;
+  rating_promedio?: number | null;
+  resenas_count?: number | null;
+}
+
+export function mapListingRow(row: ListingRow, publisher: PublisherInfo | null, categories: Record<string, Category>): Listing {
   const categoria = row.categoria && row.categoria in categories ? (row.categoria as CategoryKey) : undefined;
-  const nombrePublicador = publisherName?.trim() || "Vecino de la zona";
+  const nombrePublicador = publisher?.full_name?.trim() || "Vecino de la zona";
   const tipo = (row.tipo as TipoPublicacion) || undefined;
 
   return {
@@ -30,8 +36,8 @@ export function mapListingRow(row: ListingRow, publisherName: string | null, cat
     icono: categoria ? categories[categoria].icon : tipo ? TIPO_ICON[tipo] : "ti-search",
     sello: row.sello,
     destacada: row.destacada,
-    rating: 0,
-    reseñas: 0,
+    rating: publisher?.rating_promedio ?? 0,
+    reseñas: publisher?.resenas_count ?? 0,
     modalidad: row.modalidad,
     descripcion: row.descripcion,
     iniciales: nombrePublicador
@@ -49,5 +55,6 @@ export function mapListingRow(row: ListingRow, publisherName: string | null, cat
     precioConsultar: row.precio_a_consultar,
     detalles: row.detalles || undefined,
     whatsappPublico: row.whatsapp_publico,
+    publisherId: row.publisher_id,
   };
 }

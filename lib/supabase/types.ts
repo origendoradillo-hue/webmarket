@@ -14,6 +14,8 @@ export interface Database {
           blocked_at: string | null;
           must_change_password: boolean;
           zona: string | null;
+          rating_promedio: number | null;
+          resenas_count: number;
           created_at: string;
         };
         Insert: {
@@ -265,6 +267,51 @@ export interface Database {
         };
         Relationships: [];
       };
+      reviews: {
+        Row: {
+          id: string;
+          reviewer_id: string;
+          target_user_id: string;
+          listing_id: string | null;
+          rating: 1 | 2 | 3 | 4 | 5;
+          comentario: string | null;
+          estado: "publicada" | "oculta";
+          created_at: string;
+        };
+        Insert: {
+          reviewer_id: string;
+          target_user_id: string;
+          listing_id?: string | null;
+          rating: 1 | 2 | 3 | 4 | 5;
+          comentario?: string | null;
+        };
+        Update: {
+          estado?: "publicada" | "oculta";
+        };
+        Relationships: [];
+      };
+      review_reports: {
+        Row: {
+          id: string;
+          review_id: string;
+          reporter_id: string | null;
+          motivo: "informacion_falsa" | "contenido_inapropiado" | "sospecha_falsa" | "otro";
+          justificacion: string;
+          estado: "pendiente" | "resuelta" | "rechazada";
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          review_id: string;
+          reporter_id: string;
+          motivo: "informacion_falsa" | "contenido_inapropiado" | "sospecha_falsa" | "otro";
+          justificacion: string;
+        };
+        Update: {
+          estado?: "pendiente" | "resuelta" | "rechazada";
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -314,6 +361,14 @@ export interface Database {
       };
       admin_set_verification_status: {
         Args: { p_request_id: string; p_estado: string; p_nota?: string | null };
+        Returns: undefined;
+      };
+      submit_review: {
+        Args: { p_listing_id: string; p_rating: number; p_comentario?: string | null };
+        Returns: undefined;
+      };
+      admin_set_review_report_status: {
+        Args: { p_report_id: string; p_estado: string };
         Returns: undefined;
       };
       mi_set_listing_status: {
@@ -401,3 +456,5 @@ export type SubcategoryRow = Database["public"]["Tables"]["subcategories"]["Row"
 export type ZoneRow = Database["public"]["Tables"]["zones"]["Row"];
 export type ListingReportRow = Database["public"]["Tables"]["listing_reports"]["Row"];
 export type UserVerificationRow = Database["public"]["Tables"]["user_verifications"]["Row"];
+export type ReviewRow = Database["public"]["Tables"]["reviews"]["Row"];
+export type ReviewReportRow = Database["public"]["Tables"]["review_reports"]["Row"];
