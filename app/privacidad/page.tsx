@@ -3,7 +3,7 @@ import Link from "next/link";
 import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
-  title: "Política de Privacidad | Origen El Doradillo",
+  title: "Política de Privacidad",
   description: "Cómo Origen El Doradillo recolecta, usa y protege los datos de su comunidad.",
 };
 

@@ -24,9 +24,23 @@ export default function Footer() {
                 <span className="block text-[9px] uppercase tracking-[0.1em] text-arena">El Doradillo</span>
               </div>
             </div>
-            <p className="max-w-[240px] text-[12.5px] leading-relaxed text-hueso/75">
+            <p className="mb-3 max-w-[240px] text-[12.5px] leading-relaxed text-hueso/75">
               Productos, servicios y experiencias con origen en la zona rural norte de Madryn.
             </p>
+            <div className="flex flex-col gap-2">
+              <Link href="/sobre-origen" className="text-xs text-hueso/70">
+                Sobre Origen
+              </Link>
+              <Link href="/como-funciona" className="text-xs text-hueso/70">
+                Cómo funciona
+              </Link>
+              <Link href="/publicar-en-origen" className="text-xs text-hueso/70">
+                Publicar en Origen
+              </Link>
+              <Link href="/seguridad" className="text-xs text-hueso/70">
+                Seguridad de la comunidad
+              </Link>
+            </div>
           </div>
 
           <div>
@@ -71,15 +85,15 @@ export default function Footer() {
           <div>
             <p className="mb-3 font-slab text-[13px] font-semibold text-dorado">Legal</p>
             <div className="flex flex-col gap-2">
-              <a href="#" onClick={(e) => e.preventDefault()} className="text-xs text-hueso/70">
+              <Link href="/terminos" className="text-xs text-hueso/70">
                 Términos y condiciones
-              </a>
+              </Link>
               <Link href="/privacidad" className="text-xs text-hueso/70">
                 Política de privacidad
               </Link>
-              <a href="#" onClick={(e) => e.preventDefault()} className="text-xs text-hueso/70">
+              <Link href="/como-funciona" className="text-xs text-hueso/70">
                 Cómo funciona el sello
-              </a>
+              </Link>
             </div>
           </div>
         </div>

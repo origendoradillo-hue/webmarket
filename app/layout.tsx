@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Bitter, Barlow } from "next/font/google";
+import { SITE_URL, SITE_NAME } from "@/lib/seo";
 import "./globals.css";
 
 const bitter = Bitter({
@@ -16,10 +17,28 @@ const barlow = Barlow({
   display: "swap",
 });
 
+const DESCRIPTION = "Productos, servicios y experiencias con origen en la zona rural norte de Madryn, cerca del Parque Ecológico El Doradillo.";
+
 export const metadata: Metadata = {
-  title: "Origen El Doradillo",
-  description:
-    "Productos, servicios y experiencias con origen en la zona rural norte de Madryn.",
+  metadataBase: new URL(SITE_URL),
+  title: { default: SITE_NAME, template: `%s | ${SITE_NAME}` },
+  description: DESCRIPTION,
+  robots: { index: true, follow: true },
+  openGraph: {
+    type: "website",
+    locale: "es_AR",
+    url: SITE_URL,
+    siteName: SITE_NAME,
+    title: SITE_NAME,
+    description: DESCRIPTION,
+    images: [{ url: "/brand/logo-completo.png", width: 360, height: 140, alt: SITE_NAME }],
+  },
+  twitter: {
+    card: "summary",
+    title: SITE_NAME,
+    description: DESCRIPTION,
+    images: ["/brand/logo-completo.png"],
+  },
 };
 
 export const viewport = {
