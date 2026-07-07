@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useCategories } from "@/lib/useCategories";
 import { createClient } from "@/lib/supabase/client";
 import type {
@@ -44,6 +44,7 @@ const REPORT_MOTIVO_LABELS: Record<string, string> = {
   categoria_incorrecta: "Categoría incorrecta",
   publicacion_duplicada: "Publicación duplicada",
   fotos_falsas: "Fotos falsas o robadas",
+  insultos_agravios: "Insultos o agravios",
   otro: "Otro",
 };
 
@@ -85,7 +86,7 @@ type ListingWithPublisher = ListingRow & { profiles: { full_name: string | null;
 type AnuncioWithSolicitante = AnuncioRow & { profiles: { full_name: string | null; email: string | null; whatsapp_number: string | null } | null };
 type ReportWithDetails = ListingReportRow & {
   profiles: { full_name: string | null; email: string | null } | null;
-  listings: { nombre: string } | null;
+  listings: { nombre: string; publisher_id: string } | null;
 };
 type VerificationWithUser = UserVerificationRow & {
   profiles: { full_name: string | null; email: string | null; whatsapp_number: string | null } | null;
@@ -154,7 +155,7 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
     const supabase = createClient();
     const { data } = await supabase
       .from("listing_reports")
-      .select("*, profiles(full_name, email), listings(nombre)")
+      .select("*, profiles(full_name, email), listings(nombre, publisher_id)")
       .order("created_at", { ascending: false });
     setReports((data as never as ReportWithDetails[]) || []);
   }, []);
@@ -193,7 +194,7 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
     // Excel en español/Argentina usa ";" como separador de listas al abrir un
     // CSV con doble click (usa la config regional del sistema, no la coma
     // "de fábrica"); con "," todo termina amontonado en una sola columna.
-    const headers = ["Nombre", "Nombre público", "Email", "WhatsApp", "Rol", "Nivel", "Zona", "Calificación", "Reseñas", "Bloqueado", "Creado"];
+    const headers = ["Nombre", "Nombre público", "Email", "WhatsApp", "Rol", "Nivel", "Barrio", "Calificación", "Reseñas", "Bloqueado", "Creado"];
     const rows = users.map((u) => [
       u.full_name || "",
       u.nickname || "",
@@ -288,7 +289,9 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
   const verificacionesPendientes = verifications.filter((v) => v.estado === "pendiente");
   const reseñasPendientes = reviewReports.filter((r) => r.estado === "pendiente");
 
+  const pendingListingIds = new Set(pendingListings.map((l) => l.id));
   const filteredListings = listings.filter((l) => {
+    if (pendingListingIds.has(l.id)) return false;
     if (filtroEstado !== "todos" && l.status !== filtroEstado) return false;
     if (filtroCategoria !== "todas" && l.categoria !== filtroCategoria) return false;
     if (filtroTipo !== "todos" && l.tipo !== filtroTipo) return false;
@@ -458,6 +461,7 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
                 expanded={expandedReport === r.id}
                 onToggle={() => setExpandedReport(expandedReport === r.id ? null : r.id)}
                 onSaved={loadReports}
+                isSuperadmin={isSuperadmin}
               />
             ))}
           </div>
@@ -869,6 +873,16 @@ function AdminListingRow({
   });
 
   const [images, setImages] = useState<{ id: string; url: string }[]>([]);
+  const rowRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!expanded) return;
+    function onClickOutside(e: MouseEvent) {
+      if (rowRef.current && !rowRef.current.contains(e.target as Node)) onToggle();
+    }
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, [expanded, onToggle]);
 
   const loadHistorial = useCallback(async () => {
     const supabase = createClient();
@@ -1029,7 +1043,7 @@ function AdminListingRow({
   const link = contactUrl(l.profiles?.whatsapp_number, l.profiles?.email);
 
   return (
-    <div className="rounded-lg border border-piedra/50 bg-white p-3">
+    <div ref={rowRef} className="rounded-lg border border-piedra/50 bg-white p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="cursor-pointer" onClick={onToggle}>
           <p className="text-sm font-semibold text-tinta">
@@ -1078,7 +1092,7 @@ function AdminListingRow({
 
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <LabeledInput label="Nombre" value={form.nombre} onChange={(v) => setForm({ ...form, nombre: v })} />
-            <LabeledInput label="Zona" value={form.zona} onChange={(v) => setForm({ ...form, zona: v })} />
+            <LabeledInput label="Barrio" value={form.zona} onChange={(v) => setForm({ ...form, zona: v })} />
             <div>
               <label className="mb-1 block text-[11px] font-medium text-tinta">Categoría</label>
               <select
@@ -1411,15 +1425,32 @@ function AdminReportRow({
   expanded,
   onToggle,
   onSaved,
+  isSuperadmin,
 }: {
   report: ReportWithDetails;
   expanded: boolean;
   onToggle: () => void;
   onSaved: () => void;
+  isSuperadmin: boolean;
 }) {
   const [saving, setSaving] = useState(false);
   const [nota, setNota] = useState("");
   const [historial, setHistorial] = useState<ModeracionLogRow[]>([]);
+
+  async function suspenderAmbos() {
+    if (!r.listings) return;
+    if (!confirm("¿Suspender la cuenta del denunciante y del denunciado? Quedan bloqueados hasta que un superadmin los desbloquee.")) return;
+    setSaving(true);
+    const supabase = createClient();
+    const [res1, res2] = await Promise.all([
+      supabase.rpc("admin_set_blocked", { p_user_id: r.reporter_id, p_blocked: true }),
+      supabase.rpc("admin_set_blocked", { p_user_id: r.listings.publisher_id, p_blocked: true }),
+    ]);
+    setSaving(false);
+    const error = res1.error || res2.error;
+    if (error) alert(error.message);
+    else onSaved();
+  }
 
   const loadHistorial = useCallback(async () => {
     const supabase = createClient();
@@ -1486,6 +1517,24 @@ function AdminReportRow({
             <a href={r.evidencia_url} target="_blank" rel="noreferrer" className="text-xs text-golfo">
               Ver evidencia
             </a>
+          )}
+
+          {r.respuesta_denunciado ? (
+            <p className="text-xs text-tinta">
+              <span className="font-medium">Respuesta del denunciado:</span> {r.respuesta_denunciado}
+            </p>
+          ) : (
+            <p className="text-xs text-tinta-suave">El denunciado todavía no respondió.</p>
+          )}
+
+          {r.motivo === "insultos_agravios" && isSuperadmin && (
+            <button
+              onClick={suspenderAmbos}
+              disabled={saving}
+              className="w-fit rounded-lg border border-red-700 bg-red-700 px-3 py-1.5 text-xs font-semibold text-hueso disabled:opacity-60"
+            >
+              Suspender a ambos (denunciante y denunciado)
+            </button>
           )}
 
           <div className="flex flex-wrap gap-2">

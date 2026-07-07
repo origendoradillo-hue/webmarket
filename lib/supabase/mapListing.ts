@@ -25,7 +25,6 @@ export function mapListingRow(row: ListingRow, publisher: PublisherInfo | null, 
 
   return {
     id: row.id,
-    isReal: true,
     nombre: row.nombre,
     intencion: row.intencion,
     tipo,

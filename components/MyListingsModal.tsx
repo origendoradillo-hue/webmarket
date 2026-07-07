@@ -5,6 +5,29 @@ import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import type { ListingRow } from "@/lib/supabase/types";
 
+const REPORT_MOTIVO_LABELS: Record<string, string> = {
+  informacion_falsa: "Información falsa o engañosa",
+  producto_no_disponible: "Producto no disponible",
+  precio_no_coincide: "Precio o condiciones no coinciden",
+  publicador_no_responde: "Publicador no responde",
+  sospecha_estafa: "Sospecha de estafa",
+  contenido_inapropiado: "Contenido inapropiado",
+  categoria_incorrecta: "Categoría incorrecta",
+  publicacion_duplicada: "Publicación duplicada",
+  fotos_falsas: "Fotos falsas o robadas",
+  insultos_agravios: "Insultos o agravios",
+  otro: "Otro",
+};
+
+interface ListingReport {
+  id: string;
+  listing_id: string;
+  motivo: string;
+  justificacion: string;
+  estado: string;
+  respuesta_denunciado: string | null;
+}
+
 interface MyListingsModalProps {
   open: boolean;
   onClose: () => void;
@@ -55,6 +78,9 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
   const [saving, setSaving] = useState(false);
   const [statusBusyId, setStatusBusyId] = useState<string | null>(null);
   const [ratingInfo, setRatingInfo] = useState<{ promedio: number | null; count: number }>({ promedio: null, count: 0 });
+  const [reportsByListing, setReportsByListing] = useState<Record<string, ListingReport[]>>({});
+  const [respuestaDraft, setRespuestaDraft] = useState<Record<string, string>>({});
+  const [respondingId, setRespondingId] = useState<string | null>(null);
 
   const loadListings = useCallback(async () => {
     const supabase = createClient();
@@ -65,7 +91,37 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
       .order("created_at", { ascending: false });
     setListings(data || []);
     setLoading(false);
+
+    const ids = (data || []).map((l) => l.id);
+    if (ids.length === 0) {
+      setReportsByListing({});
+      return;
+    }
+    const { data: reports } = await supabase
+      .from("listing_reports")
+      .select("id, listing_id, motivo, justificacion, estado, respuesta_denunciado")
+      .in("listing_id", ids)
+      .neq("estado", "rechazada");
+    const grouped: Record<string, ListingReport[]> = {};
+    for (const r of reports || []) {
+      (grouped[r.listing_id] ||= []).push(r);
+    }
+    setReportsByListing(grouped);
   }, [user.id]);
+
+  async function responderDenuncia(reportId: string) {
+    const respuesta = (respuestaDraft[reportId] || "").trim();
+    if (!respuesta) return;
+    setRespondingId(reportId);
+    const supabase = createClient();
+    const { error } = await supabase.rpc("responder_denuncia", { p_report_id: reportId, p_respuesta: respuesta });
+    setRespondingId(null);
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    await loadListings();
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -265,6 +321,37 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
                         )}
                       </div>
 
+                      {(reportsByListing[l.id] || []).map((r) => (
+                        <div key={r.id} className="mb-3 rounded-lg border border-dorado/60 bg-[#FBF3E4] p-3">
+                          <p className="mb-1 text-[12.5px] font-semibold text-tinta">
+                            Denuncia: {REPORT_MOTIVO_LABELS[r.motivo] ?? r.motivo}
+                          </p>
+                          <p className="mb-2 text-[12px] text-tinta">{r.justificacion}</p>
+                          {r.respuesta_denunciado ? (
+                            <p className="text-[12px] text-tinta-suave">
+                              <span className="font-medium text-tinta">Tu respuesta:</span> {r.respuesta_denunciado}
+                            </p>
+                          ) : (
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                value={respuestaDraft[r.id] || ""}
+                                onChange={(e) => setRespuestaDraft({ ...respuestaDraft, [r.id]: e.target.value })}
+                                placeholder="Tu versión de lo que pasó"
+                                className="w-full rounded-lg border border-piedra/70 bg-white px-2.5 py-2 text-[12.5px] text-tinta"
+                              />
+                              <button
+                                onClick={() => responderDenuncia(r.id)}
+                                disabled={respondingId === r.id}
+                                className="flex-shrink-0 rounded-lg bg-oliva px-3 py-2 text-[12px] font-semibold text-hueso disabled:opacity-60"
+                              >
+                                Responder
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+
                       <MiniField label="Nombre">
                         <input
                           value={editForm.nombre}
@@ -299,7 +386,7 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
                       </div>
                       <div className="mb-2.5 grid grid-cols-2 gap-2">
                         <input
-                          placeholder="Zona"
+                          placeholder="Barrio"
                           value={editForm.zona}
                           onChange={(e) => setEditForm({ ...editForm, zona: e.target.value })}
                           className="rounded-lg border border-piedra/70 bg-white px-2.5 py-2 text-[13px] text-tinta"

@@ -31,7 +31,7 @@ export default function Footer() {
 
           <div>
             <p className="mb-3 font-slab text-[13px] font-semibold text-dorado">Contacto</p>
-            <a className="mb-2.5 flex items-center gap-2 text-[13px] text-hueso/85" href="https://wa.me/5491136450498" target="_blank" rel="noreferrer">
+            <a className="mb-2.5 flex items-center gap-2 text-[13px] text-hueso/85" href="https://wa.me/5492804874717" target="_blank" rel="noreferrer">
               <i className="ti ti-brand-whatsapp text-arena" aria-hidden /> WhatsApp
             </a>
             <a className="mb-2.5 flex items-center gap-2 text-[13px] text-hueso/85" href="mailto:origendoradillo@gmail.com">

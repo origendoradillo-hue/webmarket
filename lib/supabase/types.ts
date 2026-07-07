@@ -241,9 +241,11 @@ export interface Database {
             | "categoria_incorrecta"
             | "publicacion_duplicada"
             | "fotos_falsas"
+            | "insultos_agravios"
             | "otro";
           justificacion: string;
           evidencia_url: string | null;
+          respuesta_denunciado: string | null;
           estado: "pendiente" | "en_revision" | "resuelta" | "rechazada";
           created_at: string;
           updated_at: string;
@@ -261,6 +263,7 @@ export interface Database {
             | "categoria_incorrecta"
             | "publicacion_duplicada"
             | "fotos_falsas"
+            | "insultos_agravios"
             | "otro";
           justificacion: string;
           evidencia_url?: string | null;
@@ -356,6 +359,10 @@ export interface Database {
       };
       admin_set_report_status: {
         Args: { p_report_id: string; p_estado: string; p_nota?: string | null };
+        Returns: undefined;
+      };
+      responder_denuncia: {
+        Args: { p_report_id: string; p_respuesta: string };
         Returns: undefined;
       };
       admin_delete_listing: {

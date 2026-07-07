@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { LISTINGS, ANUNCIOS } from "@/lib/data";
+import { ANUNCIOS } from "@/lib/data";
 import { useCategories } from "@/lib/useCategories";
 import { Anuncio, CategoryKey, Etiqueta, Listing, TipoPublicacion } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
@@ -169,12 +169,11 @@ export default function HomeClient() {
       });
   }, [user]);
 
-  useEffect(() => {
-    if (query.trim() !== "" && screen !== "resultados") {
-      setScreen("resultados");
-      setResultadosIntencion(null);
-    }
-  }, [query, screen]);
+  function handleSearchSubmit() {
+    if (query.trim() === "") return;
+    setScreen("resultados");
+    setResultadosIntencion(null);
+  }
 
   function resetFilters() {
     setCat("all");
@@ -250,7 +249,7 @@ export default function HomeClient() {
     };
   }, [modalOpen]);
 
-  const allListings = useMemo(() => [...realListings, ...LISTINGS], [realListings]);
+  const allListings = realListings;
   const allAnuncios = useMemo(() => [...realAnuncios, ...ANUNCIOS], [realAnuncios]);
   const anunciosHome = useMemo(() => allAnuncios.filter((a) => a.ubicacion === "home" || a.ubicacion === "ambas"), [allAnuncios]);
   const anunciosCategoria = useMemo(
@@ -348,7 +347,7 @@ export default function HomeClient() {
         </div>
       )}
       {screen === "home" ? (
-        <Hero query={query} onQueryChange={setQuery} />
+        <Hero query={query} onQueryChange={setQuery} onSearch={handleSearchSubmit} />
       ) : (
         <div className="border-b border-piedra/30 bg-hueso-2 px-4 py-3 sm:px-8">
           <button onClick={resetFilters} className="mb-2 flex items-center gap-1.5 text-[12px] font-medium text-golfo">
@@ -461,7 +460,7 @@ export default function HomeClient() {
         onReport={() => setReportOpen(true)}
         onReview={() => setReviewListingId(activeListing ? String(activeListing.id) : null)}
       />
-      {user && activeListing?.isReal && (
+      {user && activeListing && (
         <ReportListingModal
           open={reportOpen}
           onClose={() => setReportOpen(false)}

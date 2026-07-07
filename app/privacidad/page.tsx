@@ -119,7 +119,7 @@ export default function PrivacidadPage() {
                 origendoradillo@gmail.com
               </a>{" "}
               o por{" "}
-              <a href="https://wa.me/5491136450498" target="_blank" rel="noreferrer" className="font-medium text-golfo">
+              <a href="https://wa.me/5492804874717" target="_blank" rel="noreferrer" className="font-medium text-golfo">
                 WhatsApp
               </a>
               .

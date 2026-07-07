@@ -732,13 +732,13 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
                     <i className="ti ti-map-pin mt-0.5 flex-shrink-0 text-dorado" aria-hidden />
                     Por ahora la plataforma funciona en El Doradillo. Más adelante se podrán sumar otros barrios.
                   </div>
-                  <Field label="Zona">
+                  <Field label="Barrio">
                     <select
                       value={data.zona}
                       onChange={(e) => update("zona", e.target.value)}
                       className="w-full rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta"
                     >
-                      <option value="">Elegí una zona</option>
+                      <option value="">Elegí un barrio</option>
                       {zones.map((z) => (
                         <option key={z} value={z}>
                           {z}

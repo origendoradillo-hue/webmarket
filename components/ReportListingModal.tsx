@@ -24,6 +24,7 @@ const MOTIVOS: { value: Motivo; label: string }[] = [
   { value: "categoria_incorrecta", label: "Categoría incorrecta" },
   { value: "publicacion_duplicada", label: "Publicación duplicada" },
   { value: "fotos_falsas", label: "Fotos falsas o robadas" },
+  { value: "insultos_agravios", label: "Insultos o agravios" },
   { value: "otro", label: "Otro" },
 ];
 
@@ -106,6 +107,13 @@ export default function ReportListingModal({ open, onClose, listingId, user }: R
                   </option>
                 ))}
               </select>
+
+              {motivo === "insultos_agravios" && (
+                <p className="mb-3 rounded-lg bg-[#FBF3E4] px-3 py-2.5 text-[11.5px] text-tinta">
+                  Si se confirma un cruce de insultos o agravios, el equipo puede suspender la cuenta de <strong>ambas</strong> partes
+                  involucradas, no solo la denunciada.
+                </p>
+              )}
 
               <label className="mb-1.5 block text-[12.5px] font-medium text-tinta">Contanos qué pasó</label>
               <textarea

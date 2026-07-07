@@ -26,7 +26,6 @@ export type Etiqueta = "turismo" | "alquileres_temporarios";
 
 export interface Listing {
   id: number | string;
-  isReal?: boolean;
   nombre: string;
   intencion: Intencion;
   tipo?: TipoPublicacion;

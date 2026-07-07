@@ -6,7 +6,6 @@ import type { User } from "@supabase/supabase-js";
 import { fallbackColorFor } from "@/lib/data";
 import { useCategories } from "@/lib/useCategories";
 import { Listing } from "@/lib/types";
-import { buildWhatsappLink } from "@/lib/whatsapp";
 import { createClient } from "@/lib/supabase/client";
 import ReportReviewModal from "./ReportReviewModal";
 
@@ -42,10 +41,6 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, user, o
       setImages([]);
       return;
     }
-    if (!l.isReal) {
-      setImages(l.foto ? [l.foto] : []);
-      return;
-    }
     const supabase = createClient();
     supabase
       .from("listing_images")
@@ -56,10 +51,10 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, user, o
         const extra = (data || []).map((r) => r.url);
         setImages(l.foto ? [l.foto, ...extra] : extra);
       });
-  }, [l?.id, l?.isReal, l?.foto]);
+  }, [l?.id, l?.foto]);
 
   useEffect(() => {
-    if (!l || !l.isReal || !l.publisherId) {
+    if (!l || !l.publisherId) {
       setReviews([]);
       return;
     }
@@ -72,7 +67,7 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, user, o
       .order("created_at", { ascending: false })
       .limit(10)
       .then(({ data }) => setReviews((data as unknown as ReviewWithReviewer[]) || []));
-  }, [l?.publisherId, l?.isReal]);
+  }, [l?.publisherId]);
 
   if (!l) return null;
   const listing = l;
@@ -85,17 +80,11 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, user, o
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(l.direccion + " Puerto Madryn")}`
     : null;
 
-  const requiereLogin = listing.isReal && !listing.whatsappPublico;
+  const requiereLogin = !listing.whatsappPublico;
 
   async function handleContact() {
     if (requiereLogin && !isLoggedIn) {
       onRequireAuth();
-      return;
-    }
-
-    if (!listing.isReal) {
-      // Publicación de ejemplo (no vive en la base de datos real).
-      window.open(buildWhatsappLink(listing), "_blank");
       return;
     }
 
@@ -263,7 +252,7 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, user, o
               {isNegocio ? <i className={`ti ${l.icono}`} aria-hidden /> : isVecino ? <i className="ti ti-user" aria-hidden /> : l.iniciales}
             </div>
             <div>
-              <div className="text-sm font-semibold text-tinta">{l.isReal ? l.publisherName : l.nombre}</div>
+              <div className="text-sm font-semibold text-tinta">{l.publisherName}</div>
               <div className="text-xs text-tinta-suave">
                 {isVecino ? "Vecino verificado" : "Emprendimiento verificado"} · {l.zona}
               </div>
@@ -284,7 +273,7 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, user, o
             {contacting ? "Un momento..." : requiereLogin && !isLoggedIn ? "Ingresá para contactar" : "Contactar por WhatsApp"}
           </button>
 
-          {listing.isReal && user && user.id !== listing.publisherId && (
+          {user && user.id !== listing.publisherId && (
             <button
               onClick={onReview}
               className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dorado py-2.5 text-[13px] font-semibold text-dorado"
@@ -294,7 +283,7 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, user, o
             </button>
           )}
 
-          {listing.isReal && reviews.length > 0 && (
+          {reviews.length > 0 && (
             <div className="mt-5 border-t border-piedra/40 pt-4">
               <p className="mb-3 font-slab text-[13.5px] font-semibold text-tinta">Reseñas de este publicador</p>
               <div className="flex flex-col gap-3">
@@ -321,15 +310,13 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, user, o
             </div>
           )}
 
-          {listing.isReal && (
-            <button
-              onClick={() => (isLoggedIn ? onReport() : onRequireAuth())}
-              className="mt-3 flex w-full items-center justify-center gap-1.5 text-[12px] text-tinta-suave"
-            >
-              <i className="ti ti-flag text-sm" aria-hidden />
-              Denunciar publicación
-            </button>
-          )}
+          <button
+            onClick={() => (isLoggedIn ? onReport() : onRequireAuth())}
+            className="mt-3 flex w-full items-center justify-center gap-1.5 text-[12px] text-tinta-suave"
+          >
+            <i className="ti ti-flag text-sm" aria-hidden />
+            Denunciar publicación
+          </button>
         </div>
       </div>
 
