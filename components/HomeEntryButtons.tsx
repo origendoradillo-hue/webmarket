@@ -9,7 +9,7 @@ interface HomeEntryButtonsProps {
 
 export default function HomeEntryButtons({ onExplorar, onOfrezco, onBusco, onPublicar }: HomeEntryButtonsProps) {
   return (
-    <div className="grid grid-cols-2 gap-2.5 px-4 pb-4 sm:px-7">
+    <div className="grid grid-cols-2 gap-2.5 px-4 pb-4 pt-5 sm:px-7 sm:pt-6">
       <button
         type="button"
         onClick={onExplorar}
