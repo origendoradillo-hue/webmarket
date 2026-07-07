@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Bitter, Barlow } from "next/font/google";
 import { SITE_URL, SITE_NAME } from "@/lib/seo";
+import { GTM_ID } from "@/lib/analytics";
+import Analytics from "@/components/Analytics";
 import "./globals.css";
 
 const bitter = Bitter({
@@ -52,7 +54,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <link rel="stylesheet" href="/tabler-icons/tabler-icons.min.css" />
       </head>
-      <body className="font-sans">{children}</body>
+      <body className="font-sans">
+        <Analytics />
+        {GTM_ID && (
+          <noscript>
+            <iframe
+              src={`https://www.googletagmanager.com/ns.html?id=${GTM_ID}`}
+              height="0"
+              width="0"
+              style={{ display: "none", visibility: "hidden" }}
+            />
+          </noscript>
+        )}
+        {children}
+      </body>
     </html>
   );
 }

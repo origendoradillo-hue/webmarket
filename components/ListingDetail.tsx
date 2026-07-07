@@ -8,6 +8,7 @@ import { useCategories } from "@/lib/useCategories";
 import { Listing } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import { SITE_URL } from "@/lib/seo";
+import { trackEvent } from "@/lib/analytics";
 import ReportReviewModal from "./ReportReviewModal";
 import ShareButton from "./ShareButton";
 
@@ -116,6 +117,7 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, user, o
       return;
     }
 
+    trackEvent("contact_whatsapp", { listing_id: String(listing.id), source: "modal" });
     const mensaje = `Hola, vi tu publicación en Origen El Doradillo sobre ${listing.nombre}. Quería consultar si sigue disponible.`;
     window.open(`https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}`, "_blank");
   }

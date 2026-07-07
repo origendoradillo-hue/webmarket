@@ -9,6 +9,7 @@ import { mapListingRow } from "@/lib/supabase/mapListing";
 import { mapAnuncioRow } from "@/lib/supabase/mapAnuncio";
 import type { AnuncioRow, ListingRow } from "@/lib/supabase/types";
 import { useAuth } from "@/lib/useAuth";
+import { trackEvent } from "@/lib/analytics";
 import Header from "./Header";
 import Hero from "./Hero";
 import CategoryFilters from "./CategoryFilters";
@@ -207,6 +208,7 @@ export default function HomeClient() {
 
   function handleSearchSubmit() {
     if (query.trim() === "") return;
+    trackEvent("search", { search_term: query.trim() });
     setScreen("resultados");
     setResultadosIntencion(null);
   }

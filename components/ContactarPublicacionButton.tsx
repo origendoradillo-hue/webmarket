@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { trackEvent } from "@/lib/analytics";
 
 interface ContactarPublicacionButtonProps {
   listingId: string;
@@ -35,6 +36,7 @@ export default function ContactarPublicacionButton({ listingId, nombre, whatsapp
       setError(true);
       return;
     }
+    trackEvent("contact_whatsapp", { listing_id: listingId, source: "listing_page" });
     const mensaje = `Hola, vi tu publicación en Origen El Doradillo sobre ${nombre}. Quería consultar si sigue disponible.`;
     window.open(`https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}`, "_blank");
   }

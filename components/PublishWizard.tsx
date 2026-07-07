@@ -5,6 +5,7 @@ import type { User } from "@supabase/supabase-js";
 import { useCategories } from "@/lib/useCategories";
 import { CategoryKey, Etiqueta, TipoPublicacion } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
+import { trackEvent } from "@/lib/analytics";
 
 type Intencion = "ofrezco" | "busco";
 
@@ -304,6 +305,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
         );
       }
 
+      trackEvent("publish_listing", { intencion: data.intencion, tipo: data.tipo, categoria: data.cat });
       onPublished();
       setStepIndex(-1);
     } catch (err) {

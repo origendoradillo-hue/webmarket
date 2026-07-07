@@ -8,6 +8,7 @@ import {
   signUpWithPassword,
   updatePassword,
 } from "@/lib/supabase/auth";
+import { trackEvent } from "@/lib/analytics";
 import PasswordInput from "./PasswordInput";
 
 type Mode = "login" | "signup" | "forgot" | "reset";
@@ -87,6 +88,7 @@ export default function AuthModal({ open, onClose, initialMode = "login" }: Auth
       setMessage(error);
       return;
     }
+    trackEvent("sign_up", { method: "email" });
     setStatus("info");
     setMessage("Te enviamos un email para confirmar tu cuenta. Abrí el link que te mandamos para poder ingresar.");
   }
