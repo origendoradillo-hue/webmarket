@@ -16,6 +16,7 @@ export interface Database {
           zona: string | null;
           rating_promedio: number | null;
           resenas_count: number;
+          nickname: string | null;
           created_at: string;
         };
         Insert: {
@@ -29,6 +30,7 @@ export interface Database {
           whatsapp_number?: string | null;
           must_change_password?: boolean;
           zona?: string | null;
+          nickname?: string | null;
         };
         Relationships: [];
       };

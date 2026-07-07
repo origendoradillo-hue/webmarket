@@ -37,6 +37,7 @@ export default function ProfileModal({ open, onClose, user }: ProfileModalProps)
   const { zones } = useCategories();
   const [loading, setLoading] = useState(true);
   const [fullName, setFullName] = useState("");
+  const [nickname, setNickname] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [zona, setZona] = useState("");
   const [verificationLevel, setVerificationLevel] = useState(1);
@@ -67,7 +68,7 @@ export default function ProfileModal({ open, onClose, user }: ProfileModalProps)
 
     const supabase = createClient();
     Promise.all([
-      supabase.from("profiles").select("full_name, whatsapp_number, verification_level, zona").eq("id", user.id).single(),
+      supabase.from("profiles").select("full_name, nickname, whatsapp_number, verification_level, zona").eq("id", user.id).single(),
       supabase
         .from("user_verifications")
         .select("nivel_solicitado, estado, nota_revision")
@@ -78,6 +79,7 @@ export default function ProfileModal({ open, onClose, user }: ProfileModalProps)
     ]).then(([profileRes, verifRes]) => {
       if (profileRes.data) {
         setFullName(profileRes.data.full_name ?? "");
+        setNickname(profileRes.data.nickname ?? "");
         setWhatsapp(profileRes.data.whatsapp_number ?? "");
         setZona(profileRes.data.zona ?? "");
         setVerificationLevel(profileRes.data.verification_level ?? 1);
@@ -97,7 +99,7 @@ export default function ProfileModal({ open, onClose, user }: ProfileModalProps)
     const supabase = createClient();
     const { error } = await supabase
       .from("profiles")
-      .update({ full_name: fullName.trim(), whatsapp_number: whatsapp.trim(), zona: zona || null })
+      .update({ full_name: fullName.trim(), nickname: nickname.trim() || null, whatsapp_number: whatsapp.trim(), zona: zona || null })
       .eq("id", user.id);
     if (error) {
       setProfileStatus("error");
@@ -180,6 +182,19 @@ export default function ProfileModal({ open, onClose, user }: ProfileModalProps)
                   onChange={(e) => setFullName(e.target.value)}
                   className="w-full rounded-lg border border-piedra/70 px-3 py-2.5 text-[13.5px] text-tinta"
                 />
+              </Field>
+              <Field label="Nombre público en tus publicaciones (opcional)">
+                <input
+                  type="text"
+                  placeholder="Ej: Panadería de Campo, o un apodo"
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                  className="w-full rounded-lg border border-piedra/70 px-3 py-2.5 text-[13.5px] text-tinta"
+                />
+                <p className="mt-1 text-[11px] text-tinta-suave">
+                  Se muestra en tus publicaciones en vez de tu nombre completo. Al contactarte por WhatsApp, siempre se usa tu
+                  nombre real.
+                </p>
               </Field>
               <Field label="WhatsApp">
                 <input

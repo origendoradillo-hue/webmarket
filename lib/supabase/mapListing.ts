@@ -13,13 +13,14 @@ const TIPO_ICON: Record<TipoPublicacion, string> = {
 
 interface PublisherInfo {
   full_name: string | null;
+  nickname?: string | null;
   rating_promedio?: number | null;
   resenas_count?: number | null;
 }
 
 export function mapListingRow(row: ListingRow, publisher: PublisherInfo | null, categories: Record<string, Category>): Listing {
   const categoria = row.categoria && row.categoria in categories ? (row.categoria as CategoryKey) : undefined;
-  const nombrePublicador = publisher?.full_name?.trim() || "Vecino de la zona";
+  const nombrePublicador = publisher?.nickname?.trim() || publisher?.full_name?.trim() || "Vecino de la zona";
   const tipo = (row.tipo as TipoPublicacion) || undefined;
 
   return {
@@ -56,5 +57,6 @@ export function mapListingRow(row: ListingRow, publisher: PublisherInfo | null, 
     detalles: row.detalles || undefined,
     whatsappPublico: row.whatsapp_publico,
     publisherId: row.publisher_id,
+    publisherName: nombrePublicador,
   };
 }

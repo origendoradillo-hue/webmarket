@@ -263,7 +263,7 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, user, o
               {isNegocio ? <i className={`ti ${l.icono}`} aria-hidden /> : isVecino ? <i className="ti ti-user" aria-hidden /> : l.iniciales}
             </div>
             <div>
-              <div className="text-sm font-semibold text-tinta">{l.nombre}</div>
+              <div className="text-sm font-semibold text-tinta">{l.isReal ? l.publisherName : l.nombre}</div>
               <div className="text-xs text-tinta-suave">
                 {isVecino ? "Vecino verificado" : "Emprendimiento verificado"} · {l.zona}
               </div>

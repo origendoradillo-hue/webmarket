@@ -68,7 +68,7 @@ export default function HomeClient() {
     const supabase = createClient();
     const { data, error } = await supabase
       .from("listings")
-      .select("*, profiles(full_name, rating_promedio, resenas_count)")
+      .select("*, profiles(full_name, nickname, rating_promedio, resenas_count)")
       .eq("status", "activa")
       .order("created_at", { ascending: false });
 
@@ -76,7 +76,9 @@ export default function HomeClient() {
       setRealListings(
         (
           data as unknown as Array<
-            ListingRow & { profiles: { full_name: string | null; rating_promedio: number | null; resenas_count: number } | null }
+            ListingRow & {
+              profiles: { full_name: string | null; nickname: string | null; rating_promedio: number | null; resenas_count: number } | null;
+            }
           >
         ).map((row) => mapListingRow(row, row.profiles, categories))
       );
@@ -303,16 +305,18 @@ export default function HomeClient() {
       {reviewReminder && (
         <div className="flex flex-wrap items-center justify-between gap-2 bg-dorado/15 px-4 py-2.5 text-[12.5px] text-tinta sm:px-8">
           <span>
-            <i className="ti ti-star mr-1.5 text-dorado" aria-hidden />
-            ¿Cómo te fue con tu contacto a <strong>{reviewReminder.nombre}</strong>? Contale a la comunidad — las reseñas reales
-            ayudan a todos.
+            <i className="ti ti-message-circle mr-1.5 text-dorado" aria-hidden />
+            ¿Pudiste comunicarte con quien publicó <strong>{reviewReminder.nombre}</strong>?
           </span>
           <div className="flex items-center gap-2">
-            <button onClick={() => setReviewListingId(reviewReminder.listingId)} className="rounded-lg bg-dorado px-3 py-1.5 text-[12px] font-semibold text-oliva-dd">
-              Dejar reseña
+            <button
+              onClick={() => setReviewListingId(reviewReminder.listingId)}
+              className="rounded-lg bg-dorado px-3 py-1.5 text-[12px] font-semibold text-oliva-dd"
+            >
+              Sí, pude
             </button>
-            <button onClick={() => setReviewReminder(null)} aria-label="Cerrar aviso">
-              <i className="ti ti-x text-tinta-suave" aria-hidden />
+            <button onClick={() => setReviewReminder(null)} className="rounded-lg border border-piedra/60 px-3 py-1.5 text-[12px] text-tinta">
+              No pude
             </button>
           </div>
         </div>

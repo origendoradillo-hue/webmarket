@@ -146,8 +146,22 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
       setStepIndex(0);
       setData(DEFAULTS);
       setSubmitError(null);
+      const supabase = createClient();
+      supabase
+        .from("profiles")
+        .select("full_name, whatsapp_number")
+        .eq("id", user.id)
+        .single()
+        .then(({ data: profile }) => {
+          if (!profile) return;
+          setData((prev) => ({
+            ...prev,
+            nombreVecino: profile.full_name?.trim() || prev.nombreVecino,
+            whatsapp: profile.whatsapp_number?.trim() || prev.whatsapp,
+          }));
+        });
     }
-  }, [open]);
+  }, [open, user.id]);
 
   if (!open) return null;
 
