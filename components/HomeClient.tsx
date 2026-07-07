@@ -71,11 +71,13 @@ export default function HomeClient() {
   const [reportOpen, setReportOpen] = useState(false);
   const [reviewListingId, setReviewListingId] = useState<string | null>(null);
   const [reviewReminder, setReviewReminder] = useState<{ listingId: string; nombre: string } | null>(null);
+  const [expiryReminder, setExpiryReminder] = useState<{ nombre: string; diasRestantes: number } | null>(null);
   const [realListings, setRealListings] = useState<Listing[]>([]);
   const [realAnuncios, setRealAnuncios] = useState<Anuncio[]>([]);
 
   const loadRealListings = useCallback(async () => {
     const supabase = createClient();
+    await supabase.rpc("expire_old_listings");
     const { data, error } = await supabase
       .from("listings")
       .select("*, profiles(full_name, nickname, rating_promedio, resenas_count)")
@@ -132,6 +134,31 @@ export default function HomeClient() {
     setReviewReminder(pending ? { listingId: pending.listing_id, nombre: pending.listings?.nombre ?? "esa publicación" } : null);
   }, [user]);
 
+  const loadExpiryReminder = useCallback(async () => {
+    if (!user) {
+      setExpiryReminder(null);
+      return;
+    }
+    const supabase = createClient();
+    const soon = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString();
+    const { data } = await supabase
+      .from("listings")
+      .select("nombre, expires_at")
+      .eq("publisher_id", user.id)
+      .eq("status", "activa")
+      .not("expires_at", "is", null)
+      .lt("expires_at", soon)
+      .order("expires_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (!data || !data.expires_at) {
+      setExpiryReminder(null);
+      return;
+    }
+    const diasRestantes = Math.ceil((new Date(data.expires_at).getTime() - Date.now()) / (24 * 60 * 60 * 1000));
+    setExpiryReminder({ nombre: data.nombre, diasRestantes });
+  }, [user]);
+
   useEffect(() => {
     loadRealListings();
     loadRealAnuncios();
@@ -139,7 +166,8 @@ export default function HomeClient() {
 
   useEffect(() => {
     loadReviewReminder();
-  }, [loadReviewReminder]);
+    loadExpiryReminder();
+  }, [loadReviewReminder, loadExpiryReminder]);
 
   useEffect(() => {
     if (window.location.search.includes("reset=1")) {
@@ -327,6 +355,26 @@ export default function HomeClient() {
         onSignOut={handleSignOut}
         isStaff={isStaff}
       />
+      {expiryReminder && (
+        <div className="flex flex-wrap items-center justify-between gap-2 bg-red-50 px-4 py-2.5 text-[12.5px] text-tinta sm:px-8">
+          <span>
+            <i className="ti ti-clock-exclamation mr-1.5 text-red-700" aria-hidden />
+            {expiryReminder.diasRestantes > 0 ? (
+              <>
+                Tu publicación <strong>{expiryReminder.nombre}</strong> vence en {expiryReminder.diasRestantes} día
+                {expiryReminder.diasRestantes === 1 ? "" : "s"}.
+              </>
+            ) : (
+              <>
+                Tu publicación <strong>{expiryReminder.nombre}</strong> ya venció.
+              </>
+            )}
+          </span>
+          <button onClick={() => setMyListingsOpen(true)} className="rounded-lg bg-red-700 px-3 py-1.5 text-[12px] font-semibold text-hueso">
+            Renovar
+          </button>
+        </div>
+      )}
       {reviewReminder && (
         <div className="flex flex-wrap items-center justify-between gap-2 bg-dorado/15 px-4 py-2.5 text-[12.5px] text-tinta sm:px-8">
           <span>

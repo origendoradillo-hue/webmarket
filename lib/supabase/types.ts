@@ -226,6 +226,24 @@ export interface Database {
         Update: { label?: string; orden?: number };
         Relationships: [];
       };
+      renewal_requests: {
+        Row: {
+          id: string;
+          listing_id: string;
+          renewed_by: string | null;
+          previous_expires_at: string | null;
+          new_expires_at: string;
+          created_at: string;
+        };
+        Insert: {
+          listing_id: string;
+          renewed_by?: string | null;
+          previous_expires_at?: string | null;
+          new_expires_at: string;
+        };
+        Update: Record<string, never>;
+        Relationships: [];
+      };
       listing_reports: {
         Row: {
           id: string;
@@ -365,6 +383,14 @@ export interface Database {
         Args: { p_report_id: string; p_respuesta: string };
         Returns: undefined;
       };
+      renovar_publicacion: {
+        Args: { p_listing_id: string };
+        Returns: undefined;
+      };
+      expire_old_listings: {
+        Args: Record<string, never>;
+        Returns: undefined;
+      };
       admin_delete_listing: {
         Args: { p_listing_id: string };
         Returns: undefined;
@@ -469,3 +495,4 @@ export type ListingReportRow = Database["public"]["Tables"]["listing_reports"]["
 export type UserVerificationRow = Database["public"]["Tables"]["user_verifications"]["Row"];
 export type ReviewRow = Database["public"]["Tables"]["reviews"]["Row"];
 export type ReviewReportRow = Database["public"]["Tables"]["review_reports"]["Row"];
+export type RenewalRequestRow = Database["public"]["Tables"]["renewal_requests"]["Row"];

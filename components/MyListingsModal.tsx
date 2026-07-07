@@ -249,6 +249,18 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
     await loadListings();
   }
 
+  async function renovar(l: ListingRow) {
+    setStatusBusyId(l.id);
+    const supabase = createClient();
+    const { error } = await supabase.rpc("renovar_publicacion", { p_listing_id: l.id });
+    setStatusBusyId(null);
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    await loadListings();
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-stretch justify-center bg-oliva-dd/55 sm:items-center sm:p-6"
@@ -303,6 +315,12 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
 
                   {expandedId === l.id && editForm && (
                     <div className="border-t border-piedra/40 bg-hueso-2 p-3.5">
+                      {l.expires_at && ["activa", "pausada", "vencida"].includes(l.status) && (
+                        <p className={`mb-2.5 text-[12px] ${new Date(l.expires_at) < new Date() ? "font-medium text-red-700" : "text-tinta-suave"}`}>
+                          {new Date(l.expires_at) < new Date() ? "Venció el " : "Vence el "}
+                          {new Date(l.expires_at).toLocaleDateString("es-AR")}
+                        </p>
+                      )}
                       <div className="mb-2.5 flex flex-wrap gap-2">
                         {l.status === "activa" && (
                           <ActionButton onClick={() => changeStatus(l, "pausada")} busy={statusBusyId === l.id} icon="ti-player-pause">
@@ -312,6 +330,11 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
                         {(l.status === "pausada" || l.status === "vencida") && (
                           <ActionButton onClick={() => changeStatus(l, "activa")} busy={statusBusyId === l.id} icon="ti-player-play">
                             Reactivar
+                          </ActionButton>
+                        )}
+                        {["activa", "pausada", "vencida"].includes(l.status) && (
+                          <ActionButton onClick={() => renovar(l)} busy={statusBusyId === l.id} icon="ti-refresh">
+                            Renovar
                           </ActionButton>
                         )}
                         {l.status !== "eliminada" && (
