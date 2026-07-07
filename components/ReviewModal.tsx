@@ -47,7 +47,7 @@ export default function ReviewModal({ open, onClose, listingId, user, onSubmitte
     });
     if (error) {
       setStatus("error");
-      setMessage(error.message.includes("Ya dejaste") ? error.message : "No pudimos guardar tu reseña. Probá de nuevo.");
+      setMessage(error.message || "No pudimos guardar tu reseña. Probá de nuevo.");
       return;
     }
     setStatus("info");
