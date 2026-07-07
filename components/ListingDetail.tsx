@@ -7,7 +7,9 @@ import { fallbackColorFor } from "@/lib/data";
 import { useCategories } from "@/lib/useCategories";
 import { Listing } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
+import { SITE_URL } from "@/lib/seo";
 import ReportReviewModal from "./ReportReviewModal";
+import ShareButton from "./ShareButton";
 
 interface ReviewWithReviewer {
   id: string;
@@ -126,9 +128,16 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, user, o
       <div className="flex h-full w-full flex-col overflow-y-auto bg-white sm:h-auto sm:max-h-[90vh] sm:max-w-md sm:rounded-2xl">
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-piedra/50 bg-white px-4 py-3.5">
           <span className="font-slab text-[13px] font-semibold text-tinta">Publicación</span>
-          <button onClick={onClose} aria-label="Cerrar">
-            <i className="ti ti-x text-lg text-tinta" aria-hidden />
-          </button>
+          <div className="flex items-center gap-4">
+            <ShareButton
+              url={`${SITE_URL}/publicacion/${listing.id}`}
+              title={listing.nombre}
+              text={listing.descripcion.slice(0, 120)}
+            />
+            <button onClick={onClose} aria-label="Cerrar">
+              <i className="ti ti-x text-lg text-tinta" aria-hidden />
+            </button>
+          </div>
         </div>
 
         <div
