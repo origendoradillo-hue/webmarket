@@ -93,9 +93,7 @@ export default function ReviewModal({ open, onClose, listingId, user, onSubmitte
                     className="p-1"
                   >
                     <i
-                      className={`ti ti-star${n <= (hoverRating || rating) ? "-filled" : ""} text-3xl ${
-                        n <= (hoverRating || rating) ? "text-dorado" : "text-piedra/50"
-                      }`}
+                      className={`ti ti-star text-3xl ${n <= (hoverRating || rating) ? "text-dorado" : "text-piedra/50"}`}
                       aria-hidden
                     />
                   </button>

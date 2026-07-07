@@ -1033,7 +1033,7 @@ function AdminListingRow({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="cursor-pointer" onClick={onToggle}>
           <p className="text-sm font-semibold text-tinta">
-            {l.nombre} {l.destacada && <i className="ti ti-star-filled text-dorado" aria-hidden />} {l.sello && <i className="ti ti-seal text-oliva" aria-hidden />}
+            {l.nombre} {l.destacada && <i className="ti ti-star text-dorado" aria-hidden />} {l.sello && <i className="ti ti-award text-oliva" aria-hidden />}
           </p>
           <p className="text-xs text-tinta-suave">
             {l.intencion} · {l.tipo || "—"} · {l.categoria || "—"} / {l.subcategoria || "—"} · {l.zona}
@@ -1067,7 +1067,7 @@ function AdminListingRow({
               <i className="ti ti-star" aria-hidden /> Destacada
             </button>
             <button onClick={toggleSello} className={`rounded-lg border px-2.5 py-1.5 text-xs ${l.sello ? "border-oliva bg-oliva text-hueso" : "border-piedra/70 text-tinta"}`}>
-              <i className="ti ti-seal" aria-hidden /> Selección Origen
+              <i className="ti ti-award" aria-hidden /> Selección Origen
             </button>
             {link && (
               <a href={link} target="_blank" rel="noreferrer" className="rounded-lg border border-golfo px-2.5 py-1.5 text-xs text-golfo">

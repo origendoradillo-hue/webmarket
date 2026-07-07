@@ -195,7 +195,7 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, user, o
             </p>
           )}
           <p className="mb-3 flex items-center gap-1 text-[13.5px] font-medium text-tinta">
-            <i className="ti ti-map-pin-filled text-xs" aria-hidden />
+            <i className="ti ti-map-pin text-xs" aria-hidden />
             {l.barrio || "El Doradillo"} · {l.zona}
             {l.cuadrante ? ` ${l.cuadrante}` : ""}
           </p>
