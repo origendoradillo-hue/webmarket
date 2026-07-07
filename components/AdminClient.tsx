@@ -190,20 +190,26 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
   }, [loadListings, loadAnuncios, loadReports, loadVerifications, loadReviewReports, loadUsers]);
 
   function downloadUsersCsv() {
-    const headers = ["Nombre", "Email", "WhatsApp", "Rol", "Nivel", "Zona", "Bloqueado", "Creado"];
+    // Excel en español/Argentina usa ";" como separador de listas al abrir un
+    // CSV con doble click (usa la config regional del sistema, no la coma
+    // "de fábrica"); con "," todo termina amontonado en una sola columna.
+    const headers = ["Nombre", "Nombre público", "Email", "WhatsApp", "Rol", "Nivel", "Zona", "Calificación", "Reseñas", "Bloqueado", "Creado"];
     const rows = users.map((u) => [
       u.full_name || "",
+      u.nickname || "",
       u.email || "",
       u.whatsapp_number || "",
       u.role,
       String(u.verification_level),
       u.zona || "",
+      u.rating_promedio != null ? u.rating_promedio.toFixed(1) : "",
+      String(u.resenas_count),
       u.blocked_at ? "Sí" : "No",
       new Date(u.created_at).toLocaleDateString("es-AR"),
     ]);
     const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
-    const csv = [headers, ...rows].map((row) => row.map(escape).join(",")).join("\n");
-    const blob = new Blob([`﻿${csv}`], { type: "text/csv;charset=utf-8;" });
+    const csv = [headers, ...rows].map((row) => row.map(escape).join(";")).join("\r\n");
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
