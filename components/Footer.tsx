@@ -2,9 +2,33 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
 
 export default function Footer() {
   const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+  const [nombre, setNombre] = useState("");
+  const [contacto, setContacto] = useState("");
+  const [mensaje, setMensaje] = useState("");
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSending(true);
+    setError("");
+    const supabase = createClient();
+    const { error: rpcError } = await supabase.rpc("crear_solicitud_soporte", {
+      p_nombre: nombre,
+      p_contacto: contacto,
+      p_mensaje: mensaje,
+    });
+    setSending(false);
+    if (rpcError) {
+      setError("No pudimos enviar tu mensaje. Probá de nuevo en un momento.");
+      return;
+    }
+    setSent(true);
+  }
 
   return (
     <footer className="mt-6 bg-oliva-dd text-hueso">
@@ -61,22 +85,35 @@ export default function Footer() {
             {sent ? (
               <p className="text-[12.5px] text-hueso/85">¡Gracias! Te vamos a responder pronto.</p>
             ) : (
-              <form
-                className="flex flex-col gap-2"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  setSent(true);
-                }}
-              >
-                <input required placeholder="Tu nombre" className="rounded-md border border-white/25 bg-white/10 px-2.5 py-2 text-[12.5px] text-hueso placeholder:text-hueso/50" />
-                <input required placeholder="WhatsApp o email" className="rounded-md border border-white/25 bg-white/10 px-2.5 py-2 text-[12.5px] text-hueso placeholder:text-hueso/50" />
+              <form className="flex flex-col gap-2" onSubmit={handleSubmit}>
+                <input
+                  required
+                  value={nombre}
+                  onChange={(e) => setNombre(e.target.value)}
+                  placeholder="Tu nombre"
+                  className="rounded-md border border-white/25 bg-white/10 px-2.5 py-2 text-[12.5px] text-hueso placeholder:text-hueso/50"
+                />
+                <input
+                  required
+                  value={contacto}
+                  onChange={(e) => setContacto(e.target.value)}
+                  placeholder="WhatsApp o email"
+                  className="rounded-md border border-white/25 bg-white/10 px-2.5 py-2 text-[12.5px] text-hueso placeholder:text-hueso/50"
+                />
                 <textarea
                   required
+                  value={mensaje}
+                  onChange={(e) => setMensaje(e.target.value)}
                   placeholder="¿Tenés dudas o querés sumar tu emprendimiento?"
                   className="min-h-[56px] resize-y rounded-md border border-white/25 bg-white/10 px-2.5 py-2 text-[12.5px] text-hueso placeholder:text-hueso/50"
                 />
-                <button type="submit" className="w-fit rounded-md bg-dorado px-4 py-2 text-[12.5px] font-semibold text-oliva-dd">
-                  Enviar
+                {error && <p className="text-[11.5px] text-red-300">{error}</p>}
+                <button
+                  type="submit"
+                  disabled={sending}
+                  className="w-fit rounded-md bg-dorado px-4 py-2 text-[12.5px] font-semibold text-oliva-dd disabled:opacity-60"
+                >
+                  {sending ? "Enviando..." : "Enviar"}
                 </button>
               </form>
             )}

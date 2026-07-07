@@ -12,11 +12,21 @@ import type {
   ProfileRow,
   ReviewReportRow,
   SubcategoryRow,
+  SupportRequestRow,
   UserVerificationRow,
   ZoneRow,
 } from "@/lib/supabase/types";
 
-type Tab = "publicaciones" | "anuncios" | "denuncias" | "verificaciones" | "reseñas" | "metricas" | "usuarios" | "categorias";
+type Tab =
+  | "publicaciones"
+  | "anuncios"
+  | "denuncias"
+  | "verificaciones"
+  | "reseñas"
+  | "soporte"
+  | "metricas"
+  | "usuarios"
+  | "categorias";
 
 const REVIEW_MOTIVO_LABELS: Record<string, string> = {
   informacion_falsa: "Información falsa",
@@ -152,6 +162,7 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
   const [reports, setReports] = useState<ReportWithDetails[]>([]);
   const [verifications, setVerifications] = useState<VerificationWithUser[]>([]);
   const [reviewReports, setReviewReports] = useState<ReviewReportWithDetails[]>([]);
+  const [supportRequests, setSupportRequests] = useState<SupportRequestRow[]>([]);
   const [users, setUsers] = useState<ProfileRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedListing, setExpandedListing] = useState<string | null>(null);
@@ -159,6 +170,7 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
   const [expandedReport, setExpandedReport] = useState<string | null>(null);
   const [expandedVerification, setExpandedVerification] = useState<string | null>(null);
   const [expandedReviewReport, setExpandedReviewReport] = useState<string | null>(null);
+  const [expandedSupportRequest, setExpandedSupportRequest] = useState<string | null>(null);
   const [mostrarVerificacionesResueltas, setMostrarVerificacionesResueltas] = useState(false);
   const [filtroEstado, setFiltroEstado] = useState("todos");
   const [filtroTexto, setFiltroTexto] = useState("");
@@ -220,6 +232,12 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
     setReviewReports((data as never as ReviewReportWithDetails[]) || []);
   }, []);
 
+  const loadSupportRequests = useCallback(async () => {
+    const supabase = createClient();
+    const { data } = await supabase.from("support_requests").select("*").order("created_at", { ascending: false });
+    setSupportRequests(data || []);
+  }, []);
+
   const loadUsers = useCallback(async () => {
     const supabase = createClient();
     const { data } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
@@ -227,10 +245,16 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
   }, []);
 
   useEffect(() => {
-    Promise.all([loadListings(), loadAnuncios(), loadReports(), loadVerifications(), loadReviewReports(), loadUsers()]).finally(() =>
-      setLoading(false)
-    );
-  }, [loadListings, loadAnuncios, loadReports, loadVerifications, loadReviewReports, loadUsers]);
+    Promise.all([
+      loadListings(),
+      loadAnuncios(),
+      loadReports(),
+      loadVerifications(),
+      loadReviewReports(),
+      loadSupportRequests(),
+      loadUsers(),
+    ]).finally(() => setLoading(false));
+  }, [loadListings, loadAnuncios, loadReports, loadVerifications, loadReviewReports, loadSupportRequests, loadUsers]);
 
   function downloadUsersCsv() {
     // Excel en español/Argentina usa ";" como separador de listas al abrir un
@@ -330,6 +354,7 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
   const denunciasPendientes = reports.filter((r) => r.estado === "pendiente" || r.estado === "en_revision");
   const verificacionesPendientes = verifications.filter((v) => v.estado === "pendiente");
   const reseñasPendientes = reviewReports.filter((r) => r.estado === "pendiente");
+  const soportePendientes = supportRequests.filter((s) => s.estado === "pendiente");
 
   const pendingListingIds = new Set(pendingListings.map((l) => l.id));
   const filteredListings = listings.filter((l) => {
@@ -368,6 +393,9 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
           </TabButton>
           <TabButton active={tab === "reseñas"} onClick={() => setTab("reseñas")}>
             Reseñas {reseñasPendientes.length > 0 && `(${reseñasPendientes.length})`}
+          </TabButton>
+          <TabButton active={tab === "soporte"} onClick={() => setTab("soporte")}>
+            Soporte {soportePendientes.length > 0 && `(${soportePendientes.length})`}
           </TabButton>
           <TabButton active={tab === "metricas"} onClick={() => setTab("metricas")}>
             Métricas
@@ -545,6 +573,19 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
                 expanded={expandedReviewReport === r.id}
                 onToggle={() => setExpandedReviewReport(expandedReviewReport === r.id ? null : r.id)}
                 onSaved={loadReviewReports}
+              />
+            ))}
+          </div>
+        ) : tab === "soporte" ? (
+          <div className="flex flex-col gap-2">
+            {supportRequests.length === 0 && <p className="text-sm text-tinta-suave">Todavía no hay mensajes de soporte.</p>}
+            {supportRequests.map((s) => (
+              <AdminSupportRequestRow
+                key={s.id}
+                request={s}
+                expanded={expandedSupportRequest === s.id}
+                onToggle={() => setExpandedSupportRequest(expandedSupportRequest === s.id ? null : s.id)}
+                onSaved={loadSupportRequests}
               />
             ))}
           </div>
@@ -1960,6 +2001,66 @@ function AdminReviewReportRow({
             </div>
           ) : (
             <p className="text-xs text-tinta-suave">Ya resuelto: {REVIEW_REPORT_STATUS_LABELS[r.estado]}</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AdminSupportRequestRow({
+  request: s,
+  expanded,
+  onToggle,
+  onSaved,
+}: {
+  request: SupportRequestRow;
+  expanded: boolean;
+  onToggle: () => void;
+  onSaved: () => void;
+}) {
+  const [saving, setSaving] = useState(false);
+
+  async function marcarResuelta() {
+    setSaving(true);
+    const supabase = createClient();
+    const { error } = await supabase.rpc("admin_set_support_request_status", { p_request_id: s.id, p_estado: "resuelta" });
+    setSaving(false);
+    if (error) alert(error.message);
+    else onSaved();
+  }
+
+  return (
+    <div className="rounded-lg border border-piedra/50 bg-white p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="cursor-pointer" onClick={onToggle}>
+          <p className="text-sm font-semibold text-tinta">{s.nombre}</p>
+          <p className="text-xs text-tinta-suave">{s.contacto}</p>
+          <p className="text-xs text-tinta-suave">{new Date(s.created_at).toLocaleString("es-AR")}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="rounded-full border border-piedra/60 px-2 py-1 text-[11px] text-tinta">
+            {s.estado === "resuelta" ? "Resuelta" : "Pendiente"}
+          </span>
+          <button onClick={onToggle} className="rounded-lg border border-piedra/70 px-2.5 py-1.5 text-xs text-tinta">
+            {expanded ? "Cerrar" : "Ver"}
+          </button>
+        </div>
+      </div>
+
+      {expanded && (
+        <div className="mt-3 flex flex-col gap-3 border-t border-piedra/40 pt-3">
+          <p className="whitespace-pre-line text-xs text-tinta">{s.mensaje}</p>
+          {s.estado === "pendiente" ? (
+            <button
+              disabled={saving}
+              onClick={marcarResuelta}
+              className="w-fit rounded-lg border border-piedra/70 px-2.5 py-1.5 text-xs text-tinta disabled:opacity-60"
+            >
+              Marcar como resuelta
+            </button>
+          ) : (
+            <p className="text-xs text-tinta-suave">Resuelta el {s.resuelto_en ? new Date(s.resuelto_en).toLocaleString("es-AR") : "—"}</p>
           )}
         </div>
       )}

@@ -343,6 +343,24 @@ export interface Database {
         };
         Relationships: [];
       };
+      support_requests: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          nombre: string;
+          contacto: string;
+          mensaje: string;
+          estado: "pendiente" | "resuelta";
+          created_at: string;
+          resuelto_por: string | null;
+          resuelto_en: string | null;
+        };
+        Insert: never;
+        Update: {
+          estado?: "pendiente" | "resuelta";
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -495,6 +513,14 @@ export interface Database {
         };
         Returns: undefined;
       };
+      crear_solicitud_soporte: {
+        Args: { p_nombre: string; p_contacto: string; p_mensaje: string };
+        Returns: undefined;
+      };
+      admin_set_support_request_status: {
+        Args: { p_request_id: string; p_estado: string };
+        Returns: undefined;
+      };
     };
   };
 }
@@ -511,3 +537,4 @@ export type UserVerificationRow = Database["public"]["Tables"]["user_verificatio
 export type ReviewRow = Database["public"]["Tables"]["reviews"]["Row"];
 export type ReviewReportRow = Database["public"]["Tables"]["review_reports"]["Row"];
 export type RenewalRequestRow = Database["public"]["Tables"]["renewal_requests"]["Row"];
+export type SupportRequestRow = Database["public"]["Tables"]["support_requests"]["Row"];
