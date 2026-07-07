@@ -7,6 +7,7 @@ import type { ListingRow } from "@/lib/supabase/types";
 import { SITE_URL, SITE_NAME } from "@/lib/seo";
 import ContactarPublicacionButton from "@/components/ContactarPublicacionButton";
 import ShareButton from "@/components/ShareButton";
+import RegistrarVista from "@/components/RegistrarVista";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -61,9 +62,10 @@ export default async function PublicacionPage({ params }: PageProps) {
   if (!listing) notFound();
 
   const supabase = await createClient();
-  const [{ data: categoria }, { data: images }] = await Promise.all([
+  const [{ data: categoria }, { data: images }, { data: { user } }] = await Promise.all([
     listing.categoria ? supabase.from("categories").select("label").eq("id", listing.categoria).maybeSingle() : Promise.resolve({ data: null }),
     supabase.from("listing_images").select("url").eq("listing_id", id).order("orden"),
+    supabase.auth.getUser(),
   ]);
 
   const nombrePublicador = listing.profiles?.nickname?.trim() || listing.profiles?.full_name?.trim() || "Vecino de la zona";
@@ -84,6 +86,7 @@ export default async function PublicacionPage({ params }: PageProps) {
   return (
     <div className="min-h-screen bg-hueso">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <RegistrarVista listingId={id} />
 
       <header className="border-b border-piedra/30 bg-white px-5 py-4 sm:px-8">
         <div className="mx-auto flex max-w-[760px] items-center justify-between">
@@ -127,7 +130,12 @@ export default async function PublicacionPage({ params }: PageProps) {
             <p className="mb-4 text-[13px] text-tinta-suave">
               Publica <span className="font-medium text-tinta">{nombrePublicador}</span>
             </p>
-            <ContactarPublicacionButton listingId={id} nombre={listing.nombre} whatsappPublico={listing.whatsapp_publico} />
+            <ContactarPublicacionButton
+              listingId={id}
+              nombre={listing.nombre}
+              whatsappPublico={listing.whatsapp_publico}
+              isLoggedIn={!!user}
+            />
             <ShareButton
               url={url}
               title={listing.nombre}

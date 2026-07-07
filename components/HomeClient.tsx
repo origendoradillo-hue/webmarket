@@ -78,7 +78,18 @@ export default function HomeClient() {
 
   const loadRealListings = useCallback(async () => {
     const supabase = createClient();
-    await supabase.rpc("expire_old_listings");
+    // expire_old_listings hace un update en toda la tabla; no hay cron
+    // disponible así que se llama desde acá, pero alcanza con chequearlo una
+    // vez cada pocos minutos por pestaña en vez de en cada carga/recarga.
+    try {
+      const lastCheck = Number(sessionStorage.getItem("origen_expire_checked_at") || 0);
+      if (Date.now() - lastCheck > 5 * 60 * 1000) {
+        await supabase.rpc("expire_old_listings");
+        sessionStorage.setItem("origen_expire_checked_at", String(Date.now()));
+      }
+    } catch {
+      await supabase.rpc("expire_old_listings");
+    }
     const { data, error } = await supabase
       .from("listings")
       .select("*, profiles(full_name, nickname, rating_promedio, resenas_count)")
@@ -146,7 +157,7 @@ export default function HomeClient() {
       .from("listings")
       .select("nombre, expires_at")
       .eq("publisher_id", user.id)
-      .eq("status", "activa")
+      .in("status", ["activa", "vencida"])
       .not("expires_at", "is", null)
       .lt("expires_at", soon)
       .order("expires_at", { ascending: true })
@@ -436,7 +447,13 @@ export default function HomeClient() {
       )}
       {screen !== "home" && (
         <div className="px-4 pb-1 pt-3 sm:px-8">
-          <div className="flex max-w-[480px] gap-2">
+          <form
+            className="flex max-w-[480px] gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSearchSubmit();
+            }}
+          >
             <input
               type="text"
               value={query}
@@ -444,10 +461,10 @@ export default function HomeClient() {
               placeholder="Buscar en Origen El Doradillo"
               className="flex-1 rounded-lg border border-piedra/60 bg-white px-3.5 py-2.5 text-sm text-tinta outline-none"
             />
-            <button aria-label="Buscar" className="rounded-lg bg-dorado px-4 font-semibold text-oliva-dd">
+            <button type="submit" aria-label="Buscar" className="rounded-lg bg-dorado px-4 font-semibold text-oliva-dd">
               <i className="ti ti-search text-lg" aria-hidden />
             </button>
-          </div>
+          </form>
         </div>
       )}
 

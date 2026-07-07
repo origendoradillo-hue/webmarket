@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import type { ListingReportRow } from "@/lib/supabase/types";
+import { REPORT_MOTIVO_LABELS, requiereSuspensionReciproca } from "@/lib/reportMotivos";
 
 type Motivo = ListingReportRow["motivo"];
 
@@ -14,19 +15,10 @@ interface ReportListingModalProps {
   user: User;
 }
 
-const MOTIVOS: { value: Motivo; label: string }[] = [
-  { value: "informacion_falsa", label: "Información falsa o engañosa" },
-  { value: "producto_no_disponible", label: "Producto no disponible" },
-  { value: "precio_no_coincide", label: "Precio o condiciones no coinciden" },
-  { value: "publicador_no_responde", label: "Publicador no responde" },
-  { value: "sospecha_estafa", label: "Sospecha de estafa" },
-  { value: "contenido_inapropiado", label: "Contenido inapropiado" },
-  { value: "categoria_incorrecta", label: "Categoría incorrecta" },
-  { value: "publicacion_duplicada", label: "Publicación duplicada" },
-  { value: "fotos_falsas", label: "Fotos falsas o robadas" },
-  { value: "insultos_agravios", label: "Insultos o agravios" },
-  { value: "otro", label: "Otro" },
-];
+const MOTIVOS: { value: Motivo; label: string }[] = Object.entries(REPORT_MOTIVO_LABELS).map(([value, label]) => ({
+  value: value as Motivo,
+  label,
+}));
 
 export default function ReportListingModal({ open, onClose, listingId, user }: ReportListingModalProps) {
   const [motivo, setMotivo] = useState<Motivo>(MOTIVOS[0].value);
@@ -108,7 +100,7 @@ export default function ReportListingModal({ open, onClose, listingId, user }: R
                 ))}
               </select>
 
-              {motivo === "insultos_agravios" && (
+              {requiereSuspensionReciproca(motivo) && (
                 <p className="mb-3 rounded-lg bg-[#FBF3E4] px-3 py-2.5 text-[11.5px] text-tinta">
                   Si se confirma un cruce de insultos o agravios, el equipo puede suspender la cuenta de <strong>ambas</strong> partes
                   involucradas, no solo la denunciada.

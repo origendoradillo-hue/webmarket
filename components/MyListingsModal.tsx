@@ -4,20 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import type { ListingRow } from "@/lib/supabase/types";
-
-const REPORT_MOTIVO_LABELS: Record<string, string> = {
-  informacion_falsa: "Información falsa o engañosa",
-  producto_no_disponible: "Producto no disponible",
-  precio_no_coincide: "Precio o condiciones no coinciden",
-  publicador_no_responde: "Publicador no responde",
-  sospecha_estafa: "Sospecha de estafa",
-  contenido_inapropiado: "Contenido inapropiado",
-  categoria_incorrecta: "Categoría incorrecta",
-  publicacion_duplicada: "Publicación duplicada",
-  fotos_falsas: "Fotos falsas o robadas",
-  insultos_agravios: "Insultos o agravios",
-  otro: "Otro",
-};
+import { REPORT_MOTIVO_LABELS } from "@/lib/reportMotivos";
 
 interface ListingReport {
   id: string;

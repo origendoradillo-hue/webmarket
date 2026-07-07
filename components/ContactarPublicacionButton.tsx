@@ -9,13 +9,14 @@ interface ContactarPublicacionButtonProps {
   listingId: string;
   nombre: string;
   whatsappPublico: boolean;
+  isLoggedIn: boolean;
 }
 
-export default function ContactarPublicacionButton({ listingId, nombre, whatsappPublico }: ContactarPublicacionButtonProps) {
+export default function ContactarPublicacionButton({ listingId, nombre, whatsappPublico, isLoggedIn }: ContactarPublicacionButtonProps) {
   const [contacting, setContacting] = useState(false);
   const [error, setError] = useState(false);
 
-  if (!whatsappPublico) {
+  if (!whatsappPublico && !isLoggedIn) {
     return (
       <div className="rounded-lg border border-piedra/60 bg-hueso-2 p-3.5 text-center text-[13px] text-tinta">
         Para cuidar la seguridad de la comunidad, necesitás iniciar sesión para contactar por esta publicación.{" "}

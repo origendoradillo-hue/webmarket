@@ -16,6 +16,7 @@ import type {
   UserVerificationRow,
   ZoneRow,
 } from "@/lib/supabase/types";
+import { REPORT_MOTIVO_LABELS, requiereSuspensionReciproca } from "@/lib/reportMotivos";
 
 type Tab =
   | "publicaciones"
@@ -43,20 +44,6 @@ const REVIEW_REPORT_STATUS_LABELS: Record<string, string> = {
 const REVIEW_REPORT_STATUS_OPTIONS = ["resuelta", "rechazada"];
 
 const NIVEL_LABELS: Record<number, string> = { 2: "Nivel 2 · Publicador verificado", 3: "Nivel 3 · Verificación reforzada" };
-
-const REPORT_MOTIVO_LABELS: Record<string, string> = {
-  informacion_falsa: "Información falsa o engañosa",
-  producto_no_disponible: "Producto no disponible",
-  precio_no_coincide: "Precio o condiciones no coinciden",
-  publicador_no_responde: "Publicador no responde",
-  sospecha_estafa: "Sospecha de estafa",
-  contenido_inapropiado: "Contenido inapropiado",
-  categoria_incorrecta: "Categoría incorrecta",
-  publicacion_duplicada: "Publicación duplicada",
-  fotos_falsas: "Fotos falsas o robadas",
-  insultos_agravios: "Insultos o agravios",
-  otro: "Otro",
-};
 
 const REPORT_STATUS_LABELS: Record<string, string> = {
   pendiente: "Pendiente",
@@ -357,8 +344,19 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
   const soportePendientes = supportRequests.filter((s) => s.estado === "pendiente");
 
   const pendingListingIds = new Set(pendingListings.map((l) => l.id));
+  const hayFiltrosActivos =
+    filtroTexto.trim() !== "" ||
+    filtroEstado !== "todos" ||
+    filtroCategoria !== "todas" ||
+    filtroTipo !== "todos" ||
+    filtroDesde !== "" ||
+    filtroHasta !== "";
   const filteredListings = listings.filter((l) => {
-    if (pendingListingIds.has(l.id)) return false;
+    // Sin filtros activos no repetimos las publicadas en las últimas 24h (ya
+    // están arriba); pero si el admin está buscando/filtrando algo puntual,
+    // que sí aparezcan acá — si no, una publicación recién publicada era
+    // imposible de encontrar por nombre o estado.
+    if (!hayFiltrosActivos && pendingListingIds.has(l.id)) return false;
     if (filtroEstado !== "todos" && l.status !== filtroEstado) return false;
     if (filtroCategoria !== "todas" && l.categoria !== filtroCategoria) return false;
     if (filtroTipo !== "todos" && l.tipo !== filtroTipo) return false;
@@ -884,6 +882,10 @@ function CategoriasAdmin() {
       .replace(/[̀-ͯ]/g, "")
       .replace(/[^a-z0-9]+/g, "_")
       .replace(/^_+|_+$/g, "");
+    if (!id) {
+      alert("Ese nombre no tiene ninguna letra o número — probá con otro.");
+      return;
+    }
     const supabase = createClient();
     const { error } = await supabase.from("categories").insert({
       id,
@@ -1697,14 +1699,23 @@ function AdminReportRow({
     if (!confirm("¿Suspender la cuenta del denunciante y del denunciado? Quedan bloqueados hasta que un superadmin los desbloquee.")) return;
     setSaving(true);
     const supabase = createClient();
-    const [res1, res2] = await Promise.all([
-      supabase.rpc("admin_set_blocked", { p_user_id: r.reporter_id, p_blocked: true }),
-      supabase.rpc("admin_set_blocked", { p_user_id: r.listings.publisher_id, p_blocked: true }),
-    ]);
+    const { error: errorDenunciado } = await supabase.rpc("admin_set_blocked", {
+      p_user_id: r.listings.publisher_id,
+      p_blocked: true,
+    });
+    let errorDenunciante = null;
+    if (r.reporter_id) {
+      const res = await supabase.rpc("admin_set_blocked", { p_user_id: r.reporter_id, p_blocked: true });
+      errorDenunciante = res.error;
+    }
     setSaving(false);
-    const error = res1.error || res2.error;
-    if (error) alert(error.message);
-    else onSaved();
+    if (errorDenunciado) {
+      alert(errorDenunciado.message);
+      return;
+    }
+    if (!r.reporter_id) alert("El denunciado quedó suspendido. La cuenta del denunciante ya no existe, no hay nada que suspender.");
+    else if (errorDenunciante) alert(errorDenunciante.message);
+    onSaved();
   }
 
   const loadHistorial = useCallback(async () => {
@@ -1782,7 +1793,7 @@ function AdminReportRow({
             <p className="text-xs text-tinta-suave">El denunciado todavía no respondió.</p>
           )}
 
-          {r.motivo === "insultos_agravios" && isSuperadmin && (
+          {requiereSuspensionReciproca(r.motivo) && isSuperadmin && (
             <button
               onClick={suspenderAmbos}
               disabled={saving}
