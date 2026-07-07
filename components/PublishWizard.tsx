@@ -140,16 +140,18 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
   const [data, setData] = useState<PublishData>(DEFAULTS);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [nickname, setNickname] = useState("");
 
   useEffect(() => {
     if (open) {
       setStepIndex(0);
       setData(DEFAULTS);
       setSubmitError(null);
+      setNickname("");
       const supabase = createClient();
       supabase
         .from("profiles")
-        .select("full_name, whatsapp_number")
+        .select("full_name, whatsapp_number, nickname")
         .eq("id", user.id)
         .single()
         .then(({ data: profile }) => {
@@ -159,6 +161,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
             nombreVecino: profile.full_name?.trim() || prev.nombreVecino,
             whatsapp: profile.whatsapp_number?.trim() || prev.whatsapp,
           }));
+          setNickname(profile.nickname?.trim() || "");
         });
     }
   }, [open, user.id]);
@@ -563,6 +566,9 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
                   </Field>
 
                   <Field label="Etiquetas (opcional)">
+                    <p className="mb-2 text-[11.5px] text-tinta-suave">
+                      Marcalas solo si aplican — sirven para que te encuentren en esos filtros extra al buscar.
+                    </p>
                     <div className="flex flex-wrap gap-2">
                       {([
                         { value: "turismo", label: "Turismo" },
@@ -765,7 +771,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
                     <input
                       type="text"
                       disabled={!direccionAplica}
-                      placeholder={direccionAplica ? "Solo si querés que te encuentren fácil" : "No aplica: elegiste solo entrega a domicilio/envío"}
+                      placeholder={direccionAplica ? "Escribila, o pegá un link de Google Maps" : "No aplica: elegiste solo entrega a domicilio/envío"}
                       value={data.direccion}
                       onChange={(e) => update("direccion", e.target.value)}
                       className="w-full rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta disabled:bg-hueso-2 disabled:text-piedra"
@@ -788,24 +794,38 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
                     <i className="ti ti-brand-whatsapp mt-0.5 flex-shrink-0 text-dorado" aria-hidden />
                     Este es el WhatsApp que va a ver quien te contacte por esta publicación.
                   </div>
-                  <Field label="Tu nombre">
-                    <input
-                      type="text"
-                      placeholder="Nombre y apellido"
-                      value={data.nombreVecino}
-                      onChange={(e) => update("nombreVecino", e.target.value)}
-                      className="w-full rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta"
-                    />
-                  </Field>
-                  <Field label="Tu WhatsApp">
-                    <input
-                      type="tel"
-                      placeholder="+54 9 280 000-0000"
-                      value={data.whatsapp}
-                      onChange={(e) => update("whatsapp", e.target.value)}
-                      className="w-full rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta"
-                    />
-                  </Field>
+                  {data.nombreVecino.trim() !== "" && data.whatsapp.trim() !== "" ? (
+                    <>
+                      <Field label="Tu nombre">
+                        <input
+                          type="text"
+                          disabled
+                          value={data.nombreVecino}
+                          className="w-full rounded-lg border border-piedra/40 bg-hueso-2 px-2.5 py-2.5 text-[13.5px] text-tinta-suave"
+                        />
+                      </Field>
+                      {nickname && (
+                        <p className="mb-2.5 -mt-2 text-[11.5px] text-tinta-suave">
+                          Se va a mostrar como <strong>{nickname}</strong> en tu publicación.
+                        </p>
+                      )}
+                      <Field label="Tu WhatsApp">
+                        <input
+                          type="tel"
+                          disabled
+                          value={data.whatsapp}
+                          className="w-full rounded-lg border border-piedra/40 bg-hueso-2 px-2.5 py-2.5 text-[13.5px] text-tinta-suave"
+                        />
+                      </Field>
+                      <p className="mb-3.5 -mt-2 text-[11px] text-tinta-suave">
+                        Nombre y WhatsApp vienen de tu perfil y no se pueden cambiar acá — para actualizarlos, andá a "Mi perfil".
+                      </p>
+                    </>
+                  ) : (
+                    <p className="mb-3.5 rounded-lg bg-red-50 px-3 py-2.5 text-[12.5px] text-red-800">
+                      Te falta completar tu nombre y/o WhatsApp en "Mi perfil" antes de poder publicar.
+                    </p>
+                  )}
                   <label className="flex items-start gap-2 text-[12.5px] text-tinta">
                     <input
                       type="checkbox"

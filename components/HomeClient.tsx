@@ -349,10 +349,16 @@ export default function HomeClient() {
       {screen === "home" ? (
         <Hero query={query} onQueryChange={setQuery} onSearch={handleSearchSubmit} />
       ) : (
-        <div className="border-b border-piedra/30 bg-hueso-2 px-4 py-3 sm:px-8">
+        <div className="border-b border-piedra/30 bg-hueso-2 px-4 py-2.5 sm:px-8">
           <button onClick={resetFilters} className="mb-2 flex items-center gap-1.5 text-[12px] font-medium text-golfo">
             <i className="ti ti-arrow-left" aria-hidden /> Volver al inicio
           </button>
+          <div className="mb-2 grid grid-cols-4 gap-1.5">
+            <CompactNavButton active={screen === "explorar"} onClick={handleExplorar} icon="ti-compass" label="Mirando" />
+            <CompactNavButton active={false} onClick={handleOpenPublish} icon="ti-plus" label="Publicar" />
+            <CompactNavButton active={resultadosIntencion === "ofrezco"} onClick={() => handleSelectIntencion("ofrezco")} icon="ti-tag" label="Ofrece" />
+            <CompactNavButton active={resultadosIntencion === "busco"} onClick={() => handleSelectIntencion("busco")} icon="ti-search" label="Busca" />
+          </div>
           <p className="text-[12.5px] text-tinta-suave">
             Estás viendo: <span className="font-semibold text-tinta">{breadcrumb}</span>
           </p>
@@ -505,5 +511,20 @@ export default function HomeClient() {
       )}
       {user && <ForcePasswordModal open={mustChangePassword} user={user} onDone={() => setMustChangePassword(false)} />}
     </>
+  );
+}
+
+function CompactNavButton({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: string; label: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex flex-col items-center gap-0.5 rounded-lg border py-1.5 text-[10.5px] font-medium transition ${
+        active ? "border-oliva bg-oliva text-hueso" : "border-piedra/60 bg-white text-tinta"
+      }`}
+    >
+      <i className={`ti ${icon} text-base`} aria-hidden />
+      {label}
+    </button>
   );
 }

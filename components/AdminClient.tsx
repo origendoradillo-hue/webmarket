@@ -82,6 +82,47 @@ const ANUNCIO_STATUS_OPTIONS = Object.keys(ANUNCIO_STATUS_LABELS);
 
 const ROLE_OPTIONS = ["publicador", "admin", "superadmin"];
 
+// Sugerencias comunes de ícono (Tabler Icons) para no tener que saber el
+// nombre exacto de memoria — el campo sigue siendo texto libre por si
+// necesitan uno que no está en esta lista.
+const ICON_SUGGESTIONS = [
+  "ti-box",
+  "ti-droplet",
+  "ti-egg",
+  "ti-flower",
+  "ti-carrot",
+  "ti-wheat",
+  "ti-plant",
+  "ti-bread",
+  "ti-soup",
+  "ti-jar",
+  "ti-tools",
+  "ti-hammer",
+  "ti-bolt",
+  "ti-scissors",
+  "ti-paw",
+  "ti-truck",
+  "ti-truck-delivery",
+  "ti-spray",
+  "ti-brick",
+  "ti-recycle",
+  "ti-building-store",
+  "ti-package",
+  "ti-tool",
+  "ti-horse",
+  "ti-binoculars",
+  "ti-car",
+  "ti-confetti",
+  "ti-home",
+  "ti-building",
+  "ti-tent",
+  "ti-key",
+  "ti-map-2",
+  "ti-fence",
+  "ti-shopping-bag",
+  "ti-compass",
+];
+
 type ListingWithPublisher = ListingRow & { profiles: { full_name: string | null; email: string | null; whatsapp_number: string | null } | null };
 type AnuncioWithSolicitante = AnuncioRow & { profiles: { full_name: string | null; email: string | null; whatsapp_number: string | null } | null };
 type ReportWithDetails = ListingReportRow & {
@@ -118,6 +159,7 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
   const [expandedReport, setExpandedReport] = useState<string | null>(null);
   const [expandedVerification, setExpandedVerification] = useState<string | null>(null);
   const [expandedReviewReport, setExpandedReviewReport] = useState<string | null>(null);
+  const [mostrarVerificacionesResueltas, setMostrarVerificacionesResueltas] = useState(false);
   const [filtroEstado, setFiltroEstado] = useState("todos");
   const [filtroTexto, setFiltroTexto] = useState("");
   const [filtroCategoria, setFiltroCategoria] = useState("todas");
@@ -467,8 +509,20 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
           </div>
         ) : tab === "verificaciones" ? (
           <div className="flex flex-col gap-2">
-            {verifications.length === 0 && <p className="text-sm text-tinta-suave">Todavía no hay solicitudes de verificación.</p>}
-            {verifications.map((v) => (
+            <label className="mb-1 flex w-fit items-center gap-1.5 text-xs text-tinta-suave">
+              <input
+                type="checkbox"
+                checked={mostrarVerificacionesResueltas}
+                onChange={(e) => setMostrarVerificacionesResueltas(e.target.checked)}
+              />
+              Mostrar también las ya resueltas
+            </label>
+            {(mostrarVerificacionesResueltas ? verifications : verifications.filter((v) => v.estado === "pendiente")).length === 0 && (
+              <p className="text-sm text-tinta-suave">
+                {mostrarVerificacionesResueltas ? "Todavía no hay solicitudes de verificación." : "No hay solicitudes pendientes."}
+              </p>
+            )}
+            {(mostrarVerificacionesResueltas ? verifications : verifications.filter((v) => v.estado === "pendiente")).map((v) => (
               <AdminVerificationRow
                 key={v.id}
                 verification={v}
@@ -636,7 +690,6 @@ function CategoriasAdmin() {
   const [subs, setSubs] = useState<SubcategoryRow[]>([]);
   const [zones, setZones] = useState<ZoneRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [newCatId, setNewCatId] = useState("");
   const [newCatLabel, setNewCatLabel] = useState("");
   const [newCatIcon, setNewCatIcon] = useState("");
   const [newSubLabel, setNewSubLabel] = useState<Record<string, string>>({});
@@ -660,10 +713,17 @@ function CategoriasAdmin() {
   }, [load]);
 
   async function addCategory() {
-    if (!newCatId.trim() || !newCatLabel.trim() || !newCatIcon.trim()) return;
+    if (!newCatLabel.trim() || !newCatIcon.trim()) return;
+    const id = newCatLabel
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "");
     const supabase = createClient();
     const { error } = await supabase.from("categories").insert({
-      id: newCatId.trim().toLowerCase().replace(/\s+/g, "_"),
+      id,
       label: newCatLabel.trim(),
       icon: newCatIcon.trim(),
       orden: categories.length + 1,
@@ -672,7 +732,6 @@ function CategoriasAdmin() {
       alert(error.message);
       return;
     }
-    setNewCatId("");
     setNewCatLabel("");
     setNewCatIcon("");
     load();
@@ -731,6 +790,20 @@ function CategoriasAdmin() {
     else load();
   }
 
+  async function moveZone(index: number, direction: -1 | 1) {
+    const target = index + direction;
+    if (target < 0 || target >= zones.length) return;
+    const a = zones[index];
+    const b = zones[target];
+    const supabase = createClient();
+    const [res1, res2] = await Promise.all([
+      supabase.from("zones").update({ orden: b.orden }).eq("id", a.id),
+      supabase.from("zones").update({ orden: a.orden }).eq("id", b.id),
+    ]);
+    if (res1.error || res2.error) alert(res1.error?.message || res2.error?.message);
+    else load();
+  }
+
   if (loading) return <p className="text-sm text-tinta-suave">Cargando...</p>;
 
   return (
@@ -783,41 +856,60 @@ function CategoriasAdmin() {
             </div>
           ))}
         </div>
-        <div className="mt-3 flex flex-wrap gap-1.5 rounded-lg border border-dashed border-piedra/70 p-3">
-          <input
-            value={newCatId}
-            onChange={(e) => setNewCatId(e.target.value)}
-            placeholder="id (ej: mascotas)"
-            className="w-32 rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
-          />
-          <input
-            value={newCatLabel}
-            onChange={(e) => setNewCatLabel(e.target.value)}
-            placeholder="Nombre"
-            className="flex-1 rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
-          />
-          <input
-            value={newCatIcon}
-            onChange={(e) => setNewCatIcon(e.target.value)}
-            placeholder="ti-icono"
-            className="w-32 rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
-          />
-          <button onClick={addCategory} className="rounded-lg bg-oliva px-3 py-1.5 text-xs font-semibold text-hueso">
-            Agregar categoría
-          </button>
+        <div className="mt-3 rounded-lg border border-dashed border-piedra/70 p-3">
+          <p className="mb-2 text-[11px] text-tinta-suave">
+            Solo hace falta el nombre y un ícono — el identificador interno se genera solo a partir del nombre.
+          </p>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <input
+              value={newCatLabel}
+              onChange={(e) => setNewCatLabel(e.target.value)}
+              placeholder="Nombre (ej: Mascotas)"
+              className="flex-1 rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
+            />
+            <i className={`ti ${newCatIcon || "ti-help"} text-lg text-oliva`} aria-hidden />
+            <input
+              list="icon-suggestions"
+              value={newCatIcon}
+              onChange={(e) => setNewCatIcon(e.target.value)}
+              placeholder="ti-paw"
+              className="w-36 rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
+            />
+            <datalist id="icon-suggestions">
+              {ICON_SUGGESTIONS.map((i) => (
+                <option key={i} value={i} />
+              ))}
+            </datalist>
+            <button onClick={addCategory} className="rounded-lg bg-oliva px-3 py-1.5 text-xs font-semibold text-hueso">
+              Agregar categoría
+            </button>
+          </div>
+          <p className="mt-1.5 text-[11px] text-tinta-suave">
+            Elegí uno de la lista o mirá los nombres disponibles en{" "}
+            <a href="https://tabler.io/icons" target="_blank" rel="noreferrer" className="text-golfo underline">
+              tabler.io/icons
+            </a>
+            .
+          </p>
         </div>
       </div>
 
       <div>
         <h2 className="mb-2 font-slab text-sm font-semibold uppercase tracking-wide text-piedra">Zonas</h2>
-        <div className="flex flex-wrap gap-1.5">
-          {zones.map((z) => (
-            <span key={z.id} className="flex items-center gap-1 rounded-full bg-hueso-2 px-2.5 py-1 text-[11px] text-tinta">
-              {z.label}
-              <button onClick={() => deleteZone(z.id)} aria-label="Quitar zona">
-                <i className="ti ti-x text-[10px]" aria-hidden />
+        <div className="flex flex-col gap-1.5">
+          {zones.map((z, i) => (
+            <div key={z.id} className="flex items-center gap-1.5 rounded-lg bg-hueso-2 px-2.5 py-1.5 text-[12px] text-tinta">
+              <span className="flex-1">{z.label}</span>
+              <button onClick={() => moveZone(i, -1)} disabled={i === 0} aria-label="Subir" className="disabled:opacity-30">
+                <i className="ti ti-arrow-up text-[13px]" aria-hidden />
               </button>
-            </span>
+              <button onClick={() => moveZone(i, 1)} disabled={i === zones.length - 1} aria-label="Bajar" className="disabled:opacity-30">
+                <i className="ti ti-arrow-down text-[13px]" aria-hidden />
+              </button>
+              <button onClick={() => deleteZone(z.id)} aria-label="Quitar zona">
+                <i className="ti ti-x text-[13px]" aria-hidden />
+              </button>
+            </div>
           ))}
         </div>
         <div className="mt-2 flex gap-1.5">

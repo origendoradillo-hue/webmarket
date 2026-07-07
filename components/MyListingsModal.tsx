@@ -392,7 +392,7 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
                           className="rounded-lg border border-piedra/70 bg-white px-2.5 py-2 text-[13px] text-tinta"
                         />
                         <input
-                          placeholder="Dirección (opcional)"
+                          placeholder="Dirección o link de Maps (opcional)"
                           value={editForm.direccion}
                           onChange={(e) => setEditForm({ ...editForm, direccion: e.target.value })}
                           className="rounded-lg border border-piedra/70 bg-white px-2.5 py-2 text-[13px] text-tinta"

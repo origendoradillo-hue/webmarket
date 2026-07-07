@@ -77,7 +77,9 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, user, o
   const isNegocio = l.tipoPublicador === "negocio";
   const isDemanda = l.intencion === "busco";
   const mapsUrl = l.direccion
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(l.direccion + " Puerto Madryn")}`
+    ? /^https?:\/\//i.test(l.direccion.trim())
+      ? l.direccion.trim()
+      : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(l.direccion + " Puerto Madryn")}`
     : null;
 
   const requiereLogin = !listing.whatsappPublico;
@@ -191,7 +193,8 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, user, o
 
           {l.direccion && (
             <p className="mb-2.5 flex flex-wrap items-center gap-1.5 text-[13px] text-tinta">
-              <i className="ti ti-map-pin" aria-hidden /> {l.direccion} · {l.zona}
+              <i className="ti ti-map-pin" aria-hidden />
+              {/^https?:\/\//i.test(l.direccion.trim()) ? l.zona : `${l.direccion} · ${l.zona}`}
               {mapsUrl && (
                 <a href={mapsUrl} target="_blank" rel="noreferrer" className="text-golfo">
                   Ver en Google Maps
