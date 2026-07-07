@@ -1,18 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
-import { Anuncio, TipoAnuncio } from "@/lib/types";
-
-const TIPO_LABEL: Record<TipoAnuncio, string> = {
-  evento: "Evento",
-  aviso_barrial: "Aviso barrial",
-  sponsor: "Sponsor",
-  promocion: "Promoción",
-  comunicado: "Comunicado",
-  feria: "Feria",
-  novedad: "Novedad",
-};
+import { Anuncio } from "@/lib/types";
+import AnuncioSlide from "./AnuncioSlide";
 
 interface AnuncioCarouselProps {
   anuncios: Anuncio[];
@@ -43,36 +33,14 @@ export default function AnuncioCarousel({ anuncios }: AnuncioCarouselProps) {
   }
 
   return (
-    <div className="relative w-full overflow-hidden border-y-[3px] border-dorado bg-oliva-dd">
+    <div className="w-full overflow-hidden rounded-2xl bg-oliva-dd shadow-sm ring-1 ring-dorado/40">
       <p className="flex items-center gap-1.5 bg-oliva-d px-4 py-1.5 text-[10.5px] font-semibold uppercase tracking-wide text-dorado sm:px-8">
         <i className="ti ti-speakerphone text-sm" aria-hidden />
         Anuncios y novedades de la comunidad
       </p>
-      <div className="relative h-44 w-full sm:h-64">
-        {a.imagen ? (
-          <Image src={a.imagen} alt={a.titulo} fill className="object-cover" sizes="100vw" priority={index === 0} />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <i className="ti ti-speakerphone text-5xl text-dorado/80" aria-hidden />
-          </div>
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />
 
-        <span className="absolute left-3 top-3 rounded-full bg-dorado px-2.5 py-1 text-[10px] font-semibold text-oliva-dd">
-          {TIPO_LABEL[a.tipo]}
-        </span>
-
-        <div className="absolute inset-x-0 bottom-0 p-4 sm:p-6">
-          <h3 className="font-slab text-base font-semibold leading-tight text-white sm:text-lg">{a.titulo}</h3>
-          <p className="mt-1 line-clamp-2 max-w-[560px] text-[12px] text-white/85 sm:text-[13px]">{a.descripcion}</p>
-          {(a.fechaEvento || a.lugar) && (
-            <p className="mt-1.5 text-[11px] font-medium text-dorado">
-              {a.fechaEvento ? new Date(a.fechaEvento).toLocaleDateString("es-AR", { timeZone: "UTC" }) : ""}
-              {a.fechaEvento && a.lugar ? " · " : ""}
-              {a.lugar}
-            </p>
-          )}
-        </div>
+      <div className="relative">
+        <AnuncioSlide anuncio={a} priority={index === 0} />
 
         {anuncios.length > 1 && (
           <>

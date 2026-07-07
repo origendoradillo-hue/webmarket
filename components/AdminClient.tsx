@@ -17,6 +17,8 @@ import type {
   ZoneRow,
 } from "@/lib/supabase/types";
 import { REPORT_MOTIVO_LABELS, requiereSuspensionReciproca } from "@/lib/reportMotivos";
+import type { Anuncio, AnuncioLayoutType, ImageOrientation } from "@/lib/types";
+import AnuncioSlide from "./AnuncioSlide";
 
 type Tab =
   | "publicaciones"
@@ -76,6 +78,38 @@ const ANUNCIO_STATUS_LABELS: Record<string, string> = {
   rechazado: "Rechazado",
 };
 const ANUNCIO_STATUS_OPTIONS = Object.keys(ANUNCIO_STATUS_LABELS);
+
+const ANUNCIO_LAYOUT_LABELS: Record<string, string> = {
+  flyer_on_sign: "Flyer vertical (con cartel)",
+  full_banner: "Banner horizontal completo",
+  background_image: "Imagen de fondo + placa de texto",
+  text_only: "Solo texto (institucional)",
+};
+const ANUNCIO_LAYOUT_OPTIONS = Object.keys(ANUNCIO_LAYOUT_LABELS);
+
+const IMAGE_ORIENTATION_LABELS: Record<string, string> = {
+  vertical: "Vertical (4:5, flyer)",
+  horizontal: "Horizontal",
+  square: "Cuadrada",
+};
+
+function detectImageOrientation(file: File): Promise<"vertical" | "horizontal" | "square"> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      if (img.naturalWidth > img.naturalHeight) resolve("horizontal");
+      else if (img.naturalHeight > img.naturalWidth) resolve("vertical");
+      else resolve("square");
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve("horizontal");
+    };
+    img.src = url;
+  });
+}
 
 const ROLE_OPTIONS = ["publicador", "admin", "superadmin"];
 
@@ -1509,6 +1543,8 @@ function AdminAnuncioRow({
   onSaved: () => void;
 }) {
   const [saving, setSaving] = useState(false);
+  const [uploadingImagen, setUploadingImagen] = useState(false);
+  const [uploadingFondo, setUploadingFondo] = useState(false);
   const [nota, setNota] = useState("");
   const [historial, setHistorial] = useState<ModeracionLogRow[]>([]);
   const [form, setForm] = useState({
@@ -1517,6 +1553,10 @@ function AdminAnuncioRow({
     lugar: a.lugar || "",
     orden: String(a.orden),
     ubicacion: a.ubicacion,
+    layoutType: a.layout_type,
+    imageOrientation: a.image_orientation || "",
+    ctaLabel: a.cta_label || "",
+    ctaUrl: a.cta_url || "",
   });
 
   const loadHistorial = useCallback(async () => {
@@ -1544,6 +1584,10 @@ function AdminAnuncioRow({
       p_lugar: form.lugar || null,
       p_orden: form.orden ? Number(form.orden) : null,
       p_ubicacion: form.ubicacion,
+      p_layout_type: form.layoutType,
+      p_image_orientation: form.imageOrientation || null,
+      p_cta_label: form.ctaLabel || null,
+      p_cta_url: form.ctaUrl || null,
     });
     setSaving(false);
     if (error) alert(error.message);
@@ -1551,6 +1595,57 @@ function AdminAnuncioRow({
       onSaved();
       loadHistorial();
     }
+  }
+
+  async function handleUploadImagen(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingImagen(true);
+    const orientation = await detectImageOrientation(file);
+    const supabase = createClient();
+    const path = `anuncios/${a.id}/${Date.now()}-flyer.jpg`;
+    const { error: uploadError } = await supabase.storage.from("listing-photos").upload(path, file, { contentType: file.type || "image/jpeg" });
+    if (uploadError) {
+      alert(uploadError.message);
+      setUploadingImagen(false);
+      e.target.value = "";
+      return;
+    }
+    const url = supabase.storage.from("listing-photos").getPublicUrl(path).data.publicUrl;
+    const { error } = await supabase.rpc("admin_process_anuncio", {
+      p_anuncio_id: a.id,
+      p_imagen_url: url,
+      p_image_orientation: orientation,
+    });
+    setUploadingImagen(false);
+    e.target.value = "";
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    setForm((f) => ({ ...f, imageOrientation: orientation }));
+    onSaved();
+  }
+
+  async function handleUploadFondo(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingFondo(true);
+    const supabase = createClient();
+    const path = `anuncios/${a.id}/${Date.now()}-fondo.jpg`;
+    const { error: uploadError } = await supabase.storage.from("listing-photos").upload(path, file, { contentType: file.type || "image/jpeg" });
+    if (uploadError) {
+      alert(uploadError.message);
+      setUploadingFondo(false);
+      e.target.value = "";
+      return;
+    }
+    const url = supabase.storage.from("listing-photos").getPublicUrl(path).data.publicUrl;
+    const { error } = await supabase.rpc("admin_process_anuncio", { p_anuncio_id: a.id, p_background_image_url: url });
+    setUploadingFondo(false);
+    e.target.value = "";
+    if (error) alert(error.message);
+    else onSaved();
   }
 
   async function cambiarEstado(status: string) {
@@ -1577,6 +1672,23 @@ function AdminAnuncioRow({
   }
 
   const link = contactUrl(a.profiles?.whatsapp_number, a.profiles?.email);
+
+  const previewAnuncio: Anuncio = {
+    id: a.id,
+    tipo: a.tipo,
+    titulo: form.titulo,
+    descripcion: form.descripcion,
+    imagen: a.imagen_url || undefined,
+    fechaEvento: a.fecha_evento || undefined,
+    lugar: form.lugar || undefined,
+    orden: a.orden,
+    ubicacion: form.ubicacion,
+    layoutType: form.layoutType as AnuncioLayoutType,
+    imageOrientation: (form.imageOrientation || undefined) as ImageOrientation | undefined,
+    backgroundImagen: a.background_image_url || undefined,
+    ctaLabel: form.ctaLabel || undefined,
+    ctaUrl: form.ctaUrl || undefined,
+  };
 
   return (
     <div className="rounded-lg border border-piedra/50 bg-white p-3">
@@ -1640,9 +1752,87 @@ function AdminAnuncioRow({
             </select>
           </div>
 
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="mb-1 block text-[11px] font-medium text-tinta">Layout</label>
+              <select
+                value={form.layoutType}
+                onChange={(e) => setForm({ ...form, layoutType: e.target.value as typeof form.layoutType })}
+                className="w-full rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
+              >
+                {ANUNCIO_LAYOUT_OPTIONS.map((l) => (
+                  <option key={l} value={l}>
+                    {ANUNCIO_LAYOUT_LABELS[l]}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-[11px] font-medium text-tinta">Orientación de la imagen</label>
+              <select
+                value={form.imageOrientation}
+                onChange={(e) => setForm({ ...form, imageOrientation: e.target.value })}
+                className="w-full rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
+              >
+                <option value="">Sin especificar</option>
+                {Object.entries(IMAGE_ORIENTATION_LABELS).map(([v, label]) => (
+                  <option key={v} value={v}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="mb-1 block text-[11px] font-medium text-tinta">
+                Flyer / imagen principal {uploadingImagen && "(subiendo...)"}
+              </label>
+              {a.imagen_url && <img src={a.imagen_url} alt="" className="mb-1.5 h-16 w-16 rounded object-cover" />}
+              <input
+                type="file"
+                accept="image/*"
+                disabled={uploadingImagen}
+                onChange={handleUploadImagen}
+                className="w-full text-[11px] text-tinta"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-[11px] font-medium text-tinta">
+                Imagen de fondo (opcional) {uploadingFondo && "(subiendo...)"}
+              </label>
+              {a.background_image_url && <img src={a.background_image_url} alt="" className="mb-1.5 h-16 w-16 rounded object-cover" />}
+              <input
+                type="file"
+                accept="image/*"
+                disabled={uploadingFondo}
+                onChange={handleUploadFondo}
+                className="w-full text-[11px] text-tinta"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <LabeledInput label="Texto del botón (CTA)" value={form.ctaLabel} onChange={(v) => setForm({ ...form, ctaLabel: v })} />
+            <LabeledInput label="Link del botón (o WhatsApp)" value={form.ctaUrl} onChange={(v) => setForm({ ...form, ctaUrl: v })} />
+          </div>
+
           <button onClick={guardarCambios} disabled={saving} className="w-fit rounded-lg bg-oliva px-4 py-2 text-xs font-semibold text-hueso disabled:bg-piedra">
             {saving ? "Guardando..." : "Guardar cambios"}
           </button>
+
+          <div>
+            <p className="mb-1.5 text-[11px] font-medium text-tinta">Vista previa</p>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <div className="w-full max-w-[560px] overflow-hidden rounded-xl border border-piedra/50">
+                <AnuncioSlide anuncio={previewAnuncio} priority={false} />
+              </div>
+              <div className="w-full max-w-[320px] overflow-hidden rounded-xl border border-piedra/50">
+                <AnuncioSlide anuncio={previewAnuncio} priority={false} />
+              </div>
+            </div>
+          </div>
 
           <div className="border-t border-piedra/40 pt-3">
             <label className="mb-1 block text-[11px] font-medium text-tinta">Nota interna</label>

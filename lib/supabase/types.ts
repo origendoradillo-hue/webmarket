@@ -133,6 +133,11 @@ export interface Database {
           orden: number;
           notas_internas: string | null;
           ubicacion: "home" | "categoria" | "ambas";
+          layout_type: "flyer_on_sign" | "full_banner" | "text_only" | "background_image";
+          image_orientation: "vertical" | "horizontal" | "square" | null;
+          background_image_url: string | null;
+          cta_label: string | null;
+          cta_url: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -510,6 +515,11 @@ export interface Database {
           p_orden?: number | null;
           p_nota?: string | null;
           p_ubicacion?: string | null;
+          p_layout_type?: string | null;
+          p_image_orientation?: string | null;
+          p_background_image_url?: string | null;
+          p_cta_label?: string | null;
+          p_cta_url?: string | null;
         };
         Returns: undefined;
       };

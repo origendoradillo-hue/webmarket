@@ -88,6 +88,7 @@ export const ANUNCIOS: Anuncio[] = [
     lugar: "Club de campo, acceso norte",
     orden: 1,
     ubicacion: "ambas",
+    layoutType: "text_only",
   },
   {
     id: "a2",
@@ -96,6 +97,7 @@ export const ANUNCIOS: Anuncio[] = [
     descripcion: "La cooperativa eléctrica informa un corte programado por mantenimiento el próximo martes de 9 a 13hs en Zona 2.",
     orden: 2,
     ubicacion: "ambas",
+    layoutType: "text_only",
   },
   {
     id: "a3",
@@ -104,5 +106,6 @@ export const ANUNCIOS: Anuncio[] = [
     descripcion: "Durante agosto, 10% de descuento en materiales de construcción comprando más de $50.000.",
     orden: 3,
     ubicacion: "ambas",
+    layoutType: "text_only",
   },
 ];

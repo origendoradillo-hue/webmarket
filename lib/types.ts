@@ -61,6 +61,13 @@ export interface Listing {
 // novedades — contenido 100% editorial, nunca autoservicio.
 export type TipoAnuncio = "evento" | "aviso_barrial" | "sponsor" | "promocion" | "comunicado" | "feria" | "novedad";
 
+// flyer_on_sign: flyer vertical 4:5 enmarcado sobre un fondo horizontal.
+// full_banner: imagen horizontal a pantalla completa (diseño original).
+// text_only: sin imagen, para avisos institucionales.
+// background_image: imagen de fondo ambiental + placa de texto.
+export type AnuncioLayoutType = "flyer_on_sign" | "full_banner" | "text_only" | "background_image";
+export type ImageOrientation = "vertical" | "horizontal" | "square";
+
 export interface Anuncio {
   id: string;
   tipo: TipoAnuncio;
@@ -71,4 +78,9 @@ export interface Anuncio {
   lugar?: string;
   orden: number;
   ubicacion: "home" | "categoria" | "ambas";
+  layoutType: AnuncioLayoutType;
+  imageOrientation?: ImageOrientation;
+  backgroundImagen?: string;
+  ctaLabel?: string;
+  ctaUrl?: string;
 }
