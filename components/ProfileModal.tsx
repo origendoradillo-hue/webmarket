@@ -21,7 +21,7 @@ const NIVEL_LABEL: Record<number, string> = {
 
 const NIVEL_DESCRIPCION: Record<number, string> = {
   1: "Te registraste con email o Google. Ya podés publicar y contactar.",
-  2: "El equipo confirmó tu identidad o tu WhatsApp. Da más confianza a quien te contacta.",
+  2: "Se obtiene automáticamente al confirmar tu email y tener al menos una publicación activa sin denuncias. Da más confianza a quien te contacta.",
   3: "Verificación reforzada, para publicaciones sensibles (inmuebles, alojamientos, alto valor).",
 };
 
