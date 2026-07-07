@@ -1736,7 +1736,7 @@ function AdminAnuncioRow({
             />
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <LabeledInput label="Lugar" value={form.lugar} onChange={(v) => setForm({ ...form, lugar: v })} />
+            <LabeledInput label="Lugar (texto o link de Maps)" value={form.lugar} onChange={(v) => setForm({ ...form, lugar: v })} />
             <LabeledInput label="Orden en el carrusel" type="number" value={form.orden} onChange={(v) => setForm({ ...form, orden: v })} />
           </div>
           <div>

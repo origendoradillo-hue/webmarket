@@ -148,7 +148,7 @@ export default function AnuncioRequestForm({ open, onClose, user }: AnuncioReque
                 <Field label="Lugar (opcional)">
                   <input
                     type="text"
-                    placeholder="Ej: Club de campo"
+                    placeholder="Ej: Club de campo, o un link de Google Maps"
                     value={lugar}
                     onChange={(e) => setLugar(e.target.value)}
                     className="w-full rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta"

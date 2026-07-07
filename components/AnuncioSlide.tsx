@@ -52,13 +52,36 @@ function TipoBadge({ tipo, variant = "subtle" }: { tipo: TipoAnuncio; variant?: 
   );
 }
 
-function FechaLugar({ a, light }: { a: Anuncio; light?: boolean }) {
+function FechaLugar({ a }: { a: Anuncio }) {
   if (!a.fechaEvento && !a.lugar) return null;
+
+  const lugarTrim = a.lugar?.trim();
+  const esLink = !!lugarTrim && /^https?:\/\//i.test(lugarTrim);
+  const mapsUrl = lugarTrim
+    ? esLink
+      ? lugarTrim
+      : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lugarTrim + " Puerto Madryn")}`
+    : null;
+
+  const parts: React.ReactNode[] = [];
+  if (a.fechaEvento) parts.push(new Date(a.fechaEvento).toLocaleDateString("es-AR", { timeZone: "UTC" }));
+  if (lugarTrim && !esLink) parts.push(lugarTrim);
+  if (mapsUrl) {
+    parts.push(
+      <a key="maps" href={mapsUrl} target="_blank" rel="noreferrer" className="underline">
+        Ver en mapa
+      </a>
+    );
+  }
+
   return (
-    <p className={`text-[11.5px] font-medium ${light ? "text-dorado" : "text-dorado"}`}>
-      {a.fechaEvento ? new Date(a.fechaEvento).toLocaleDateString("es-AR", { timeZone: "UTC" }) : ""}
-      {a.fechaEvento && a.lugar ? " · " : ""}
-      {a.lugar}
+    <p className="flex flex-wrap items-center gap-x-1.5 text-[11.5px] font-medium text-dorado">
+      {parts.map((part, i) => (
+        <span key={i} className="flex items-center gap-1.5">
+          {i > 0 && <span aria-hidden>·</span>}
+          {part}
+        </span>
+      ))}
     </p>
   );
 }
@@ -155,7 +178,7 @@ function FullBannerSlide({ a, priority }: SlideProps) {
       <div className="absolute inset-x-0 bottom-0 p-4 sm:p-6">
         <h3 className="font-slab text-base font-semibold leading-tight text-white sm:text-lg">{a.titulo}</h3>
         <p className="mt-1 line-clamp-2 max-w-[560px] text-[12px] text-white/85 sm:text-[13px]">{a.descripcion}</p>
-        <FechaLugar a={a} light />
+        <FechaLugar a={a} />
         {cta && (
           <div className="mt-2">
             <CtaButton cta={cta} />
@@ -192,7 +215,7 @@ function BackgroundImageSlide({ a, priority }: SlideProps) {
         <TipoBadge tipo={a.tipo} variant="solid" />
         <h3 className="mt-1.5 font-slab text-base font-semibold leading-tight text-white sm:text-lg">{a.titulo}</h3>
         <p className="mt-1 line-clamp-2 text-[12px] text-white/85 sm:text-[13px]">{a.descripcion}</p>
-        <FechaLugar a={a} light />
+        <FechaLugar a={a} />
         {cta && (
           <div className="mt-2">
             <CtaButton cta={cta} />
@@ -214,7 +237,7 @@ function TextOnlySlide({ a }: SlideProps) {
       <TipoBadge tipo={a.tipo} variant="solid" />
       <h3 className="font-slab text-lg font-semibold leading-tight text-white sm:text-xl">{a.titulo}</h3>
       <p className="max-w-[560px] text-[13px] leading-relaxed text-white/85 sm:text-[13.5px]">{a.descripcion}</p>
-      <FechaLugar a={a} light />
+      <FechaLugar a={a} />
       {cta && <CtaButton cta={cta} />}
     </div>
   );
