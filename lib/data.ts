@@ -140,6 +140,7 @@ export const ANUNCIOS: Anuncio[] = [
     fechaEvento: "2026-08-15",
     lugar: "Club de campo, acceso norte",
     orden: 1,
+    ubicacion: "ambas",
   },
   {
     id: "a2",
@@ -147,6 +148,7 @@ export const ANUNCIOS: Anuncio[] = [
     titulo: "Corte de luz programado en Zona 2",
     descripcion: "La cooperativa eléctrica informa un corte programado por mantenimiento el próximo martes de 9 a 13hs en Zona 2.",
     orden: 2,
+    ubicacion: "ambas",
   },
   {
     id: "a3",
@@ -154,5 +156,6 @@ export const ANUNCIOS: Anuncio[] = [
     titulo: "Ramos Generales La Estepa: 10% en compras de obra",
     descripcion: "Durante agosto, 10% de descuento en materiales de construcción comprando más de $50.000.",
     orden: 3,
+    ubicacion: "ambas",
   },
 ];

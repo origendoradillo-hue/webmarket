@@ -242,6 +242,11 @@ export default function HomeClient() {
 
   const allListings = useMemo(() => [...realListings, ...LISTINGS], [realListings]);
   const allAnuncios = useMemo(() => [...realAnuncios, ...ANUNCIOS], [realAnuncios]);
+  const anunciosHome = useMemo(() => allAnuncios.filter((a) => a.ubicacion === "home" || a.ubicacion === "ambas"), [allAnuncios]);
+  const anunciosCategoria = useMemo(
+    () => allAnuncios.filter((a) => a.ubicacion === "categoria" || a.ubicacion === "ambas"),
+    [allAnuncios]
+  );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -322,7 +327,7 @@ export default function HomeClient() {
         </div>
       )}
       <Hero query={query} onQueryChange={setQuery} />
-      {screen === "home" && <AnuncioCarousel anuncios={allAnuncios} />}
+      {screen === "home" && <AnuncioCarousel anuncios={anunciosHome} />}
       {screen === "home" && (
         <HomeEntryButtons
           onExplorar={handleExplorar}
@@ -348,6 +353,11 @@ export default function HomeClient() {
             <button onClick={resetFilters} className="mb-3 flex items-center gap-1.5 text-[13px] font-medium text-golfo">
               <i className="ti ti-arrow-left" aria-hidden /> Volver al inicio
             </button>
+            {anunciosCategoria.length > 0 && (
+              <div className="-mx-4 mb-4 sm:-mx-7">
+                <AnuncioCarousel anuncios={anunciosCategoria} />
+              </div>
+            )}
             <CuratedRow title="Selección Origen" icon="ti-sparkles" listings={seleccionOrigen} onOpen={setActiveListing} />
             <CuratedRow title="Productos recientes" icon="ti-box" listings={productosRecientes} onOpen={setActiveListing} />
             <CuratedRow title="Servicios disponibles" icon="ti-tools" listings={serviciosDisponibles} onOpen={setActiveListing} />
@@ -362,6 +372,11 @@ export default function HomeClient() {
             <button onClick={resetFilters} className="mb-3 flex items-center gap-1.5 text-[13px] font-medium text-golfo">
               <i className="ti ti-arrow-left" aria-hidden /> Volver al inicio
             </button>
+            {anunciosCategoria.length > 0 && (
+              <div className="-mx-4 mb-4 sm:-mx-7">
+                <AnuncioCarousel anuncios={anunciosCategoria} />
+              </div>
+            )}
             {showingPicker ? (
               <TipoCategoryPicker intencion={resultadosIntencion!} onSelect={handleSelectTipo} />
             ) : (

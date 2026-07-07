@@ -1245,6 +1245,7 @@ function AdminAnuncioRow({
     descripcion: a.descripcion,
     lugar: a.lugar || "",
     orden: String(a.orden),
+    ubicacion: a.ubicacion,
   });
 
   const loadHistorial = useCallback(async () => {
@@ -1271,6 +1272,7 @@ function AdminAnuncioRow({
       p_descripcion: form.descripcion,
       p_lugar: form.lugar || null,
       p_orden: form.orden ? Number(form.orden) : null,
+      p_ubicacion: form.ubicacion,
     });
     setSaving(false);
     if (error) alert(error.message);
@@ -1353,6 +1355,18 @@ function AdminAnuncioRow({
           <div className="grid grid-cols-2 gap-2">
             <LabeledInput label="Lugar" value={form.lugar} onChange={(v) => setForm({ ...form, lugar: v })} />
             <LabeledInput label="Orden en el carrusel" type="number" value={form.orden} onChange={(v) => setForm({ ...form, orden: v })} />
+          </div>
+          <div>
+            <label className="mb-1 block text-[11px] font-medium text-tinta">Dónde se muestra</label>
+            <select
+              value={form.ubicacion}
+              onChange={(e) => setForm({ ...form, ubicacion: e.target.value as "home" | "categoria" | "ambas" })}
+              className="w-full rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
+            >
+              <option value="home">Solo en el inicio</option>
+              <option value="categoria">Solo en categorías/resultados</option>
+              <option value="ambas">En ambas</option>
+            </select>
           </div>
 
           <button onClick={guardarCambios} disabled={saving} className="w-fit rounded-lg bg-oliva px-4 py-2 text-xs font-semibold text-hueso disabled:bg-piedra">

@@ -11,5 +11,6 @@ export function mapAnuncioRow(row: AnuncioRow): Anuncio {
     fechaEvento: row.fecha_evento || undefined,
     lugar: row.lugar || undefined,
     orden: row.orden,
+    ubicacion: row.ubicacion,
   };
 }

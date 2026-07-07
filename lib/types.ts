@@ -71,4 +71,5 @@ export interface Anuncio {
   fechaEvento?: string;
   lugar?: string;
   orden: number;
+  ubicacion: "home" | "categoria" | "ambas";
 }

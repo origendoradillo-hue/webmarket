@@ -131,6 +131,7 @@ export interface Database {
           status: "solicitado" | "en_conversacion" | "aprobado" | "programado" | "publicado" | "pausado" | "vencido" | "rechazado";
           orden: number;
           notas_internas: string | null;
+          ubicacion: "home" | "categoria" | "ambas";
           created_at: string;
           updated_at: string;
         };
@@ -442,6 +443,7 @@ export interface Database {
           p_lugar?: string | null;
           p_orden?: number | null;
           p_nota?: string | null;
+          p_ubicacion?: string | null;
         };
         Returns: undefined;
       };
