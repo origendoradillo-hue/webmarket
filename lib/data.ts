@@ -1,4 +1,4 @@
-import { Anuncio, Category, CategoryKey } from "./types";
+import { Category, CategoryKey } from "./types";
 
 // Valor de respaldo: la fuente de verdad ahora es la tabla `categories` en
 // Supabase (editable desde el panel admin). Esto se usa como estado inicial
@@ -77,35 +77,3 @@ export function fallbackColorFor(id: number | string): string {
   const n = typeof id === "number" ? id : id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
   return FALLBACK_COLORS[n % FALLBACK_COLORS.length];
 }
-
-export const ANUNCIOS: Anuncio[] = [
-  {
-    id: "a1",
-    tipo: "evento",
-    titulo: "Feria de productores de El Doradillo",
-    descripcion: "Feria mensual con productores de la zona: aceite, miel, dulces, verduras y artesanías. Entrada libre y gratuita.",
-    fechaEvento: "2026-08-15",
-    lugar: "Club de campo, acceso norte",
-    orden: 1,
-    ubicacion: "ambas",
-    layoutType: "text_only",
-  },
-  {
-    id: "a2",
-    tipo: "aviso_barrial",
-    titulo: "Corte de luz programado en Zona 2",
-    descripcion: "La cooperativa eléctrica informa un corte programado por mantenimiento el próximo martes de 9 a 13hs en Zona 2.",
-    orden: 2,
-    ubicacion: "ambas",
-    layoutType: "text_only",
-  },
-  {
-    id: "a3",
-    tipo: "promocion",
-    titulo: "Ramos Generales La Estepa: 10% en compras de obra",
-    descripcion: "Durante agosto, 10% de descuento en materiales de construcción comprando más de $50.000.",
-    orden: 3,
-    ubicacion: "ambas",
-    layoutType: "text_only",
-  },
-];

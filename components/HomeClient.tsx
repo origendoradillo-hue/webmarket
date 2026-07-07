@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ANUNCIOS } from "@/lib/data";
 import { useCategories } from "@/lib/useCategories";
 import { Anuncio, CategoryKey, Etiqueta, Listing, TipoPublicacion } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
@@ -299,11 +298,10 @@ export default function HomeClient() {
   }, [modalOpen]);
 
   const allListings = realListings;
-  const allAnuncios = useMemo(() => [...realAnuncios, ...ANUNCIOS], [realAnuncios]);
-  const anunciosHome = useMemo(() => allAnuncios.filter((a) => a.ubicacion === "home" || a.ubicacion === "ambas"), [allAnuncios]);
+  const anunciosHome = useMemo(() => realAnuncios.filter((a) => a.ubicacion === "home" || a.ubicacion === "ambas"), [realAnuncios]);
   const anunciosCategoria = useMemo(
-    () => allAnuncios.filter((a) => a.ubicacion === "categoria" || a.ubicacion === "ambas"),
-    [allAnuncios]
+    () => realAnuncios.filter((a) => a.ubicacion === "categoria" || a.ubicacion === "ambas"),
+    [realAnuncios]
   );
 
   const filtered = useMemo(() => {
