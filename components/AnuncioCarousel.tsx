@@ -43,7 +43,11 @@ export default function AnuncioCarousel({ anuncios }: AnuncioCarouselProps) {
   }
 
   return (
-    <div className="relative w-full overflow-hidden bg-oliva-dd">
+    <div className="relative w-full overflow-hidden border-y-[3px] border-dorado bg-oliva-dd">
+      <p className="flex items-center gap-1.5 bg-oliva-d px-4 py-1.5 text-[10.5px] font-semibold uppercase tracking-wide text-dorado sm:px-8">
+        <i className="ti ti-speakerphone text-sm" aria-hidden />
+        Anuncios y novedades de la comunidad
+      </p>
       <div className="relative h-44 w-full sm:h-64">
         {a.imagen ? (
           <Image src={a.imagen} alt={a.titulo} fill className="object-cover" sizes="100vw" priority={index === 0} />

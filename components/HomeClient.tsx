@@ -34,6 +34,16 @@ const ETIQUETAS: { value: Etiqueta; label: string }[] = [
   { value: "alquileres_temporarios", label: "Alquileres temporarios" },
 ];
 
+const TIPO_LABELS: Record<TipoPublicacion, string> = {
+  producto: "Productos",
+  servicio: "Servicios",
+  experiencia: "Experiencias",
+  inmueble: "Inmuebles",
+  usado: "Usados",
+  herramienta: "Herramientas",
+  otro: "Otros",
+};
+
 type Screen = "home" | "explorar" | "resultados";
 
 export default function HomeClient() {
@@ -279,6 +289,17 @@ export default function HomeClient() {
 
   const showingPicker = screen === "resultados" && !!resultadosIntencion && tipoFilter === "all";
 
+  const breadcrumb = useMemo(() => {
+    if (screen === "explorar") return "Explorando todo";
+    const parts: string[] = [];
+    if (resultadosIntencion === "ofrezco") parts.push("Se ofrece");
+    else if (resultadosIntencion === "busco") parts.push("Se busca");
+    if (tipoFilter !== "all") parts.push(TIPO_LABELS[tipoFilter]);
+    if (cat !== "all" && categories[cat]) parts.push(categories[cat].label);
+    if (sub !== "all") parts.push(sub);
+    return parts.length > 0 ? parts.join(" → ") : "Resultados";
+  }, [screen, resultadosIntencion, tipoFilter, cat, sub, categories]);
+
   if (user && blocked) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-oliva-dd px-6 text-center">
@@ -326,7 +347,18 @@ export default function HomeClient() {
           </div>
         </div>
       )}
-      <Hero query={query} onQueryChange={setQuery} />
+      {screen === "home" ? (
+        <Hero query={query} onQueryChange={setQuery} />
+      ) : (
+        <div className="border-b border-piedra/30 bg-hueso-2 px-4 py-3 sm:px-8">
+          <button onClick={resetFilters} className="mb-2 flex items-center gap-1.5 text-[12px] font-medium text-golfo">
+            <i className="ti ti-arrow-left" aria-hidden /> Volver al inicio
+          </button>
+          <p className="text-[12.5px] text-tinta-suave">
+            Estás viendo: <span className="font-semibold text-tinta">{breadcrumb}</span>
+          </p>
+        </div>
+      )}
       {screen === "home" && <AnuncioCarousel anuncios={anunciosHome} />}
       {screen === "home" && (
         <HomeEntryButtons
@@ -339,6 +371,22 @@ export default function HomeClient() {
       {screen === "resultados" && !showingPicker && (
         <CategoryFilters cat={cat} sub={sub} onSelectCat={handleSelectCat} onSelectSub={setSub} />
       )}
+      {screen !== "home" && (
+        <div className="px-4 pb-1 pt-3 sm:px-8">
+          <div className="flex max-w-[480px] gap-2">
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Buscar en Origen El Doradillo"
+              className="flex-1 rounded-lg border border-piedra/60 bg-white px-3.5 py-2.5 text-sm text-tinta outline-none"
+            />
+            <button aria-label="Buscar" className="rounded-lg bg-dorado px-4 font-semibold text-oliva-dd">
+              <i className="ti ti-search text-lg" aria-hidden />
+            </button>
+          </div>
+        </div>
+      )}
 
       <main className="mx-auto max-w-[1240px] px-4 pb-12 sm:px-7">
         {screen === "home" && (
@@ -349,10 +397,7 @@ export default function HomeClient() {
         )}
 
         {screen === "explorar" && (
-          <div className="pt-2">
-            <button onClick={resetFilters} className="mb-3 flex items-center gap-1.5 text-[13px] font-medium text-golfo">
-              <i className="ti ti-arrow-left" aria-hidden /> Volver al inicio
-            </button>
+          <div className="pt-3">
             {anunciosCategoria.length > 0 && (
               <div className="-mx-4 mb-4 sm:-mx-7">
                 <AnuncioCarousel anuncios={anunciosCategoria} />
@@ -368,10 +413,7 @@ export default function HomeClient() {
         )}
 
         {screen === "resultados" && (
-          <div className="pt-2">
-            <button onClick={resetFilters} className="mb-3 flex items-center gap-1.5 text-[13px] font-medium text-golfo">
-              <i className="ti ti-arrow-left" aria-hidden /> Volver al inicio
-            </button>
+          <div className="pt-3">
             {anunciosCategoria.length > 0 && (
               <div className="-mx-4 mb-4 sm:-mx-7">
                 <AnuncioCarousel anuncios={anunciosCategoria} />
