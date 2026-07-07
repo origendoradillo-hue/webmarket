@@ -32,11 +32,13 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, user, o
   const [contacting, setContacting] = useState(false);
   const [images, setImages] = useState<string[]>([]);
   const [imgIndex, setImgIndex] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const [reviews, setReviews] = useState<ReviewWithReviewer[]>([]);
   const [reportReviewId, setReportReviewId] = useState<string | null>(null);
 
   useEffect(() => {
     setImgIndex(0);
+    setLightboxOpen(false);
     if (!l) {
       setImages([]);
       return;
@@ -120,7 +122,7 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, user, o
         </div>
 
         <div
-          className="relative h-60"
+          className="relative aspect-[4/5] max-h-[70vh]"
           style={{
             backgroundColor: isDemanda ? "#E4EDEE" : images.length > 0 ? undefined : isVecino ? "#DCD7C9" : fallbackColor,
           }}
@@ -129,7 +131,14 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, user, o
             <i className="ti ti-search absolute inset-0 m-auto flex h-14 w-14 items-center justify-center text-6xl text-golfo/70" aria-hidden />
           ) : images.length > 0 ? (
             <>
-              <Image src={images[imgIndex]} alt={l.nombre} fill className="object-cover" sizes="480px" />
+              <button
+                type="button"
+                onClick={() => setLightboxOpen(true)}
+                aria-label="Agrandar foto"
+                className="absolute inset-0 h-full w-full"
+              >
+                <Image src={images[imgIndex]} alt={l.nombre} fill className="object-cover" sizes="480px" />
+              </button>
               {images.length > 1 && (
                 <>
                   <button
@@ -325,6 +334,24 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, user, o
 
       {user && reportReviewId && (
         <ReportReviewModal open={!!reportReviewId} onClose={() => setReportReviewId(null)} reviewId={reportReviewId} user={user} />
+      )}
+
+      {lightboxOpen && images.length > 0 && (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/90 p-4"
+          onClick={() => setLightboxOpen(false)}
+        >
+          <button
+            onClick={() => setLightboxOpen(false)}
+            aria-label="Cerrar"
+            className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white"
+          >
+            <i className="ti ti-x text-xl" aria-hidden />
+          </button>
+          <div className="relative h-full w-full max-w-2xl">
+            <Image src={images[imgIndex]} alt={l.nombre} fill className="object-contain" sizes="90vw" />
+          </div>
+        </div>
       )}
     </div>
   );

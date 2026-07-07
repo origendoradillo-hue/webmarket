@@ -434,8 +434,8 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
                     </>
                   ) : (
                     <>
-                      <p className="mb-1 font-slab text-lg font-semibold text-tinta">Categoría</p>
-                      <p className="mb-4 text-[13px] text-tinta-suave">Elegí el rubro y después la subcategoría</p>
+                      <p className="mb-1 font-slab text-lg font-semibold text-tinta">1. Elegí el rubro</p>
+                      <p className="mb-4 text-[13px] text-tinta-suave">Después vas a elegir la subcategoría dentro de este rubro.</p>
                       <div className="mb-3.5 grid grid-cols-2 gap-2">
                         {Object.entries(categories).map(([key, c]) => (
                           <button
@@ -453,19 +453,22 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
                         ))}
                       </div>
                       {data.cat && (
-                        <div className="flex flex-wrap gap-1.5">
-                          {(categories[data.cat]?.subs || []).map((s) => (
-                            <button
-                              key={s}
-                              onClick={() => update("sub", s)}
-                              className={`rounded-full border px-3 py-1.5 text-xs ${
-                                data.sub === s ? "border-dorado bg-dorado text-white" : "border-arena bg-hueso-2 text-tinta"
-                              }`}
-                            >
-                              {s}
-                            </button>
-                          ))}
-                        </div>
+                        <>
+                          <p className="mb-2 font-slab text-[13.5px] font-semibold text-tinta">2. Ahora elegí la subcategoría</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {(categories[data.cat]?.subs || []).map((s) => (
+                              <button
+                                key={s}
+                                onClick={() => update("sub", s)}
+                                className={`rounded-full border px-3 py-1.5 text-xs ${
+                                  data.sub === s ? "border-dorado bg-dorado text-white" : "border-arena bg-hueso-2 text-tinta"
+                                }`}
+                              >
+                                {s}
+                              </button>
+                            ))}
+                          </div>
+                        </>
                       )}
                     </>
                   )}
