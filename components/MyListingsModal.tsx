@@ -305,7 +305,12 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[13px] font-semibold text-tinta">{l.nombre}</p>
-                      <p className="text-[11.5px] text-tinta-suave">{new Date(l.created_at).toLocaleDateString("es-AR")}</p>
+                      <p className="flex items-center gap-2 text-[11.5px] text-tinta-suave">
+                        {new Date(l.created_at).toLocaleDateString("es-AR")}
+                        <span className="flex items-center gap-0.5">
+                          <i className="ti ti-eye text-[13px]" aria-hidden /> {l.views_count}
+                        </span>
+                      </p>
                     </div>
                     <span className={`flex-shrink-0 rounded-full px-2.5 py-1 text-[10.5px] font-medium ${STATUS_COLOR[l.status] ?? "bg-piedra text-hueso"}`}>
                       {STATUS_LABEL[l.status] ?? l.status}

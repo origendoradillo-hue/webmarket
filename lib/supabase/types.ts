@@ -87,6 +87,7 @@ export interface Database {
           destacada: boolean;
           detalles: Record<string, unknown>;
           expires_at: string | null;
+          views_count: number;
           status: "borrador" | "en_revision" | "activa" | "observada" | "rechazada" | "pausada" | "vencida" | "eliminada";
           created_at: string;
           updated_at: string;
@@ -224,6 +225,12 @@ export interface Database {
         Row: { id: string; label: string; orden: number };
         Insert: { label: string; orden?: number };
         Update: { label?: string; orden?: number };
+        Relationships: [];
+      };
+      site_visits: {
+        Row: { id: string; created_at: string };
+        Insert: Record<string, never>;
+        Update: Record<string, never>;
         Relationships: [];
       };
       renewal_requests: {
@@ -388,6 +395,14 @@ export interface Database {
         Returns: undefined;
       };
       expire_old_listings: {
+        Args: Record<string, never>;
+        Returns: undefined;
+      };
+      registrar_vista: {
+        Args: { p_listing_id: string };
+        Returns: undefined;
+      };
+      registrar_visita_sitio: {
         Args: Record<string, never>;
         Returns: undefined;
       };

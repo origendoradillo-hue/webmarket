@@ -16,7 +16,7 @@ import type {
   ZoneRow,
 } from "@/lib/supabase/types";
 
-type Tab = "publicaciones" | "anuncios" | "denuncias" | "verificaciones" | "reseñas" | "usuarios" | "categorias";
+type Tab = "publicaciones" | "anuncios" | "denuncias" | "verificaciones" | "reseñas" | "metricas" | "usuarios" | "categorias";
 
 const REVIEW_MOTIVO_LABELS: Record<string, string> = {
   informacion_falsa: "Información falsa",
@@ -369,6 +369,9 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
           <TabButton active={tab === "reseñas"} onClick={() => setTab("reseñas")}>
             Reseñas {reseñasPendientes.length > 0 && `(${reseñasPendientes.length})`}
           </TabButton>
+          <TabButton active={tab === "metricas"} onClick={() => setTab("metricas")}>
+            Métricas
+          </TabButton>
           {isSuperadmin && (
             <TabButton active={tab === "usuarios"} onClick={() => setTab("usuarios")}>
               Usuarios
@@ -545,6 +548,15 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
               />
             ))}
           </div>
+        ) : tab === "metricas" ? (
+          <MetricasTab
+            listings={listings}
+            users={users}
+            denunciasPendientes={denunciasPendientes.length}
+            verificacionesPendientes={verificacionesPendientes.length}
+            reseñasPendientes={reseñasPendientes.length}
+            categories={categories}
+          />
         ) : tab === "usuarios" ? (
           <div className="flex flex-col gap-6">
             <div className="flex items-center justify-between">
@@ -662,6 +674,116 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
           <CategoriasAdmin />
         )}
       </div>
+    </div>
+  );
+}
+
+function MetricasTab({
+  listings,
+  users,
+  denunciasPendientes,
+  verificacionesPendientes,
+  reseñasPendientes,
+  categories,
+}: {
+  listings: ListingWithPublisher[];
+  users: ProfileRow[];
+  denunciasPendientes: number;
+  verificacionesPendientes: number;
+  reseñasPendientes: number;
+  categories: Record<string, { label: string }>;
+}) {
+  const [loading, setLoading] = useState(true);
+  const [whatsapp, setWhatsapp] = useState({ total: 0, ultimos7: 0 });
+  const [visitas, setVisitas] = useState({ total: 0, ultimos7: 0 });
+
+  useEffect(() => {
+    const supabase = createClient();
+    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    Promise.all([
+      supabase.from("whatsapp_clicks").select("*", { count: "exact", head: true }),
+      supabase.from("whatsapp_clicks").select("*", { count: "exact", head: true }).gte("created_at", since),
+      supabase.from("site_visits").select("*", { count: "exact", head: true }),
+      supabase.from("site_visits").select("*", { count: "exact", head: true }).gte("created_at", since),
+    ]).then(([wcTotal, wc7, svTotal, sv7]) => {
+      setWhatsapp({ total: wcTotal.count || 0, ultimos7: wc7.count || 0 });
+      setVisitas({ total: svTotal.count || 0, ultimos7: sv7.count || 0 });
+      setLoading(false);
+    });
+  }, []);
+
+  const activas = listings.filter((l) => l.status === "activa").length;
+  const enRevision = listings.filter((l) => l.status === "en_revision" || l.status === "observada").length;
+  const pausadas = listings.filter((l) => l.status === "pausada").length;
+  const vencidas = listings.filter((l) => l.status === "vencida").length;
+  const totalVistas = listings.reduce((sum, l) => sum + l.views_count, 0);
+  const nuevosUsuarios7d = users.filter((u) => Date.now() - new Date(u.created_at).getTime() < 7 * 24 * 60 * 60 * 1000).length;
+
+  const topCategorias = Object.entries(
+    listings
+      .filter((l) => l.status === "activa")
+      .reduce((acc: Record<string, number>, l) => {
+        const key = l.categoria || "(sin categoría)";
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      }, {})
+  )
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <MetricCard label="Publicaciones activas" value={activas} icon="ti-list-check" />
+        <MetricCard label="En revisión" value={enRevision} icon="ti-eye-search" />
+        <MetricCard label="Pausadas" value={pausadas} icon="ti-player-pause" />
+        <MetricCard label="Vencidas" value={vencidas} icon="ti-clock-x" />
+        <MetricCard label="Usuarios" value={users.length} sub={`+${nuevosUsuarios7d} en 7 días`} icon="ti-users" />
+        <MetricCard label="Vistas de publicaciones" value={totalVistas} icon="ti-eye" />
+        <MetricCard
+          label="Clics a WhatsApp"
+          value={loading ? "…" : whatsapp.total}
+          sub={loading ? undefined : `+${whatsapp.ultimos7} en 7 días`}
+          icon="ti-brand-whatsapp"
+        />
+        <MetricCard
+          label="Visitas al sitio"
+          value={loading ? "…" : visitas.total}
+          sub={loading ? undefined : `+${visitas.ultimos7} en 7 días`}
+          icon="ti-world"
+        />
+        <MetricCard label="Denuncias pendientes" value={denunciasPendientes} icon="ti-flag" />
+        <MetricCard label="Verificaciones pendientes" value={verificacionesPendientes} icon="ti-shield-check" />
+        <MetricCard label="Reseñas reportadas" value={reseñasPendientes} icon="ti-star" />
+      </div>
+
+      <div>
+        <h2 className="mb-2 font-slab text-sm font-semibold uppercase tracking-wide text-piedra">Top categorías (activas)</h2>
+        {topCategorias.length === 0 ? (
+          <p className="text-sm text-tinta-suave">Todavía no hay publicaciones activas.</p>
+        ) : (
+          <div className="flex flex-col gap-1.5">
+            {topCategorias.map(([key, count]) => (
+              <div key={key} className="flex items-center justify-between rounded-lg border border-piedra/50 bg-white px-3 py-2 text-sm text-tinta">
+                <span>{categories[key]?.label || key}</span>
+                <span className="font-semibold">{count}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MetricCard({ label, value, sub, icon }: { label: string; value: number | string; sub?: string; icon: string }) {
+  return (
+    <div className="rounded-lg border border-piedra/50 bg-white p-3">
+      <div className="mb-1 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-piedra">
+        <i className={`ti ${icon}`} aria-hidden /> {label}
+      </div>
+      <p className="font-slab text-xl font-semibold text-tinta">{value}</p>
+      {sub && <p className="text-[11px] text-tinta-suave">{sub}</p>}
     </div>
   );
 }

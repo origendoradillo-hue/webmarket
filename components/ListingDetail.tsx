@@ -37,6 +37,16 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, user, o
   const [reportReviewId, setReportReviewId] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!l) return;
+    const listingId = String(l.id);
+    async function registrarVista() {
+      const supabase = createClient();
+      await supabase.rpc("registrar_vista", { p_listing_id: listingId });
+    }
+    registrarVista();
+  }, [l?.id]);
+
+  useEffect(() => {
     setImgIndex(0);
     setLightboxOpen(false);
     if (!l) {

@@ -165,6 +165,14 @@ export default function HomeClient() {
   }, [loadRealListings, loadRealAnuncios]);
 
   useEffect(() => {
+    async function registrarVisita() {
+      const supabase = createClient();
+      await supabase.rpc("registrar_visita_sitio");
+    }
+    registrarVisita();
+  }, []);
+
+  useEffect(() => {
     loadReviewReminder();
     loadExpiryReminder();
   }, [loadReviewReminder, loadExpiryReminder]);
