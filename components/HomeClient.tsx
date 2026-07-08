@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useCategories } from "@/lib/useCategories";
-import { Anuncio, CategoryKey, Etiqueta, Listing, TipoPublicacion } from "@/lib/types";
+import { Anuncio, CategoryKey, Listing, TipoPublicacion } from "@/lib/types";
+import { TIPO_LABELS } from "@/lib/tipos";
 import { createClient } from "@/lib/supabase/client";
 import { mapListingRow } from "@/lib/supabase/mapListing";
 import { mapAnuncioRow } from "@/lib/supabase/mapAnuncio";
@@ -29,11 +30,6 @@ import ForcePasswordModal from "./ForcePasswordModal";
 import ReportListingModal from "./ReportListingModal";
 import ReviewModal from "./ReviewModal";
 import Footer from "./Footer";
-
-const ETIQUETAS: { value: Etiqueta; label: string }[] = [
-  { value: "turismo", label: "Turismo" },
-  { value: "alquileres_temporarios", label: "Alquileres temporarios" },
-];
 
 // El recordatorio de reseña no debe ser cargoso: se recuerda qué contactos ya
 // se descartaron (para no volver a preguntar por el mismo) y solo se muestra
@@ -66,16 +62,6 @@ function shuffleScore(id: number | string, seed: number): number {
   return h;
 }
 
-const TIPO_LABELS: Record<TipoPublicacion, string> = {
-  producto: "Productos",
-  servicio: "Servicios",
-  experiencia: "Experiencias",
-  inmueble: "Inmuebles",
-  usado: "Usados",
-  emprendimiento: "Emprendimientos",
-  otro: "Otros",
-};
-
 type Screen = "home" | "explorar" | "resultados";
 
 export default function HomeClient() {
@@ -92,7 +78,6 @@ export default function HomeClient() {
   const [query, setQuery] = useState("");
   const [intencionFilter, setIntencionFilter] = useState<"all" | "ofrezco" | "busco">("all");
   const [tipoFilter, setTipoFilter] = useState<"all" | TipoPublicacion>("all");
-  const [etiquetaFilter, setEtiquetaFilter] = useState<"all" | Etiqueta>("all");
   const [activeListing, setActiveListing] = useState<Listing | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
   const [publishOpen, setPublishOpen] = useState(false);
@@ -322,7 +307,6 @@ export default function HomeClient() {
     setQuery("");
     setIntencionFilter("all");
     setTipoFilter("all");
-    setEtiquetaFilter("all");
     setResultadosIntencion(null);
     setScreen("home");
   }
@@ -344,12 +328,13 @@ export default function HomeClient() {
     setTipoFilter("all");
     setCat("all");
     setSub("all");
-    setEtiquetaFilter("all");
     setScreen("resultados");
   }
 
-  function handleSelectTipo(t: TipoPublicacion) {
+  function handleSelectTipo(t: TipoPublicacion | "all") {
     setTipoFilter(t);
+    setCat("all");
+    setSub("all");
   }
 
   function openAuth() {
@@ -420,7 +405,6 @@ export default function HomeClient() {
       if (sub !== "all" && l.subcategoria !== sub) return false;
       if (intencionFilter !== "all" && l.intencion !== intencionFilter) return false;
       if (tipoFilter !== "all" && l.tipo !== tipoFilter) return false;
-      if (etiquetaFilter !== "all" && !(l.etiquetas || []).includes(etiquetaFilter)) return false;
       if (q) {
         const haystack = `${l.nombre} ${l.subcategoria || ""} ${l.categoria ? categories[l.categoria]?.label || "" : ""} ${(l.tags || []).join(" ")}`.toLowerCase();
         if (!haystack.includes(q)) return false;
@@ -437,7 +421,7 @@ export default function HomeClient() {
       return shuffleScore(a.id, shuffleSeed) - shuffleScore(b.id, shuffleSeed);
     });
     return result;
-  }, [allListings, cat, sub, query, intencionFilter, tipoFilter, etiquetaFilter, categories, shuffleSeed]);
+  }, [allListings, cat, sub, query, intencionFilter, tipoFilter, categories, shuffleSeed]);
 
   const seleccionOrigen = useMemo(() => allListings.filter((l) => l.sello), [allListings]);
   const destacados = useMemo(() => allListings.filter((l) => l.destacada), [allListings]);
@@ -561,9 +545,6 @@ export default function HomeClient() {
           onPublicar={handleOpenPublish}
         />
       )}
-      {(screen === "resultados" || screen === "explorar") && (
-        <CategoryFilters cat={cat} sub={sub} onSelectCat={handleSelectCat} onSelectSub={setSub} />
-      )}
       {screen !== "home" && (
         <div className="px-4 pb-1 pt-3 sm:px-8">
           <form
@@ -605,7 +586,7 @@ export default function HomeClient() {
             <>
               <div className="no-scrollbar mb-2.5 flex gap-1.5 overflow-x-auto">
                 <button
-                  onClick={() => setTipoFilter("all")}
+                  onClick={() => handleSelectTipo("all")}
                   className={`flex-shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-[11.5px] ${
                     tipoFilter === "all" ? "border-oliva bg-oliva text-hueso" : "border-piedra/60 bg-white text-tinta"
                   }`}
@@ -624,27 +605,7 @@ export default function HomeClient() {
                   </button>
                 ))}
               </div>
-              <div className="no-scrollbar mb-4 flex gap-1.5 overflow-x-auto">
-                <button
-                  onClick={() => setEtiquetaFilter("all")}
-                  className={`flex-shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-[11.5px] ${
-                    etiquetaFilter === "all" ? "border-dorado bg-dorado text-hueso-2" : "border-arena bg-hueso-2 text-nogal"
-                  }`}
-                >
-                  Todas las etiquetas
-                </button>
-                {ETIQUETAS.map((e) => (
-                  <button
-                    key={e.value}
-                    onClick={() => setEtiquetaFilter(e.value)}
-                    className={`flex-shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-[11.5px] ${
-                      etiquetaFilter === e.value ? "border-dorado bg-dorado text-hueso-2" : "border-arena bg-hueso-2 text-nogal"
-                    }`}
-                  >
-                    {e.label}
-                  </button>
-                ))}
-              </div>
+              <CategoryFilters cat={cat} sub={sub} onSelectCat={handleSelectCat} onSelectSub={setSub} tipoFilter={tipoFilter} />
               <ListingGrid
                 listings={filtered}
                 onOpen={setActiveListing}

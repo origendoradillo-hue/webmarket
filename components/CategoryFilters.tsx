@@ -1,18 +1,19 @@
 "use client";
 
 import { useCategories } from "@/lib/useCategories";
-import { CategoryKey } from "@/lib/types";
+import { CategoryKey, TipoPublicacion } from "@/lib/types";
 
 interface CategoryFiltersProps {
   cat: CategoryKey | "all";
   sub: string | "all";
   onSelectCat: (cat: CategoryKey | "all") => void;
   onSelectSub: (sub: string | "all") => void;
+  tipoFilter?: TipoPublicacion | "all";
 }
 
-export default function CategoryFilters({ cat, sub, onSelectCat, onSelectSub }: CategoryFiltersProps) {
+export default function CategoryFilters({ cat, sub, onSelectCat, onSelectSub, tipoFilter = "all" }: CategoryFiltersProps) {
   const { categories } = useCategories();
-  const catEntries = Object.entries(categories);
+  const catEntries = Object.entries(categories).filter(([, c]) => tipoFilter === "all" || c.tipoScope.includes(tipoFilter));
 
   return (
     <div className="px-4 pt-4 sm:px-7 sm:pt-5">
