@@ -135,6 +135,7 @@ export default async function PublicacionPage({ params }: PageProps) {
               nombre={listing.nombre}
               whatsappPublico={listing.whatsapp_publico}
               isLoggedIn={!!user}
+              isOwner={!!user && user.id === listing.publisher_id}
             />
             <ShareButton
               url={url}

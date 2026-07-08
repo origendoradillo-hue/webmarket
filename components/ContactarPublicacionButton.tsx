@@ -10,11 +10,26 @@ interface ContactarPublicacionButtonProps {
   nombre: string;
   whatsappPublico: boolean;
   isLoggedIn: boolean;
+  isOwner?: boolean;
 }
 
-export default function ContactarPublicacionButton({ listingId, nombre, whatsappPublico, isLoggedIn }: ContactarPublicacionButtonProps) {
+export default function ContactarPublicacionButton({
+  listingId,
+  nombre,
+  whatsappPublico,
+  isLoggedIn,
+  isOwner,
+}: ContactarPublicacionButtonProps) {
   const [contacting, setContacting] = useState(false);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (isOwner) {
+    return (
+      <p className="rounded-lg bg-hueso-2 p-3.5 text-center text-[13px] text-tinta-suave">
+        Esta es tu publicación — así la ve quien te contacte.
+      </p>
+    );
+  }
 
   if (!whatsappPublico && !isLoggedIn) {
     return (
@@ -29,12 +44,12 @@ export default function ContactarPublicacionButton({ listingId, nombre, whatsapp
 
   async function handleContact() {
     setContacting(true);
-    setError(false);
+    setError(null);
     const supabase = createClient();
     const { data: numero, error: rpcError } = await supabase.rpc("contactar_publicacion", { p_listing_id: listingId });
     setContacting(false);
     if (rpcError || !numero) {
-      setError(true);
+      setError(rpcError?.message || "No pudimos obtener el contacto. Probá de nuevo.");
       return;
     }
     trackEvent("contact_whatsapp", { listing_id: listingId, source: "listing_page" });
@@ -52,7 +67,7 @@ export default function ContactarPublicacionButton({ listingId, nombre, whatsapp
         <i className="ti ti-brand-whatsapp text-lg" aria-hidden />
         {contacting ? "Un momento..." : "Contactar por WhatsApp"}
       </button>
-      {error && <p className="mt-2 text-center text-[12px] text-red-700">No pudimos obtener el contacto. Probá de nuevo.</p>}
+      {error && <p className="mt-2 text-center text-[12px] text-red-700">{error}</p>}
     </>
   );
 }

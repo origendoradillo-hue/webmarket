@@ -34,6 +34,28 @@ const ETIQUETAS: { value: Etiqueta; label: string }[] = [
   { value: "alquileres_temporarios", label: "Alquileres temporarios" },
 ];
 
+// El recordatorio de reseña no debe ser cargoso: se recuerda qué contactos ya
+// se descartaron (para no volver a preguntar por el mismo) y solo se muestra
+// una parte de las veces que corresponde, no siempre.
+const REVIEW_REMINDER_DISMISSED_KEY = "origen_review_reminder_dismissed";
+
+function getDismissedReviewReminders(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(REVIEW_REMINDER_DISMISSED_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function dismissReviewReminder(listingId: string) {
+  try {
+    const current = getDismissedReviewReminders();
+    localStorage.setItem(REVIEW_REMINDER_DISMISSED_KEY, JSON.stringify([...current, listingId]));
+  } catch {
+    // localStorage no disponible en este navegador — el recordatorio puede repetirse, no es grave.
+  }
+}
+
 const TIPO_LABELS: Record<TipoPublicacion, string> = {
   producto: "Productos",
   servicio: "Servicios",
@@ -52,6 +74,7 @@ export default function HomeClient() {
   const [isStaff, setIsStaff] = useState(false);
   const [mustChangePassword, setMustChangePassword] = useState(false);
   const [blocked, setBlocked] = useState(false);
+  const [profileComplete, setProfileComplete] = useState(true);
   const [screen, setScreen] = useState<Screen>("home");
   const [resultadosIntencion, setResultadosIntencion] = useState<"ofrezco" | "busco" | null>(null);
   const [cat, setCat] = useState<CategoryKey | "all">("all");
@@ -69,8 +92,8 @@ export default function HomeClient() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [myListingsOpen, setMyListingsOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
-  const [reviewListingId, setReviewListingId] = useState<string | null>(null);
-  const [reviewReminder, setReviewReminder] = useState<{ listingId: string; nombre: string } | null>(null);
+  const [reviewTarget, setReviewTarget] = useState<{ listingId: string; listingNombre: string; publisherName?: string } | null>(null);
+  const [reviewReminder, setReviewReminder] = useState<{ listingId: string; nombre: string; publisherName: string } | null>(null);
   const [expiryReminder, setExpiryReminder] = useState<{ nombre: string; diasRestantes: number } | null>(null);
   const [realListings, setRealListings] = useState<Listing[]>([]);
   const [realAnuncios, setRealAnuncios] = useState<Anuncio[]>([]);
@@ -130,19 +153,35 @@ export default function HomeClient() {
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const { data: clicks } = await supabase
       .from("whatsapp_clicks")
-      .select("listing_id, created_at, listings(nombre)")
+      .select("listing_id, created_at, listings(nombre, publisher_id, profiles(full_name, nickname))")
       .eq("clicked_by", user.id)
       .lt("created_at", since)
       .order("created_at", { ascending: false });
-    const clickRows = (clicks as unknown as Array<{ listing_id: string; listings: { nombre: string } | null }>) || [];
+    const clickRows =
+      (clicks as unknown as Array<{
+        listing_id: string;
+        listings: { nombre: string; publisher_id: string; profiles: { full_name: string | null; nickname: string | null } | null } | null;
+      }>) || [];
     if (clickRows.length === 0) {
       setReviewReminder(null);
       return;
     }
     const { data: myReviews } = await supabase.from("reviews").select("listing_id").eq("reviewer_id", user.id);
     const reviewedIds = new Set((myReviews || []).map((r) => r.listing_id));
-    const pending = clickRows.find((c) => !reviewedIds.has(c.listing_id));
-    setReviewReminder(pending ? { listingId: pending.listing_id, nombre: pending.listings?.nombre ?? "esa publicación" } : null);
+    const dismissed = new Set(getDismissedReviewReminders());
+    const pending = clickRows.find(
+      (c) => !reviewedIds.has(c.listing_id) && !dismissed.has(c.listing_id) && c.listings?.publisher_id !== user.id
+    );
+    // No siempre — para que no sea cargoso, solo se muestra una parte de las veces.
+    if (pending && Math.random() < 0.5) {
+      setReviewReminder({
+        listingId: pending.listing_id,
+        nombre: pending.listings?.nombre ?? "esa publicación",
+        publisherName: pending.listings?.profiles?.nickname?.trim() || pending.listings?.profiles?.full_name?.trim() || "esa persona",
+      });
+    } else {
+      setReviewReminder(null);
+    }
   }, [user]);
 
   const loadExpiryReminder = useCallback(async () => {
@@ -201,18 +240,20 @@ export default function HomeClient() {
       setIsStaff(false);
       setMustChangePassword(false);
       setBlocked(false);
+      setProfileComplete(true);
       return;
     }
     const supabase = createClient();
     supabase
       .from("profiles")
-      .select("role, must_change_password, blocked_at")
+      .select("role, must_change_password, blocked_at, full_name, whatsapp_number")
       .eq("id", user.id)
       .single()
       .then(({ data }) => {
         setIsStaff(!!data && ["admin", "superadmin"].includes(data.role));
         setMustChangePassword(!!data?.must_change_password);
         setBlocked(!!data?.blocked_at);
+        setProfileComplete(!!data?.full_name?.trim() && !!data?.whatsapp_number?.trim());
       });
   }, [user]);
 
@@ -241,6 +282,8 @@ export default function HomeClient() {
 
   function handleExplorar() {
     setScreen("explorar");
+    setResultadosIntencion(null);
+    setIntencionFilter("all");
   }
 
   function handleSelectIntencion(i: "ofrezco" | "busco") {
@@ -267,6 +310,11 @@ export default function HomeClient() {
       openAuth();
       return;
     }
+    if (!profileComplete) {
+      alert('Te falta completar tu nombre y/o WhatsApp en "Mi perfil" antes de poder publicar.');
+      setProfileOpen(true);
+      return;
+    }
     setPublishOpen(true);
   }
 
@@ -289,7 +337,7 @@ export default function HomeClient() {
     profileOpen ||
     myListingsOpen ||
     reportOpen ||
-    !!reviewListingId;
+    !!reviewTarget;
   useEffect(() => {
     document.body.style.overflow = modalOpen ? "hidden" : "";
     return () => {
@@ -398,16 +446,29 @@ export default function HomeClient() {
         <div className="flex flex-wrap items-center justify-between gap-2 bg-dorado/15 px-4 py-2.5 text-[12.5px] text-tinta sm:px-8">
           <span>
             <i className="ti ti-message-circle mr-1.5 text-dorado" aria-hidden />
-            ¿Pudiste comunicarte con quien publicó <strong>{reviewReminder.nombre}</strong>?
+            ¿Pudiste comunicarte con <strong>{reviewReminder.publisherName}</strong>? Fue por tu contacto sobre{" "}
+            <em className="not-italic text-tinta-suave">{reviewReminder.nombre}</em>.
           </span>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setReviewListingId(reviewReminder.listingId)}
+              onClick={() =>
+                setReviewTarget({
+                  listingId: reviewReminder.listingId,
+                  listingNombre: reviewReminder.nombre,
+                  publisherName: reviewReminder.publisherName,
+                })
+              }
               className="rounded-lg bg-dorado px-3 py-1.5 text-[12px] font-semibold text-oliva-dd"
             >
               Sí, pude
             </button>
-            <button onClick={() => setReviewReminder(null)} className="rounded-lg border border-piedra/60 px-3 py-1.5 text-[12px] text-tinta">
+            <button
+              onClick={() => {
+                dismissReviewReminder(reviewReminder.listingId);
+                setReviewReminder(null);
+              }}
+              className="rounded-lg border border-piedra/60 px-3 py-1.5 text-[12px] text-tinta"
+            >
               No pude
             </button>
           </div>
@@ -537,7 +598,13 @@ export default function HomeClient() {
         user={user}
         onRequireAuth={openAuth}
         onReport={() => setReportOpen(true)}
-        onReview={() => setReviewListingId(activeListing ? String(activeListing.id) : null)}
+        onReview={() =>
+          setReviewTarget(
+            activeListing
+              ? { listingId: String(activeListing.id), listingNombre: activeListing.nombre, publisherName: activeListing.publisherName }
+              : null
+          )
+        }
       />
       {user && activeListing && (
         <ReportListingModal
@@ -547,11 +614,13 @@ export default function HomeClient() {
           user={user}
         />
       )}
-      {user && reviewListingId && (
+      {user && reviewTarget && (
         <ReviewModal
-          open={!!reviewListingId}
-          onClose={() => setReviewListingId(null)}
-          listingId={reviewListingId}
+          open={!!reviewTarget}
+          onClose={() => setReviewTarget(null)}
+          listingId={reviewTarget.listingId}
+          listingNombre={reviewTarget.listingNombre}
+          publisherName={reviewTarget.publisherName}
           user={user}
           onSubmitted={() => {
             setReviewReminder(null);

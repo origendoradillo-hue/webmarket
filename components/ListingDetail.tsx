@@ -113,7 +113,7 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, user, o
     setContacting(false);
 
     if (error || !numero) {
-      alert("No pudimos obtener el contacto. Probá de nuevo en un momento.");
+      alert(error?.message || "No pudimos obtener el contacto. Probá de nuevo en un momento.");
       return;
     }
 
@@ -292,19 +292,27 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, user, o
             </div>
           </div>
 
-          {requiereLogin && !isLoggedIn && (
-            <p className="mb-2.5 text-[12px] text-tinta-suave">
-              Para cuidar la seguridad de la comunidad, necesitás iniciar sesión para ver este contacto.
+          {user && user.id === listing.publisherId ? (
+            <p className="rounded-lg bg-hueso-2 py-3 text-center text-[12.5px] text-tinta-suave">
+              Esta es tu publicación — así la ve quien te contacte.
             </p>
+          ) : (
+            <>
+              {requiereLogin && !isLoggedIn && (
+                <p className="mb-2.5 text-[12px] text-tinta-suave">
+                  Para cuidar la seguridad de la comunidad, necesitás iniciar sesión para ver este contacto.
+                </p>
+              )}
+              <button
+                onClick={handleContact}
+                disabled={contacting}
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-oliva py-3.5 text-[14.5px] font-semibold text-hueso disabled:opacity-60"
+              >
+                <i className="ti ti-brand-whatsapp text-lg" aria-hidden />
+                {contacting ? "Un momento..." : requiereLogin && !isLoggedIn ? "Ingresá para contactar" : "Contactar por WhatsApp"}
+              </button>
+            </>
           )}
-          <button
-            onClick={handleContact}
-            disabled={contacting}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-oliva py-3.5 text-[14.5px] font-semibold text-hueso disabled:opacity-60"
-          >
-            <i className="ti ti-brand-whatsapp text-lg" aria-hidden />
-            {contacting ? "Un momento..." : requiereLogin && !isLoggedIn ? "Ingresá para contactar" : "Contactar por WhatsApp"}
-          </button>
 
           {user && user.id !== listing.publisherId && (
             <button

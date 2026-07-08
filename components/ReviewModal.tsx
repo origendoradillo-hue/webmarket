@@ -8,11 +8,13 @@ interface ReviewModalProps {
   open: boolean;
   onClose: () => void;
   listingId: string;
+  listingNombre?: string;
+  publisherName?: string;
   user: User;
   onSubmitted?: () => void;
 }
 
-export default function ReviewModal({ open, onClose, listingId, user, onSubmitted }: ReviewModalProps) {
+export default function ReviewModal({ open, onClose, listingId, listingNombre, publisherName, user, onSubmitted }: ReviewModalProps) {
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [comentario, setComentario] = useState("");
@@ -62,7 +64,9 @@ export default function ReviewModal({ open, onClose, listingId, user, onSubmitte
     >
       <div className="flex h-full w-full flex-col bg-white sm:h-auto sm:max-h-[90vh] sm:max-w-sm sm:rounded-2xl">
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-piedra/50 bg-white px-4 py-3.5">
-          <span className="font-slab text-[13px] font-semibold text-tinta">Dejar una reseña</span>
+          <span className="font-slab text-[13px] font-semibold text-tinta">
+            {publisherName ? `Reseñar a ${publisherName}` : "Dejar una reseña"}
+          </span>
           <button type="button" onClick={onClose} aria-label="Cerrar">
             <i className="ti ti-x text-lg text-tinta" aria-hidden />
           </button>
@@ -79,7 +83,20 @@ export default function ReviewModal({ open, onClose, listingId, user, onSubmitte
           ) : (
             <form onSubmit={handleSubmit}>
               <p className="mb-3 text-[12.5px] text-tinta-suave">
-                Las reseñas son públicas y con tu nombre — ayudan a la comunidad a confiar en quién ofrece qué.
+                {publisherName ? (
+                  <>
+                    Estás calificando a <strong className="text-tinta">{publisherName}</strong>, no la publicación
+                    {listingNombre ? (
+                      <>
+                        {" "}
+                        — a raíz de tu contacto por <em className="not-italic">{listingNombre}</em>
+                      </>
+                    ) : null}
+                    . Las reseñas son públicas y con tu nombre.
+                  </>
+                ) : (
+                  "Las reseñas son públicas y con tu nombre — ayudan a la comunidad a confiar en quién ofrece qué."
+                )}
               </p>
               <div className="mb-4 flex justify-center gap-1.5">
                 {[1, 2, 3, 4, 5].map((n) => (

@@ -136,7 +136,7 @@ export default function Header({
             onClick={onOpenAuth}
             className="flex items-center gap-1.5 rounded-lg border border-piedra/70 px-2.5 py-2 text-xs font-medium text-nogal sm:px-4 sm:text-sm"
           >
-            <i className="ti ti-login text-base" aria-hidden />
+            <i className="ti ti-door-enter text-base" aria-hidden />
             <span className="hidden sm:inline">Ingresar</span>
           </button>
         )}
