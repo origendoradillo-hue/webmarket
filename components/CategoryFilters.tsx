@@ -17,7 +17,7 @@ export default function CategoryFilters({ cat, sub, onSelectCat, onSelectSub, ti
 
   return (
     <div className="px-4 pt-4 sm:px-7 sm:pt-5">
-      <div className="no-scrollbar mb-2.5 flex gap-2 overflow-x-auto pb-1">
+      <div className="mb-2.5 flex flex-wrap gap-2 pb-1">
         <button
           onClick={() => onSelectCat("all")}
           className={`flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-4 py-2 font-sans text-[13px] ${
@@ -40,7 +40,7 @@ export default function CategoryFilters({ cat, sub, onSelectCat, onSelectSub, ti
       </div>
 
       {cat !== "all" && categories[cat] && (
-        <div className="no-scrollbar mb-4 flex gap-1.5 overflow-x-auto border-b border-piedra/50 pb-4">
+        <div className="mb-4 flex flex-wrap gap-1.5 border-b border-piedra/50 pb-4">
           <button
             onClick={() => onSelectSub("all")}
             className={`flex-shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-[11.5px] ${

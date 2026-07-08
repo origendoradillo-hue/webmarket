@@ -584,7 +584,7 @@ export default function HomeClient() {
               </div>
             )}
             <>
-              <div className="no-scrollbar mb-2.5 flex gap-1.5 overflow-x-auto">
+              <div className="mb-2.5 flex flex-wrap gap-1.5">
                 <button
                   onClick={() => handleSelectTipo("all")}
                   className={`flex-shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-[11.5px] ${
