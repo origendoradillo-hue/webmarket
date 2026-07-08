@@ -7,7 +7,7 @@ const TIPO_ICON: Record<TipoPublicacion, string> = {
   experiencia: "ti-compass",
   inmueble: "ti-home",
   usado: "ti-recycle",
-  herramienta: "ti-hammer",
+  emprendimiento: "ti-building-store",
   otro: "ti-dots",
 };
 

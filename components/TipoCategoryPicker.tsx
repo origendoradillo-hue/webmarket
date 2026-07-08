@@ -8,7 +8,7 @@ const TIPOS: { value: TipoPublicacion; label: string; icon: string }[] = [
   { value: "experiencia", label: "Experiencias", icon: "ti-compass" },
   { value: "inmueble", label: "Inmuebles", icon: "ti-home" },
   { value: "usado", label: "Usados", icon: "ti-recycle" },
-  { value: "herramienta", label: "Herramientas", icon: "ti-hammer" },
+  { value: "emprendimiento", label: "Emprendimientos", icon: "ti-building-store" },
 ];
 
 interface TipoCategoryPickerProps {

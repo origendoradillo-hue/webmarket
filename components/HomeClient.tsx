@@ -62,7 +62,7 @@ const TIPO_LABELS: Record<TipoPublicacion, string> = {
   experiencia: "Experiencias",
   inmueble: "Inmuebles",
   usado: "Usados",
-  herramienta: "Herramientas",
+  emprendimiento: "Emprendimientos",
   otro: "Otros",
 };
 
@@ -378,7 +378,7 @@ export default function HomeClient() {
   const productosRecientes = useMemo(() => allListings.filter((l) => l.tipo === "producto").slice(0, 10), [allListings]);
   const serviciosDisponibles = useMemo(() => allListings.filter((l) => l.tipo === "servicio").slice(0, 10), [allListings]);
   const usadosRecientes = useMemo(() => allListings.filter((l) => l.tipo === "usado").slice(0, 10), [allListings]);
-  const herramientasDisponibles = useMemo(() => allListings.filter((l) => l.tipo === "herramienta").slice(0, 10), [allListings]);
+  const emprendimientosDestacados = useMemo(() => allListings.filter((l) => l.tipo === "emprendimiento").slice(0, 10), [allListings]);
   const busquedasActivas = useMemo(() => allListings.filter((l) => l.intencion === "busco").slice(0, 10), [allListings]);
 
   const showingPicker = screen === "resultados" && !!resultadosIntencion && tipoFilter === "all";
@@ -546,7 +546,7 @@ export default function HomeClient() {
             <CuratedRow title="Productos recientes" icon="ti-box" listings={productosRecientes} onOpen={setActiveListing} />
             <CuratedRow title="Servicios disponibles" icon="ti-tools" listings={serviciosDisponibles} onOpen={setActiveListing} />
             <CuratedRow title="Usados recientes" icon="ti-recycle" listings={usadosRecientes} onOpen={setActiveListing} />
-            <CuratedRow title="Herramientas disponibles" icon="ti-hammer" listings={herramientasDisponibles} onOpen={setActiveListing} />
+            <CuratedRow title="Emprendimientos destacados" icon="ti-building-store" listings={emprendimientosDestacados} onOpen={setActiveListing} />
             <CuratedRow title="Búsquedas activas" icon="ti-search" listings={busquedasActivas} onOpen={setActiveListing} />
           </div>
         )}

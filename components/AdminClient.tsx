@@ -173,7 +173,7 @@ interface AdminClientProps {
   currentUserId: string;
 }
 
-const TIPO_OPTIONS = ["producto", "servicio", "experiencia", "inmueble", "usado", "herramienta", "otro"];
+const TIPO_OPTIONS = ["producto", "servicio", "experiencia", "inmueble", "usado", "emprendimiento", "otro"];
 
 export default function AdminClient({ role, currentUserId }: AdminClientProps) {
   const { categories } = useCategories();

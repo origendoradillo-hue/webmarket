@@ -86,20 +86,20 @@ const TIPO_OPTIONS: { value: TipoPublicacion; icon: string; label: string }[] = 
   { value: "experiencia", icon: "ti-compass", label: "Experiencia" },
   { value: "inmueble", icon: "ti-home", label: "Inmuebles" },
   { value: "usado", icon: "ti-recycle", label: "Usados" },
-  { value: "herramienta", icon: "ti-hammer", label: "Herramientas" },
+  { value: "emprendimiento", icon: "ti-building-store", label: "Emprendimiento" },
   { value: "otro", icon: "ti-dots", label: "Otro" },
 ];
 
 function fotoRequerida(d: PublishData): boolean {
   if (d.intencion !== "ofrezco" || !d.tipo) return false;
-  return ["producto", "experiencia", "inmueble", "usado", "herramienta"].includes(d.tipo);
+  return ["producto", "experiencia", "inmueble", "usado", "emprendimiento"].includes(d.tipo);
 }
 
 function stepsFor(d: PublishData): string[] {
   if (!d.intencion) return ["intencion"];
   if (!d.tipo) return ["intencion", "tipo"];
   const steps = ["intencion", "tipo"];
-  if (d.tipo !== "otro" && d.tipo !== "herramienta") steps.push("categoria");
+  if (d.tipo !== "otro") steps.push("categoria");
   if (d.intencion === "ofrezco") steps.push("datos", "detalles", "ubicacion", "contacto");
   else steps.push("datos", "ubicacion", "contacto");
   return steps;
@@ -209,6 +209,16 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
     setData((prev) => ({ ...prev, fotosData: prev.fotosData.filter((_, i) => i !== index) }));
   }
 
+  function makeFotoPortada(index: number) {
+    setData((prev) => {
+      if (index === 0) return prev;
+      const fotos = [...prev.fotosData];
+      const [foto] = fotos.splice(index, 1);
+      fotos.unshift(foto);
+      return { ...prev, fotosData: fotos };
+    });
+  }
+
   async function goNext() {
     if (!step || !isValid(step, data)) return;
     if (stepIndex < steps.length - 1) {
@@ -258,7 +268,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
         } else if (data.tipo === "inmueble") {
           if (data.superficie) detalles.superficie = data.superficie;
           if (data.mejoras) detalles.mejoras = data.mejoras;
-        } else if (data.tipo === "usado" || data.tipo === "herramienta") {
+        } else if (data.tipo === "usado") {
           if (data.estadoArticulo) detalles.estado = data.estadoArticulo;
           if (data.qty) cantidad = Number(data.qty);
         }
@@ -322,7 +332,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
 
   const isFirst = stepIndex === 0;
   const isLast = stepIndex === steps.length - 1;
-  const direccionRequiereRetiro = data.tipo === "producto" || data.tipo === "usado" || data.tipo === "herramienta";
+  const direccionRequiereRetiro = data.tipo === "producto" || data.tipo === "usado" || data.tipo === "emprendimiento";
   const direccionAplica = !direccionRequiereRetiro || data.modalidad.includes("Retiro");
 
   return (
@@ -399,10 +409,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
                         selected={data.tipo === t.value}
                         onClick={() => {
                           update("tipo", t.value);
-                          if (t.value === "herramienta") {
-                            update("cat", "usados");
-                            update("sub", "Herramientas");
-                          } else if (t.value === "usado") {
+                          if (t.value === "usado") {
                             update("cat", "usados");
                             update("sub", null);
                           }
@@ -496,6 +503,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
                         values={data.fotosData}
                         onChange={handleFoto}
                         onRemove={removeFoto}
+                        onMakePortada={makeFotoPortada}
                       />
                     </Field>
                   )}
@@ -706,7 +714,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
                     </>
                   )}
 
-                  {(data.tipo === "usado" || data.tipo === "herramienta") && (
+                  {data.tipo === "usado" && (
                     <>
                       <Field label="Estado del artículo">
                         <select
@@ -896,11 +904,13 @@ function PhotoDropzone({
   values,
   onChange,
   onRemove,
+  onMakePortada,
 }: {
   label: string;
   values: string[];
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onRemove: (index: number) => void;
+  onMakePortada?: (index: number) => void;
 }) {
   return (
     <div>
@@ -910,22 +920,42 @@ function PhotoDropzone({
         <input type="file" accept="image/*" multiple onChange={onChange} className="absolute inset-0 cursor-pointer opacity-0" />
       </div>
       {values.length > 0 && (
-        <div className="mt-2.5 grid grid-cols-3 gap-2">
-          {values.map((v, i) => (
-            <div key={i} className="relative overflow-hidden rounded-lg border border-piedra/70">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={v} alt={`Vista previa ${i + 1}`} className="block h-20 w-full object-cover" />
-              <button
-                type="button"
-                onClick={() => onRemove(i)}
-                aria-label="Quitar foto"
-                className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white"
-              >
-                <i className="ti ti-x text-xs" aria-hidden />
-              </button>
-            </div>
-          ))}
-        </div>
+        <>
+          {values.length > 1 && onMakePortada && (
+            <p className="mt-2 text-[11px] text-tinta-suave">Tocá la estrella para elegir cuál va de portada.</p>
+          )}
+          <div className="mt-2.5 grid grid-cols-3 gap-2">
+            {values.map((v, i) => (
+              <div key={i} className="relative overflow-hidden rounded-lg border border-piedra/70">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={v} alt={`Vista previa ${i + 1}`} className="block h-20 w-full object-cover" />
+                {i === 0 && (
+                  <span className="absolute left-1 top-1 rounded-full bg-dorado px-1.5 py-0.5 text-[9px] font-semibold text-oliva-dd">
+                    Portada
+                  </span>
+                )}
+                {i !== 0 && onMakePortada && (
+                  <button
+                    type="button"
+                    onClick={() => onMakePortada(i)}
+                    aria-label="Hacer portada"
+                    className="absolute left-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white"
+                  >
+                    <i className="ti ti-star text-xs" aria-hidden />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => onRemove(i)}
+                  aria-label="Quitar foto"
+                  className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white"
+                >
+                  <i className="ti ti-x text-xs" aria-hidden />
+                </button>
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

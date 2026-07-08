@@ -66,7 +66,7 @@ export interface Database {
           id: string;
           publisher_id: string;
           intencion: "ofrezco" | "busco";
-          tipo: "producto" | "servicio" | "experiencia" | "inmueble" | "usado" | "herramienta" | "otro" | null;
+          tipo: "producto" | "servicio" | "experiencia" | "inmueble" | "usado" | "emprendimiento" | "otro" | null;
           rol: "negocio" | "vecino" | null;
           categoria: string | null;
           subcategoria: string | null;
@@ -95,7 +95,7 @@ export interface Database {
         Insert: {
           publisher_id: string;
           intencion: "ofrezco" | "busco";
-          tipo?: "producto" | "servicio" | "experiencia" | "inmueble" | "usado" | "herramienta" | "otro" | null;
+          tipo?: "producto" | "servicio" | "experiencia" | "inmueble" | "usado" | "emprendimiento" | "otro" | null;
           categoria?: string | null;
           subcategoria?: string | null;
           zona: string;

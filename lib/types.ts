@@ -19,7 +19,7 @@ export type Intencion = "ofrezco" | "busco";
 
 // Gobierna foto/precio/dirección/campos extra del formulario. Ahora aplica a
 // "ofrezco" y "busco" por igual (ambos se navegan por esta categoría).
-export type TipoPublicacion = "producto" | "servicio" | "experiencia" | "inmueble" | "usado" | "herramienta" | "otro";
+export type TipoPublicacion = "producto" | "servicio" | "experiencia" | "inmueble" | "usado" | "emprendimiento" | "otro";
 
 // Etiquetas transversales, combinables con cualquier tipo/rubro.
 export type Etiqueta = "turismo" | "alquileres_temporarios";
