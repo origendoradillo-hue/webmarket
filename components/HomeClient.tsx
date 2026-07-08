@@ -13,7 +13,6 @@ import Header from "./Header";
 import Hero from "./Hero";
 import CategoryFilters from "./CategoryFilters";
 import HomeEntryButtons from "./HomeEntryButtons";
-import TipoCategoryPicker from "./TipoCategoryPicker";
 import AnuncioCarousel from "./AnuncioCarousel";
 import CuratedRow from "./CuratedRow";
 import ListingGrid from "./ListingGrid";
@@ -55,6 +54,15 @@ function dismissReviewReminder(listingId: string) {
   } catch {
     // localStorage no disponible en este navegador — el recordatorio puede repetirse, no es grave.
   }
+}
+
+// Hash estable de (id, semilla) para "alternar" el orden de listados sin que
+// salte en cada render — misma semilla durante toda la sesión de pestaña.
+function shuffleScore(id: number | string, seed: number): number {
+  const s = `${id}-${seed}`;
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return h;
 }
 
 const TIPO_LABELS: Record<TipoPublicacion, string> = {
@@ -393,6 +401,10 @@ export default function HomeClient() {
     [realAnuncios]
   );
 
+  // Semilla fija por sesión de pestaña: "alternar" el orden de la lista sin
+  // que salte en cada render, pero que sí varíe entre visitas.
+  const shuffleSeed = useMemo(() => Math.random(), []);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const result = allListings.filter((l) => {
@@ -407,22 +419,20 @@ export default function HomeClient() {
       }
       return true;
     });
+    // Siempre primero Selección Origen, después emprendimiento destacado,
+    // después destacada — dentro de un mismo nivel, orden mezclado (no
+    // separado por categoría/tipo).
+    const priority = (l: Listing) => (l.sello ? 3 : 0) + (l.emprendimientoDestacado ? 2 : 0) + (l.destacada ? 1 : 0);
     result.sort((a, b) => {
-      const score = (l: Listing) => (l.destacada ? 2 : 0) + (l.tipoPublicador === "negocio" ? 1 : 0);
-      return score(b) - score(a) || b.rating - a.rating;
+      const diff = priority(b) - priority(a);
+      if (diff !== 0) return diff;
+      return shuffleScore(a.id, shuffleSeed) - shuffleScore(b.id, shuffleSeed);
     });
     return result;
-  }, [allListings, cat, sub, query, intencionFilter, tipoFilter, etiquetaFilter, categories]);
+  }, [allListings, cat, sub, query, intencionFilter, tipoFilter, etiquetaFilter, categories, shuffleSeed]);
 
   const seleccionOrigen = useMemo(() => allListings.filter((l) => l.sello), [allListings]);
   const destacados = useMemo(() => allListings.filter((l) => l.destacada), [allListings]);
-  const productosRecientes = useMemo(() => allListings.filter((l) => l.tipo === "producto").slice(0, 10), [allListings]);
-  const serviciosDisponibles = useMemo(() => allListings.filter((l) => l.tipo === "servicio").slice(0, 10), [allListings]);
-  const usadosRecientes = useMemo(() => allListings.filter((l) => l.tipo === "usado").slice(0, 10), [allListings]);
-  const emprendimientosDestacados = useMemo(() => allListings.filter((l) => l.tipo === "emprendimiento").slice(0, 10), [allListings]);
-  const busquedasActivas = useMemo(() => allListings.filter((l) => l.intencion === "busco").slice(0, 10), [allListings]);
-
-  const showingPicker = screen === "resultados" && !!resultadosIntencion && tipoFilter === "all";
 
   const breadcrumb = useMemo(() => {
     if (screen === "explorar") return "Explorando todo";
@@ -543,7 +553,7 @@ export default function HomeClient() {
           onPublicar={handleOpenPublish}
         />
       )}
-      {screen === "resultados" && !showingPicker && (
+      {(screen === "resultados" || screen === "explorar") && (
         <CategoryFilters cat={cat} sub={sub} onSelectCat={handleSelectCat} onSelectSub={setSub} />
       )}
       {screen !== "home" && (
@@ -577,62 +587,63 @@ export default function HomeClient() {
           </>
         )}
 
-        {screen === "explorar" && (
+        {(screen === "explorar" || screen === "resultados") && (
           <div className="pt-3">
             {anunciosCategoria.length > 0 && (
               <div className="-mx-4 mb-4 sm:-mx-7">
                 <AnuncioCarousel anuncios={anunciosCategoria} />
               </div>
             )}
-            <CuratedRow title="Selección Origen" icon="ti-sparkles" listings={seleccionOrigen} onOpen={setActiveListing} favoritoIds={favoritoIds} onToggleFavorito={toggleFavorito} />
-            <CuratedRow title="Productos recientes" icon="ti-box" listings={productosRecientes} onOpen={setActiveListing} favoritoIds={favoritoIds} onToggleFavorito={toggleFavorito} />
-            <CuratedRow title="Servicios disponibles" icon="ti-tools" listings={serviciosDisponibles} onOpen={setActiveListing} favoritoIds={favoritoIds} onToggleFavorito={toggleFavorito} />
-            <CuratedRow title="Usados recientes" icon="ti-recycle" listings={usadosRecientes} onOpen={setActiveListing} favoritoIds={favoritoIds} onToggleFavorito={toggleFavorito} />
-            <CuratedRow title="Emprendimientos destacados" icon="ti-building-store" listings={emprendimientosDestacados} onOpen={setActiveListing} favoritoIds={favoritoIds} onToggleFavorito={toggleFavorito} />
-            <CuratedRow title="Búsquedas activas" icon="ti-search" listings={busquedasActivas} onOpen={setActiveListing} favoritoIds={favoritoIds} onToggleFavorito={toggleFavorito} />
-          </div>
-        )}
-
-        {screen === "resultados" && (
-          <div className="pt-3">
-            {anunciosCategoria.length > 0 && (
-              <div className="-mx-4 mb-4 sm:-mx-7">
-                <AnuncioCarousel anuncios={anunciosCategoria} />
-              </div>
-            )}
-            {showingPicker ? (
-              <TipoCategoryPicker intencion={resultadosIntencion!} onSelect={handleSelectTipo} />
-            ) : (
-              <>
-                <div className="no-scrollbar mb-4 flex gap-1.5 overflow-x-auto">
+            <>
+              <div className="no-scrollbar mb-2.5 flex gap-1.5 overflow-x-auto">
+                <button
+                  onClick={() => setTipoFilter("all")}
+                  className={`flex-shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-[11.5px] ${
+                    tipoFilter === "all" ? "border-oliva bg-oliva text-hueso" : "border-piedra/60 bg-white text-tinta"
+                  }`}
+                >
+                  Todos los tipos
+                </button>
+                {(Object.keys(TIPO_LABELS) as TipoPublicacion[]).map((t) => (
                   <button
-                    onClick={() => setEtiquetaFilter("all")}
+                    key={t}
+                    onClick={() => handleSelectTipo(t)}
                     className={`flex-shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-[11.5px] ${
-                      etiquetaFilter === "all" ? "border-dorado bg-dorado text-hueso-2" : "border-arena bg-hueso-2 text-nogal"
+                      tipoFilter === t ? "border-oliva bg-oliva text-hueso" : "border-piedra/60 bg-white text-tinta"
                     }`}
                   >
-                    Todas las etiquetas
+                    {TIPO_LABELS[t]}
                   </button>
-                  {ETIQUETAS.map((e) => (
-                    <button
-                      key={e.value}
-                      onClick={() => setEtiquetaFilter(e.value)}
-                      className={`flex-shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-[11.5px] ${
-                        etiquetaFilter === e.value ? "border-dorado bg-dorado text-hueso-2" : "border-arena bg-hueso-2 text-nogal"
-                      }`}
-                    >
-                      {e.label}
-                    </button>
-                  ))}
-                </div>
-                <ListingGrid
-                  listings={filtered}
-                  onOpen={setActiveListing}
-                  favoritoIds={favoritoIds}
-                  onToggleFavorito={toggleFavorito}
-                />
-              </>
-            )}
+                ))}
+              </div>
+              <div className="no-scrollbar mb-4 flex gap-1.5 overflow-x-auto">
+                <button
+                  onClick={() => setEtiquetaFilter("all")}
+                  className={`flex-shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-[11.5px] ${
+                    etiquetaFilter === "all" ? "border-dorado bg-dorado text-hueso-2" : "border-arena bg-hueso-2 text-nogal"
+                  }`}
+                >
+                  Todas las etiquetas
+                </button>
+                {ETIQUETAS.map((e) => (
+                  <button
+                    key={e.value}
+                    onClick={() => setEtiquetaFilter(e.value)}
+                    className={`flex-shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-[11.5px] ${
+                      etiquetaFilter === e.value ? "border-dorado bg-dorado text-hueso-2" : "border-arena bg-hueso-2 text-nogal"
+                    }`}
+                  >
+                    {e.label}
+                  </button>
+                ))}
+              </div>
+              <ListingGrid
+                listings={filtered}
+                onOpen={setActiveListing}
+                favoritoIds={favoritoIds}
+                onToggleFavorito={toggleFavorito}
+              />
+            </>
           </div>
         )}
       </main>
