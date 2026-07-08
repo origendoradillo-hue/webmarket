@@ -1407,7 +1407,6 @@ function AdminListingRow({
                 Precio a consultar
               </label>
             </div>
-            <LabeledInput label="Cuadrante" value={form.cuadrante} onChange={(v) => setForm({ ...form, cuadrante: v })} />
             <LabeledInput label="Dirección" value={form.direccion} onChange={(v) => setForm({ ...form, direccion: v })} />
           </div>
           <div>

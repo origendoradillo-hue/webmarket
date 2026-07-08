@@ -35,6 +35,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const description = listing.descripcion.slice(0, 155);
   const url = `${SITE_URL}/publicacion/${id}`;
+  // Si la publicación no tiene foto propia, igual mostramos algo al
+  // compartir el link (el logo) en vez de dejar la tarjeta sin imagen.
+  const imageUrl = listing.foto_url || `${SITE_URL}/brand/logo-completo.png`;
 
   return {
     title: listing.nombre,
@@ -45,13 +48,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       url,
       title: `${listing.nombre} | ${SITE_NAME}`,
       description,
-      images: listing.foto_url ? [{ url: listing.foto_url }] : undefined,
+      images: [{ url: imageUrl }],
     },
     twitter: {
       card: listing.foto_url ? "summary_large_image" : "summary",
       title: listing.nombre,
       description,
-      images: listing.foto_url ? [listing.foto_url] : undefined,
+      images: [imageUrl],
     },
   };
 }

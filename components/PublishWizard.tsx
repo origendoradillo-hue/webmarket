@@ -578,27 +578,29 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
                     </div>
                   </Field>
 
-                  <Field label="Etiquetas (opcional)">
-                    <p className="mb-2 text-[11.5px] text-tinta-suave">
-                      Marcalas solo si aplican — sirven para que te encuentren en esos filtros extra al buscar.
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {([
-                        { value: "turismo", label: "Turismo" },
-                        { value: "alquileres_temporarios", label: "Alquileres temporarios" },
-                      ] as { value: Etiqueta; label: string }[]).map((e) => (
-                        <button
-                          key={e.value}
-                          onClick={() => toggleEtiqueta(e.value)}
-                          className={`rounded-full border px-3 py-1.5 text-xs ${
-                            data.etiquetas.includes(e.value) ? "border-dorado bg-dorado text-white" : "border-arena bg-hueso-2 text-tinta"
-                          }`}
-                        >
-                          {e.label}
-                        </button>
-                      ))}
-                    </div>
-                  </Field>
+                  {(data.cat === "turismo" || data.cat === "hospedaje") && (
+                    <Field label="Etiquetas (opcional)">
+                      <p className="mb-2 text-[11.5px] text-tinta-suave">
+                        Marcalas solo si aplican — sirven para que te encuentren en esos filtros extra al buscar.
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {([
+                          { value: "turismo", label: "Turismo" },
+                          { value: "alquileres_temporarios", label: "Alquileres temporarios" },
+                        ] as { value: Etiqueta; label: string }[]).map((e) => (
+                          <button
+                            key={e.value}
+                            onClick={() => toggleEtiqueta(e.value)}
+                            className={`rounded-full border px-3 py-1.5 text-xs ${
+                              data.etiquetas.includes(e.value) ? "border-dorado bg-dorado text-white" : "border-arena bg-hueso-2 text-tinta"
+                            }`}
+                          >
+                            {e.label}
+                          </button>
+                        ))}
+                      </div>
+                    </Field>
+                  )}
 
                   {data.tipo === "producto" && (
                     <Field label="Disponibilidad">
@@ -764,21 +766,6 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
                         </option>
                       ))}
                     </select>
-                  </Field>
-                  <Field label="Cuadrante (opcional)">
-                    <div className="flex gap-1.5">
-                      {["Norte", "Sur", "Este", "Oeste"].map((c) => (
-                        <button
-                          key={c}
-                          onClick={() => update("cuadrante", data.cuadrante === c ? null : c)}
-                          className={`flex-1 rounded-lg border px-2 py-2 text-center text-xs text-tinta ${
-                            data.cuadrante === c ? "border-dorado bg-dorado text-white" : "border-piedra/70"
-                          }`}
-                        >
-                          {c}
-                        </button>
-                      ))}
-                    </div>
                   </Field>
                   <Field label={direccionAplica ? "Dirección exacta (opcional)" : "Dirección exacta"}>
                     <input
