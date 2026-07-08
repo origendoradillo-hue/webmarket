@@ -14,6 +14,7 @@ import Hero from "./Hero";
 import CategoryFilters from "./CategoryFilters";
 import HomeEntryButtons from "./HomeEntryButtons";
 import AnuncioCarousel from "./AnuncioCarousel";
+import AnuncioTicker from "./AnuncioTicker";
 import CuratedRow from "./CuratedRow";
 import ListingGrid from "./ListingGrid";
 import ListingDetail from "./ListingDetail";
@@ -405,6 +406,11 @@ export default function HomeClient() {
   // que salte en cada render, pero que sí varíe entre visitas.
   const shuffleSeed = useMemo(() => Math.random(), []);
 
+  // Fuera del inicio, la cinta de anuncios no debe estar siempre — aparece
+  // "cada tanto": se decide una vez por visita a la pantalla, no en cada
+  // click de filtro dentro de la misma pantalla.
+  const showAnuncioTicker = useMemo(() => Math.random() < 0.5, [screen]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const result = allListings.filter((l) => {
@@ -589,9 +595,9 @@ export default function HomeClient() {
 
         {(screen === "explorar" || screen === "resultados") && (
           <div className="pt-3">
-            {anunciosCategoria.length > 0 && (
-              <div className="-mx-4 mb-4 sm:-mx-7">
-                <AnuncioCarousel anuncios={anunciosCategoria} />
+            {anunciosCategoria.length > 0 && showAnuncioTicker && (
+              <div className="mb-4">
+                <AnuncioTicker anuncios={anunciosCategoria} />
               </div>
             )}
             <>
