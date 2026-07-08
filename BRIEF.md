@@ -105,24 +105,47 @@ Derecho a réplica corta ante una calificación con la que no se está de acuerd
 
 ---
 
-## 3. Categorías y subcategorías
+## 3. Tipo, Categoría y Subcategoría
 
-7 categorías madre, cada una con subcategorías (evita una lista plana enorme):
+La clasificación de una publicación es una sola jerarquía anidada, no tres ejes
+paralelos: **Tipo de publicación → Categoría → Subcategoría (opcional)**. Categoría
+depende del Tipo elegido (cada Tipo tiene su propio set de categorías; no es una
+lista global fija), y Subcategoría depende de la Categoría y nunca es obligatoria.
+No existe un sistema de "Etiquetas" transversal aparte — cualquier concepto que
+antes vivía como etiqueta (turismo, alquileres temporarios) queda representado
+como categoría/subcategoría dentro del Tipo que corresponde.
 
-1. **Productores y chacras** — Aceite y frutos secos, Huevos y aviar, Miel y dulces
-   caseros, Verduras y quintas, Forrajería, Viveros y plantines
-2. **Gastronomía** — Panadería y pastelería, Comidas preparadas, Dulces y conservas,
-   Foodtrucks y eventos
-3. **Oficios y servicios** — Herrería y forja, Electricidad, Plomería, Jardinería y
-   poda, Cuidado de animales, Transporte y flete, Limpieza
-4. **Construcción y ramos generales** — Albañilería, Bioconstrucción, Ferretería y
-   ramos generales, Corralón e insumos, Herramientas
-5. **Turismo y experiencias** — Cabalgatas, Avistaje y trekking, Excursiones 4x4,
-   Eventos y celebraciones
-6. **Hotelería y hospedaje** — Cabañas, Hostería, Camping, Alquiler temporario
-7. **Inmuebles** — Venta de lotes y chacras, Alquiler, Terrenos con mejoras
+| Tipo | Categoría | Subcategorías |
+|---|---|---|
+| Producto, Emprendimiento | Productores y chacras | Verduras y frutas, Huevos y lácteos, Miel y dulces, Plantas y vivero, Forrajería, Otros de chacra |
+| Producto, Emprendimiento | Gastronomía | Panificados, Conservas y ahumados, Bebidas, Otros alimentos |
+| Producto, Emprendimiento | Instrumentos | Percusión, Cuerdas, Vientos, Accesorios |
+| Producto, Emprendimiento | Otros productos | — |
+| Servicio, Emprendimiento | Oficios y servicios | Plomería, Electricidad, Gasista, Jardinería, Limpieza, Cuidado de mascotas, Otros oficios |
+| Servicio, Emprendimiento | Construcción y ramos generales | Albañilería, Herrería, Pintura, Provisión de materiales |
+| Servicio, Emprendimiento | Otros servicios | — |
+| Experiencia | Turismo y experiencias | Cabalgatas, Avistaje de fauna, Paseos guiados, Degustaciones, Talleres, Otras experiencias |
+| Inmueble | Hotelería y hospedaje | Cabañas, Habitaciones, Casas completas |
+| Inmueble | Alquiler permanente | — |
+| Inmueble | Venta | — |
+| Inmueble | Terrenos y chacras | — |
+| Usado | Herramientas | — |
+| Usado | Instrumentos | — |
+| Usado | Muebles y hogar | — |
+| Usado | Vehículos | — |
+| Usado | Otros usados | — |
+| Otro | Varios | — |
 
-*(Copiar exacto del prototipo: objeto `CATS` dentro del `<script>` del HTML de referencia.)*
+"Emprendimiento" no tiene categorías propias: reutiliza las de Producto y Servicio
+(cada categoría de esos dos Tipos también pertenece a Emprendimiento). Esto se
+modela en la base con `categories.tipo_scope` (array de Tipos, no un Tipo único),
+así que una categoría puede pertenecer a más de un Tipo sin duplicar la fila.
+
+Categorías y subcategorías viven en las tablas `categories`/`subcategories`
+(editables desde el panel admin, sección "Categorías"), no hardcodeadas en el
+frontend. Tipo es un enum fijo (`lib/tipos.ts`), porque gobierna qué campos pide
+el formulario de publicar (foto obligatoria, precio, dirección, etc.), no algo que
+un admin deba poder crear libremente.
 
 ---
 
