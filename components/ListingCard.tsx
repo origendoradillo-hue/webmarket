@@ -58,6 +58,10 @@ export default function ListingCard({ listing: l, onOpen }: ListingCardProps) {
           <div className="absolute left-2 top-2 rounded-full bg-golfo px-2 py-1 text-[9px] font-medium text-hueso">Busco</div>
         ) : l.sello ? (
           <Image src="/brand/sello-claro.png" alt="Selección Origen El Doradillo" width={80} height={22} className="absolute left-2 top-2 h-5 w-auto" />
+        ) : l.emprendimientoDestacado ? (
+          <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-golfo px-2 py-1 text-[9px] font-medium text-hueso">
+            <i className="ti ti-building-store text-[10px]" aria-hidden /> Emprendimiento destacado
+          </div>
         ) : isVecino ? (
           <div className="absolute left-2 top-2 rounded-full bg-nogal/85 px-2 py-1 text-[9px] font-medium text-hueso">Particular</div>
         ) : null}

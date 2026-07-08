@@ -39,6 +39,7 @@ export interface Listing {
   icono: string;
   sello: boolean;
   destacada: boolean;
+  emprendimientoDestacado: boolean;
   rating: number;
   reseñas: number;
   modalidad: string[];

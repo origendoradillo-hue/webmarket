@@ -89,6 +89,7 @@ export interface Database {
           whatsapp_publico: boolean;
           sello: boolean;
           destacada: boolean;
+          emprendimiento_destacado: boolean;
           detalles: Record<string, unknown>;
           expires_at: string | null;
           views_count: number;
@@ -402,6 +403,10 @@ export interface Database {
         Returns: undefined;
       };
       admin_set_destacada: {
+        Args: { p_listing_id: string; p_value: boolean };
+        Returns: undefined;
+      };
+      admin_set_emprendimiento_destacado: {
         Args: { p_listing_id: string; p_value: boolean };
         Returns: undefined;
       };

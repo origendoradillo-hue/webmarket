@@ -1301,6 +1301,16 @@ function AdminListingRow({
     else onSaved();
   }
 
+  async function toggleEmprendimientoDestacado() {
+    const supabase = createClient();
+    const { error } = await supabase.rpc("admin_set_emprendimiento_destacado", {
+      p_listing_id: l.id,
+      p_value: !l.emprendimiento_destacado,
+    });
+    if (error) alert(error.message);
+    else onSaved();
+  }
+
   async function agregarNota() {
     if (!nota.trim()) return;
     const supabase = createClient();
@@ -1338,7 +1348,8 @@ function AdminListingRow({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="cursor-pointer" onClick={onToggle}>
           <p className="text-sm font-semibold text-tinta">
-            {l.nombre} {l.destacada && <i className="ti ti-star text-dorado" aria-hidden />} {l.sello && <i className="ti ti-award text-oliva" aria-hidden />}
+            {l.nombre} {l.destacada && <i className="ti ti-star text-dorado" aria-hidden />} {l.sello && <i className="ti ti-award text-oliva" aria-hidden />}{" "}
+            {l.emprendimiento_destacado && <i className="ti ti-building-store text-golfo" aria-hidden />}
           </p>
           <p className="text-xs text-tinta-suave">
             {l.intencion} · {l.tipo || "—"} · {l.categoria || "—"} / {l.subcategoria || "—"} · {l.zona}
@@ -1374,6 +1385,16 @@ function AdminListingRow({
             <button onClick={toggleSello} className={`rounded-lg border px-2.5 py-1.5 text-xs ${l.sello ? "border-oliva bg-oliva text-hueso" : "border-piedra/70 text-tinta"}`}>
               <i className="ti ti-award" aria-hidden /> Selección Origen
             </button>
+            {l.tipo === "emprendimiento" && (
+              <button
+                onClick={toggleEmprendimientoDestacado}
+                className={`rounded-lg border px-2.5 py-1.5 text-xs ${
+                  l.emprendimiento_destacado ? "border-golfo bg-golfo text-hueso" : "border-piedra/70 text-tinta"
+                }`}
+              >
+                <i className="ti ti-building-store" aria-hidden /> Emprendimiento destacado
+              </button>
+            )}
             {link && (
               <a href={link} target="_blank" rel="noreferrer" className="rounded-lg border border-golfo px-2.5 py-1.5 text-xs text-golfo">
                 <i className="ti ti-brand-whatsapp" aria-hidden /> Contactar publicador
