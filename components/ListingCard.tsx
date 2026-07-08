@@ -87,7 +87,9 @@ export default function ListingCard({ listing: l, onOpen, isFavorito, onToggleFa
       </div>
 
       <div className="flex flex-col px-3 pb-3 pt-[18px]">
-        <p className="mb-1 truncate text-[10px] uppercase tracking-wide text-piedra">{l.subcategoria || "Otro"}</p>
+        <p className="mb-1 truncate text-[10px] uppercase tracking-wide text-piedra">
+          {l.subcategoria || l.categoriaLabel || "Otro"}
+        </p>
         <h3 className="mb-0.5 line-clamp-2 min-h-[2.4em] font-slab text-sm font-semibold leading-tight text-tinta">{l.nombre}</h3>
         <p className="mb-2 truncate text-[11.5px] text-piedra">
           {l.barrio || "El Doradillo"} · {l.zona}

@@ -31,6 +31,7 @@ export interface Listing {
   intencion: Intencion;
   tipo?: TipoPublicacion;
   categoria?: CategoryKey;
+  categoriaLabel?: string;
   subcategoria?: string;
   etiquetas?: Etiqueta[];
   zona: string;
