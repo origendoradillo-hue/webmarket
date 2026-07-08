@@ -7,60 +7,110 @@ export const CATEGORIES: Record<CategoryKey, Category> = {
   productores: {
     label: "Productores y chacras",
     icon: "ti-leaf",
-    subs: [
-      "Aceite y frutos secos",
-      "Huevos y aviar",
-      "Miel y dulces caseros",
-      "Verduras y quintas",
-      "Forrajería",
-      "Viveros y plantines",
-    ],
+    tipoScope: ["producto", "emprendimiento"],
+    subs: ["Verduras y frutas", "Huevos y lácteos", "Miel y dulces", "Plantas y vivero", "Forrajería", "Otros de chacra"],
   },
   gastronomia: {
     label: "Gastronomía",
     icon: "ti-bread",
-    subs: ["Panadería y pastelería", "Comidas preparadas", "Dulces y conservas", "Foodtrucks y eventos"],
+    tipoScope: ["producto", "emprendimiento"],
+    subs: ["Panificados", "Conservas y ahumados", "Bebidas", "Otros alimentos"],
+  },
+  producto_instrumentos: {
+    label: "Instrumentos",
+    icon: "ti-guitar-pick",
+    tipoScope: ["producto", "emprendimiento"],
+    subs: ["Percusión", "Cuerdas", "Vientos", "Accesorios"],
+  },
+  producto_otros: {
+    label: "Otros productos",
+    icon: "ti-dots",
+    tipoScope: ["producto", "emprendimiento"],
+    subs: [],
   },
   oficios: {
     label: "Oficios y servicios",
     icon: "ti-tools",
-    subs: [
-      "Herrería y forja",
-      "Electricidad",
-      "Plomería",
-      "Jardinería y poda",
-      "Cuidado de animales",
-      "Transporte y flete",
-      "Limpieza",
-    ],
+    tipoScope: ["servicio", "emprendimiento"],
+    subs: ["Plomería", "Electricidad", "Gasista", "Jardinería", "Limpieza", "Cuidado de mascotas", "Otros oficios"],
   },
   construccion: {
     label: "Construcción y ramos generales",
     icon: "ti-building-warehouse",
-    subs: ["Albañilería", "Bioconstrucción", "Ferretería y ramos generales", "Corralón e insumos", "Herramientas"],
+    tipoScope: ["servicio", "emprendimiento"],
+    subs: ["Albañilería", "Herrería", "Pintura", "Provisión de materiales"],
+  },
+  servicio_otros: {
+    label: "Otros servicios",
+    icon: "ti-dots",
+    tipoScope: ["servicio", "emprendimiento"],
+    subs: [],
   },
   turismo: {
     label: "Turismo y experiencias",
     icon: "ti-compass",
-    subs: ["Cabalgatas", "Avistaje y trekking", "Excursiones 4x4", "Eventos y celebraciones"],
+    tipoScope: ["experiencia"],
+    subs: ["Cabalgatas", "Avistaje de fauna", "Paseos guiados", "Degustaciones", "Talleres", "Otras experiencias"],
   },
   hospedaje: {
     label: "Hotelería y hospedaje",
     icon: "ti-bed",
-    subs: ["Cabañas", "Hostería", "Camping", "Alquiler temporario"],
+    tipoScope: ["inmueble"],
+    subs: ["Cabañas", "Habitaciones", "Casas completas"],
   },
-  inmuebles: {
-    label: "Inmuebles",
-    icon: "ti-home",
-    subs: ["Venta de lotes y chacras", "Alquiler", "Terrenos con mejoras"],
+  inmueble_alquiler: {
+    label: "Alquiler permanente",
+    icon: "ti-key",
+    tipoScope: ["inmueble"],
+    subs: [],
   },
-  // "Usado o herramienta" es su propia categoría de nivel superior (no
-  // depende de las 7 de rubro) — pedido explícito: sumar Electrodomésticos
-  // y Materiales de construcción, muy vendidos usados en el barrio.
-  usados: {
-    label: "Usados y herramientas",
-    icon: "ti-recycle",
-    subs: ["Herramientas", "Electrodomésticos", "Materiales de construcción", "Muebles", "Otros usados"],
+  inmueble_venta: {
+    label: "Venta",
+    icon: "ti-home-dollar",
+    tipoScope: ["inmueble"],
+    subs: [],
+  },
+  inmueble_terrenos: {
+    label: "Terrenos y chacras",
+    icon: "ti-map-2",
+    tipoScope: ["inmueble"],
+    subs: [],
+  },
+  usado_herramientas: {
+    label: "Herramientas",
+    icon: "ti-hammer",
+    tipoScope: ["usado"],
+    subs: [],
+  },
+  usado_instrumentos: {
+    label: "Instrumentos",
+    icon: "ti-guitar-pick",
+    tipoScope: ["usado"],
+    subs: [],
+  },
+  usado_muebles: {
+    label: "Muebles y hogar",
+    icon: "ti-armchair",
+    tipoScope: ["usado"],
+    subs: [],
+  },
+  usado_vehiculos: {
+    label: "Vehículos",
+    icon: "ti-car",
+    tipoScope: ["usado"],
+    subs: [],
+  },
+  usado_otros: {
+    label: "Otros usados",
+    icon: "ti-dots",
+    tipoScope: ["usado"],
+    subs: [],
+  },
+  otro_varios: {
+    label: "Varios",
+    icon: "ti-dots",
+    tipoScope: ["otro"],
+    subs: [],
   },
 };
 

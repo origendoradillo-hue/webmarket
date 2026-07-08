@@ -7,6 +7,7 @@ export interface Category {
   label: string;
   icon: string;
   subs: string[];
+  tipoScope: TipoPublicacion[];
 }
 
 export type Cuadrante = "Norte" | "Sur" | "Este" | "Oeste";

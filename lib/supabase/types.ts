@@ -233,9 +233,9 @@ export interface Database {
         Relationships: [];
       };
       categories: {
-        Row: { id: string; label: string; icon: string; orden: number; created_at: string };
-        Insert: { id: string; label: string; icon: string; orden?: number };
-        Update: { id?: string; label?: string; icon?: string; orden?: number };
+        Row: { id: string; label: string; icon: string; orden: number; tipo_scope: string[]; created_at: string };
+        Insert: { id: string; label: string; icon: string; orden?: number; tipo_scope?: string[] };
+        Update: { id?: string; label?: string; icon?: string; orden?: number; tipo_scope?: string[] };
         Relationships: [];
       };
       subcategories: {
