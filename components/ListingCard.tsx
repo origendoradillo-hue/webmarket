@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { fallbackColorFor } from "@/lib/data";
 import { Listing } from "@/lib/types";
+import SeBuscaPlaceholder from "./SeBuscaPlaceholder";
 
 interface ListingCardProps {
   listing: Listing;
@@ -28,7 +29,7 @@ export default function ListingCard({ listing: l, onOpen, isFavorito, onToggleFa
         className="relative aspect-[4/3]"
         style={{
           backgroundColor: isDemanda
-            ? "#E4EDEE"
+            ? undefined
             : l.foto
               ? undefined
               : isNegocio && l.colorMarca
@@ -39,7 +40,7 @@ export default function ListingCard({ listing: l, onOpen, isFavorito, onToggleFa
         }}
       >
         {isDemanda ? (
-          <i className="ti ti-search absolute inset-0 m-auto flex h-9 w-9 items-center justify-center text-4xl text-golfo/70" aria-hidden />
+          <SeBuscaPlaceholder compact />
         ) : l.foto ? (
           <Image src={l.foto} alt={l.nombre} fill className="object-cover" sizes="(max-width: 640px) 100vw, 25vw" />
         ) : (

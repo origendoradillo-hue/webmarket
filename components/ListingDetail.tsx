@@ -11,6 +11,7 @@ import { SITE_URL } from "@/lib/seo";
 import { trackEvent } from "@/lib/analytics";
 import ReportReviewModal from "./ReportReviewModal";
 import ShareButton from "./ShareButton";
+import SeBuscaPlaceholder from "./SeBuscaPlaceholder";
 
 interface ReviewWithReviewer {
   id: string;
@@ -145,11 +146,11 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, user, o
         <div
           className="relative aspect-[4/5] max-h-[70vh]"
           style={{
-            backgroundColor: isDemanda ? "#E4EDEE" : images.length > 0 ? undefined : isVecino ? "#DCD7C9" : fallbackColor,
+            backgroundColor: isDemanda ? undefined : images.length > 0 ? undefined : isVecino ? "#DCD7C9" : fallbackColor,
           }}
         >
           {isDemanda ? (
-            <i className="ti ti-search absolute inset-0 m-auto flex h-14 w-14 items-center justify-center text-6xl text-golfo/70" aria-hidden />
+            <SeBuscaPlaceholder />
           ) : images.length > 0 ? (
             <>
               <button
