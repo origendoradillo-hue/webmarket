@@ -114,7 +114,7 @@ export default function HomeClient() {
     }
     const { data, error } = await supabase
       .from("listings")
-      .select("*, profiles(full_name, nickname, rating_promedio, resenas_count)")
+      .select("*, profiles(full_name, nickname, rating_promedio, resenas_count, instagram_url, facebook_url)")
       .eq("status", "activa")
       .order("created_at", { ascending: false });
 
@@ -123,7 +123,14 @@ export default function HomeClient() {
         (
           data as unknown as Array<
             ListingRow & {
-              profiles: { full_name: string | null; nickname: string | null; rating_promedio: number | null; resenas_count: number } | null;
+              profiles: {
+                full_name: string | null;
+                nickname: string | null;
+                rating_promedio: number | null;
+                resenas_count: number;
+                instagram_url: string | null;
+                facebook_url: string | null;
+              } | null;
             }
           >
         ).map((row) => mapListingRow(row, row.profiles, categories))

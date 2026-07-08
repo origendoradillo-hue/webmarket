@@ -55,6 +55,8 @@ export interface Listing {
   whatsappPublico?: boolean;
   publisherId?: string;
   publisherName?: string;
+  publisherInstagram?: string;
+  publisherFacebook?: string;
 }
 
 // Anuncios: eventos, avisos barriales, sponsors, promos, comunicados, ferias,

@@ -14,14 +14,20 @@ interface PageProps {
 }
 
 type ListingWithPublisher = ListingRow & {
-  profiles: { full_name: string | null; nickname: string | null; whatsapp_number: string | null } | null;
+  profiles: {
+    full_name: string | null;
+    nickname: string | null;
+    whatsapp_number: string | null;
+    instagram_url: string | null;
+    facebook_url: string | null;
+  } | null;
 };
 
 async function getListing(id: string): Promise<ListingWithPublisher | null> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("listings")
-    .select("*, profiles(full_name, nickname, whatsapp_number)")
+    .select("*, profiles(full_name, nickname, whatsapp_number, instagram_url, facebook_url)")
     .eq("id", id)
     .eq("status", "activa")
     .maybeSingle();
@@ -130,9 +136,23 @@ export default async function PublicacionPage({ params }: PageProps) {
               {listing.zona}
               {listing.cuadrante ? ` ${listing.cuadrante}` : ""}
             </p>
-            <p className="mb-4 text-[13px] text-tinta-suave">
+            <p className="mb-2 text-[13px] text-tinta-suave">
               Publica <span className="font-medium text-tinta">{nombrePublicador}</span>
             </p>
+            {(listing.profiles?.instagram_url || listing.profiles?.facebook_url) && (
+              <div className="mb-3 flex items-center gap-2.5">
+                {listing.profiles.instagram_url && (
+                  <a href={listing.profiles.instagram_url} target="_blank" rel="noreferrer" aria-label="Instagram">
+                    <i className="ti ti-brand-instagram text-lg text-tinta-suave" aria-hidden />
+                  </a>
+                )}
+                {listing.profiles.facebook_url && (
+                  <a href={listing.profiles.facebook_url} target="_blank" rel="noreferrer" aria-label="Facebook">
+                    <i className="ti ti-brand-facebook text-lg text-tinta-suave" aria-hidden />
+                  </a>
+                )}
+              </div>
+            )}
             <ContactarPublicacionButton
               listingId={id}
               nombre={listing.nombre}

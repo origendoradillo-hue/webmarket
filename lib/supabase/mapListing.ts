@@ -16,6 +16,8 @@ interface PublisherInfo {
   nickname?: string | null;
   rating_promedio?: number | null;
   resenas_count?: number | null;
+  instagram_url?: string | null;
+  facebook_url?: string | null;
 }
 
 export function mapListingRow(row: ListingRow, publisher: PublisherInfo | null, categories: Record<string, Category>): Listing {
@@ -57,5 +59,7 @@ export function mapListingRow(row: ListingRow, publisher: PublisherInfo | null, 
     whatsappPublico: row.whatsapp_publico,
     publisherId: row.publisher_id,
     publisherName: nombrePublicador,
+    publisherInstagram: publisher?.instagram_url || undefined,
+    publisherFacebook: publisher?.facebook_url || undefined,
   };
 }

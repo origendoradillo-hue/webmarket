@@ -17,6 +17,8 @@ export interface Database {
           rating_promedio: number | null;
           resenas_count: number;
           nickname: string | null;
+          instagram_url: string | null;
+          facebook_url: string | null;
           created_at: string;
         };
         Insert: {
@@ -31,6 +33,8 @@ export interface Database {
           must_change_password?: boolean;
           zona?: string | null;
           nickname?: string | null;
+          instagram_url?: string | null;
+          facebook_url?: string | null;
         };
         Relationships: [];
       };

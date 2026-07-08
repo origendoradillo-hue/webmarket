@@ -290,6 +290,20 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, user, o
                 {isVecino ? "Vecino verificado" : "Emprendimiento verificado"} · {l.zona}
               </div>
             </div>
+            {(l.publisherInstagram || l.publisherFacebook) && (
+              <div className="ml-auto flex flex-shrink-0 items-center gap-2.5">
+                {l.publisherInstagram && (
+                  <a href={l.publisherInstagram} target="_blank" rel="noreferrer" aria-label="Instagram">
+                    <i className="ti ti-brand-instagram text-lg text-tinta-suave" aria-hidden />
+                  </a>
+                )}
+                {l.publisherFacebook && (
+                  <a href={l.publisherFacebook} target="_blank" rel="noreferrer" aria-label="Facebook">
+                    <i className="ti ti-brand-facebook text-lg text-tinta-suave" aria-hidden />
+                  </a>
+                )}
+              </div>
+            )}
           </div>
 
           {user && user.id === listing.publisherId ? (

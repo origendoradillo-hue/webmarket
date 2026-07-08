@@ -40,6 +40,8 @@ export default function ProfileModal({ open, onClose, user }: ProfileModalProps)
   const [nickname, setNickname] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [zona, setZona] = useState("");
+  const [instagram, setInstagram] = useState("");
+  const [facebook, setFacebook] = useState("");
   const [verificationLevel, setVerificationLevel] = useState(1);
   const [lastRequest, setLastRequest] = useState<LastRequest>(null);
 
@@ -68,7 +70,11 @@ export default function ProfileModal({ open, onClose, user }: ProfileModalProps)
 
     const supabase = createClient();
     Promise.all([
-      supabase.from("profiles").select("full_name, nickname, whatsapp_number, verification_level, zona").eq("id", user.id).single(),
+      supabase
+        .from("profiles")
+        .select("full_name, nickname, whatsapp_number, verification_level, zona, instagram_url, facebook_url")
+        .eq("id", user.id)
+        .single(),
       supabase
         .from("user_verifications")
         .select("nivel_solicitado, estado, nota_revision")
@@ -82,6 +88,8 @@ export default function ProfileModal({ open, onClose, user }: ProfileModalProps)
         setNickname(profileRes.data.nickname ?? "");
         setWhatsapp(profileRes.data.whatsapp_number ?? "");
         setZona(profileRes.data.zona ?? "");
+        setInstagram(profileRes.data.instagram_url ?? "");
+        setFacebook(profileRes.data.facebook_url ?? "");
         setVerificationLevel(profileRes.data.verification_level ?? 1);
       }
       setLastRequest(verifRes.data ?? null);
@@ -99,7 +107,14 @@ export default function ProfileModal({ open, onClose, user }: ProfileModalProps)
     const supabase = createClient();
     const { error } = await supabase
       .from("profiles")
-      .update({ full_name: fullName.trim(), nickname: nickname.trim() || null, whatsapp_number: whatsapp.trim(), zona: zona || null })
+      .update({
+        full_name: fullName.trim(),
+        nickname: nickname.trim() || null,
+        whatsapp_number: whatsapp.trim(),
+        zona: zona || null,
+        instagram_url: instagram.trim() || null,
+        facebook_url: facebook.trim() || null,
+      })
       .eq("id", user.id);
     if (error) {
       setProfileStatus("error");
@@ -231,6 +246,25 @@ export default function ProfileModal({ open, onClose, user }: ProfileModalProps)
                     </option>
                   ))}
                 </select>
+              </Field>
+              <Field label="Instagram (opcional)">
+                <input
+                  type="url"
+                  placeholder="https://instagram.com/tu-usuario"
+                  value={instagram}
+                  onChange={(e) => setInstagram(e.target.value)}
+                  className="w-full rounded-lg border border-piedra/70 px-3 py-2.5 text-[13.5px] text-tinta"
+                />
+              </Field>
+              <Field label="Facebook (opcional)">
+                <input
+                  type="url"
+                  placeholder="https://facebook.com/tu-pagina"
+                  value={facebook}
+                  onChange={(e) => setFacebook(e.target.value)}
+                  className="w-full rounded-lg border border-piedra/70 px-3 py-2.5 text-[13.5px] text-tinta"
+                />
+                <p className="mt-1 text-[11px] text-tinta-suave">Se muestran en todas tus publicaciones.</p>
               </Field>
               <StatusMessage status={profileStatus} message={profileMessage} />
               <button
