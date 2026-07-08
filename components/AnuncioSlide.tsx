@@ -138,6 +138,57 @@ function DefaultFondo() {
   );
 }
 
+// Escena ilustrada de "cartel de campo": cielo, meseta lejana, lomas,
+// franja de agua (el golfo), duna, camino de tierra, pastos y alambrado.
+// No es una foto real (no puedo generar fotografía) — es la ilustración
+// de marca que reemplaza al fondo liso cuando el admin no subió una
+// imagen de fondo propia.
+function CartelDeCampoFondo() {
+  return (
+    <svg viewBox="0 0 480 600" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 h-full w-full" aria-hidden>
+      <defs>
+        <linearGradient id="cartelCielo" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#AFC2C4" />
+          <stop offset="70%" stopColor="#E9E1CF" />
+          <stop offset="100%" stopColor="#F2EDE4" />
+        </linearGradient>
+      </defs>
+      <rect width="480" height="600" fill="url(#cartelCielo)" />
+      <path d="M0 250 L70 220 L150 245 L230 215 L320 240 L400 218 L480 235 V600 H0 Z" fill="#7C8A78" opacity="0.35" />
+      <path d="M0 300 Q120 265 240 295 T480 285 V600 H0 Z" fill="#8E9B7C" opacity="0.55" />
+      <rect x="0" y="330" width="480" height="14" fill="#4C6B70" opacity="0.4" />
+      <path d="M0 350 Q140 320 260 345 T480 335 V600 H0 Z" fill="#C9A672" opacity="0.55" />
+      <path d="M0 400 Q160 370 300 392 T480 380 V600 H0 Z" fill="#33402A" opacity="0.3" />
+      <path
+        d="M195 600 C205 520 215 470 235 420 C245 395 255 385 265 375 L285 380 C272 392 260 405 250 428 C230 478 222 525 218 600 Z"
+        fill="#EFE6D3"
+        opacity="0.55"
+      />
+      <g stroke="#2A331F" strokeWidth="2" opacity="0.55" strokeLinecap="round" fill="none">
+        <path d="M40 560 Q35 535 42 512" />
+        <path d="M55 562 Q52 540 58 518" />
+        <path d="M400 545 Q396 522 404 500" />
+        <path d="M415 548 Q412 528 418 508" />
+        <path d="M430 552 Q428 532 434 514" />
+      </g>
+      <g stroke="#5C3D2E" strokeWidth="3" opacity="0.5" strokeLinecap="round">
+        <line x1="30" y1="470" x2="30" y2="520" />
+        <line x1="70" y1="465" x2="70" y2="515" />
+        <line x1="30" y1="485" x2="70" y2="480" />
+      </g>
+    </svg>
+  );
+}
+
+function FlyerBadge() {
+  return (
+    <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-oliva/15 px-2.5 py-1 text-[10.5px] font-semibold text-oliva">
+      <i className="ti ti-photo text-xs" aria-hidden />
+      Flyer vertical integrado
+    </span>
+  );
+}
+
 function FlyerOnSignSlide({ a, priority }: SlideProps) {
   const [imgFailed, setImgFailed] = useState(false);
   const [bgFailed, setBgFailed] = useState(false);
@@ -145,7 +196,7 @@ function FlyerOnSignSlide({ a, priority }: SlideProps) {
 
   return (
     <SlideLink cta={cta} className="grid sm:grid-cols-2">
-      <div className="relative flex items-center justify-center overflow-hidden px-6 py-8 sm:py-10">
+      <div className="relative flex items-center justify-center overflow-hidden px-6 py-12 sm:py-14">
         {a.backgroundImagen && !bgFailed ? (
           <Image
             src={a.backgroundImagen}
@@ -157,10 +208,23 @@ function FlyerOnSignSlide({ a, priority }: SlideProps) {
             onError={() => setBgFailed(true)}
           />
         ) : (
-          <DefaultFondo />
+          <CartelDeCampoFondo />
         )}
-        <div className="absolute inset-0 bg-oliva-dd/25" />
-        <div className="relative flex flex-col items-center">
+        <div className="absolute inset-0 bg-oliva-dd/10" />
+        <div className="relative flex w-full max-w-[300px] flex-col items-center sm:max-w-[240px]">
+          {/* Cartel: dos postes + travesaño del que "cuelga" el tablero con el flyer */}
+          <div
+            className="absolute -top-4 left-1/2 h-[3px] w-[calc(100%+30px)] -translate-x-1/2 rounded-full bg-nogal shadow-sm"
+            aria-hidden
+          />
+          <div className="absolute -top-4 bottom-1 left-0 w-[3px] -translate-x-[15px] rounded-full bg-nogal" aria-hidden />
+          <div className="absolute -top-4 bottom-1 right-0 w-[3px] translate-x-[15px] rounded-full bg-nogal" aria-hidden />
+          <span className="absolute -top-4 left-3 h-4 w-px bg-nogal/70" aria-hidden />
+          <span className="absolute -top-4 right-3 h-4 w-px bg-nogal/70" aria-hidden />
+          <div className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-oliva-dd px-2 py-0.5 text-[8px] font-semibold uppercase tracking-wider text-dorado shadow">
+            Origen El Doradillo
+          </div>
+
           <div className="relative aspect-[4/5] w-full max-w-[300px] overflow-hidden rounded-md border-[3px] border-dorado bg-hueso-2 shadow-xl sm:max-w-[240px]">
             {a.imagen && !imgFailed ? (
               <Image
@@ -178,17 +242,12 @@ function FlyerOnSignSlide({ a, priority }: SlideProps) {
               </div>
             )}
           </div>
-          {/* Postes del cartel: sugieren que el flyer está montado sobre un soporte, no flotando */}
-          <div className="flex w-full max-w-[260px] justify-between px-7 sm:max-w-[210px]" aria-hidden>
-            <span className="h-4 w-1.5 rounded-b-sm bg-nogal/80" />
-            <span className="h-4 w-1.5 rounded-b-sm bg-nogal/80" />
-          </div>
-          <div className="mt-0.5 h-1.5 w-[70%] max-w-[220px] rounded-full bg-black/25 blur-[2px]" aria-hidden />
+          <div className="mt-2 h-1.5 w-[70%] max-w-[220px] rounded-full bg-black/25 blur-[2px]" aria-hidden />
         </div>
       </div>
 
       <div className="flex flex-col justify-center gap-2 bg-hueso-2 px-5 py-5 sm:px-8 sm:py-7">
-        <TipoBadge tipo={a.tipo} />
+        <FlyerBadge />
         <h3 className="font-slab text-lg font-semibold leading-tight text-tinta sm:text-xl">{a.titulo}</h3>
         <p className="text-[13px] leading-relaxed text-tinta-suave sm:text-[13.5px]">{a.descripcion}</p>
         <FechaLugar a={a} />
