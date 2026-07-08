@@ -17,7 +17,8 @@ import type {
   ZoneRow,
 } from "@/lib/supabase/types";
 import { REPORT_MOTIVO_LABELS, requiereSuspensionReciproca } from "@/lib/reportMotivos";
-import type { Anuncio, AnuncioLayoutType, ImageOrientation } from "@/lib/types";
+import type { Anuncio, AnuncioLayoutType, ImageOrientation, TipoPublicacion } from "@/lib/types";
+import { TIPO_OPTIONS } from "@/lib/tipos";
 import AnuncioSlide from "./AnuncioSlide";
 
 type Tab =
@@ -172,8 +173,6 @@ interface AdminClientProps {
   role: string;
   currentUserId: string;
 }
-
-const TIPO_OPTIONS = ["producto", "servicio", "experiencia", "inmueble", "usado", "emprendimiento", "otro"];
 
 export default function AdminClient({ role, currentUserId }: AdminClientProps) {
   const { categories } = useCategories();
@@ -510,8 +509,8 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
                 >
                   <option value="todos">Todos los tipos</option>
                   {TIPO_OPTIONS.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
+                    <option key={t.value} value={t.value}>
+                      {t.label}
                     </option>
                   ))}
                 </select>
@@ -887,6 +886,7 @@ function CategoriasAdmin() {
   const [loading, setLoading] = useState(true);
   const [newCatLabel, setNewCatLabel] = useState("");
   const [newCatIcon, setNewCatIcon] = useState("");
+  const [newCatTipos, setNewCatTipos] = useState<TipoPublicacion[]>([]);
   const [newSubLabel, setNewSubLabel] = useState<Record<string, string>>({});
   const [newZoneLabel, setNewZoneLabel] = useState("");
 
@@ -926,6 +926,7 @@ function CategoriasAdmin() {
       label: newCatLabel.trim(),
       icon: newCatIcon.trim(),
       orden: categories.length + 1,
+      tipo_scope: newCatTipos,
     });
     if (error) {
       alert(error.message);
@@ -933,6 +934,7 @@ function CategoriasAdmin() {
     }
     setNewCatLabel("");
     setNewCatIcon("");
+    setNewCatTipos([]);
     load();
   }
 
@@ -944,11 +946,17 @@ function CategoriasAdmin() {
     else load();
   }
 
-  async function updateCategory(id: string, patch: { label?: string; icon?: string }) {
+  async function updateCategory(id: string, patch: { label?: string; icon?: string; tipo_scope?: string[] }) {
     const supabase = createClient();
     const { error } = await supabase.from("categories").update(patch).eq("id", id);
     if (error) alert(error.message);
     else load();
+  }
+
+  function toggleCategoryTipo(c: CategoryRow, t: TipoPublicacion) {
+    const current = c.tipo_scope || [];
+    const next = current.includes(t) ? current.filter((x) => x !== t) : [...current, t];
+    updateCategory(c.id, { tipo_scope: next });
   }
 
   async function addSub(categoryId: string) {
@@ -1009,57 +1017,66 @@ function CategoriasAdmin() {
     <div className="flex flex-col gap-6">
       <div>
         <h2 className="mb-2 font-slab text-sm font-semibold uppercase tracking-wide text-piedra">Categorías</h2>
-        <div className="flex flex-col gap-2">
-          {categories.map((c) => (
-            <div key={c.id} className="rounded-lg border border-piedra/50 bg-white p-3">
-              <div className="mb-2 flex flex-wrap items-center gap-2">
-                <i className={`ti ${c.icon} text-oliva`} aria-hidden />
-                <input
-                  defaultValue={c.label}
-                  onBlur={(e) => e.target.value.trim() !== c.label && updateCategory(c.id, { label: e.target.value.trim() })}
-                  className="flex-1 rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
-                />
-                <input
-                  defaultValue={c.icon}
-                  onBlur={(e) => e.target.value.trim() !== c.icon && updateCategory(c.id, { icon: e.target.value.trim() })}
-                  placeholder="ti-icono"
-                  className="w-32 rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
-                />
-                <button onClick={() => deleteCategory(c.id)} className="rounded-lg border border-red-700 px-2 py-1.5 text-xs text-red-700">
-                  Eliminar
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {subs
-                  .filter((s) => s.category_id === c.id)
-                  .map((s) => (
-                    <span key={s.id} className="flex items-center gap-1 rounded-full bg-hueso-2 px-2.5 py-1 text-[11px] text-tinta">
-                      {s.label}
-                      <button onClick={() => deleteSub(s.id)} aria-label="Quitar subcategoría">
-                        <i className="ti ti-x text-[10px]" aria-hidden />
-                      </button>
-                    </span>
-                  ))}
-              </div>
-              <div className="mt-2 flex gap-1.5">
-                <input
-                  value={newSubLabel[c.id] || ""}
-                  onChange={(e) => setNewSubLabel((p) => ({ ...p, [c.id]: e.target.value }))}
-                  placeholder="Nueva subcategoría"
-                  className="flex-1 rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
-                />
-                <button onClick={() => addSub(c.id)} className="rounded-lg border border-oliva px-2.5 py-1.5 text-xs text-oliva">
-                  Agregar
-                </button>
+        <p className="mb-3 text-[11px] text-tinta-suave">
+          Cada categoría pertenece a uno o más Tipos de publicación — eso decide en qué Tipo la ve quien publica o filtra.
+          Se agrupan abajo por Tipo (una categoría con varios tipos marcados aparece en más de un grupo).
+        </p>
+        {TIPO_OPTIONS.map((t) => {
+          const catsForTipo = categories.filter((c) => (c.tipo_scope || []).includes(t.value));
+          if (catsForTipo.length === 0) return null;
+          return (
+            <div key={t.value} className="mb-4">
+              <h3 className="mb-1.5 flex items-center gap-1.5 text-[12px] font-semibold text-oliva">
+                <i className={`ti ${t.icon}`} aria-hidden /> {t.label}
+              </h3>
+              <div className="flex flex-col gap-2">
+                {catsForTipo.map((c) => (
+                  <CategoryCard
+                    key={c.id}
+                    c={c}
+                    subs={subs.filter((s) => s.category_id === c.id)}
+                    newSubLabel={newSubLabel[c.id] || ""}
+                    onNewSubLabelChange={(v) => setNewSubLabel((p) => ({ ...p, [c.id]: v }))}
+                    onAddSub={() => addSub(c.id)}
+                    onDeleteSub={deleteSub}
+                    onUpdate={updateCategory}
+                    onDelete={() => deleteCategory(c.id)}
+                    onToggleTipo={(t2) => toggleCategoryTipo(c, t2)}
+                  />
+                ))}
               </div>
             </div>
-          ))}
-        </div>
+          );
+        })}
+        {categories.some((c) => (c.tipo_scope || []).length === 0) && (
+          <div className="mb-4">
+            <h3 className="mb-1.5 text-[12px] font-semibold text-piedra">Sin tipo asignado</h3>
+            <div className="flex flex-col gap-2">
+              {categories
+                .filter((c) => (c.tipo_scope || []).length === 0)
+                .map((c) => (
+                  <CategoryCard
+                    key={c.id}
+                    c={c}
+                    subs={subs.filter((s) => s.category_id === c.id)}
+                    newSubLabel={newSubLabel[c.id] || ""}
+                    onNewSubLabelChange={(v) => setNewSubLabel((p) => ({ ...p, [c.id]: v }))}
+                    onAddSub={() => addSub(c.id)}
+                    onDeleteSub={deleteSub}
+                    onUpdate={updateCategory}
+                    onDelete={() => deleteCategory(c.id)}
+                    onToggleTipo={(t2) => toggleCategoryTipo(c, t2)}
+                  />
+                ))}
+            </div>
+          </div>
+        )}
         <div className="mt-3 rounded-lg border border-dashed border-piedra/70 p-3">
           <p className="mb-2 text-[11px] text-tinta-suave">
-            Solo hace falta el nombre y un ícono — el identificador interno se genera solo a partir del nombre.
+            Solo hace falta el nombre, un ícono y al menos un tipo — el identificador interno se genera solo a partir del
+            nombre.
           </p>
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="mb-2 flex flex-wrap items-center gap-1.5">
             <input
               value={newCatLabel}
               onChange={(e) => setNewCatLabel(e.target.value)}
@@ -1079,12 +1096,28 @@ function CategoriasAdmin() {
                 <option key={i} value={i} />
               ))}
             </datalist>
-            <button onClick={addCategory} className="rounded-lg bg-oliva px-3 py-1.5 text-xs font-semibold text-hueso">
-              Agregar categoría
-            </button>
           </div>
+          <div className="mb-2 flex flex-wrap gap-1.5">
+            {TIPO_OPTIONS.map((t) => (
+              <button
+                key={t.value}
+                type="button"
+                onClick={() =>
+                  setNewCatTipos((prev) => (prev.includes(t.value) ? prev.filter((x) => x !== t.value) : [...prev, t.value]))
+                }
+                className={`rounded-full border px-2.5 py-1 text-[11px] ${
+                  newCatTipos.includes(t.value) ? "border-oliva bg-oliva text-hueso" : "border-piedra/60 bg-white text-tinta"
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+          <button onClick={addCategory} className="rounded-lg bg-oliva px-3 py-1.5 text-xs font-semibold text-hueso">
+            Agregar categoría
+          </button>
           <p className="mt-1.5 text-[11px] text-tinta-suave">
-            Elegí uno de la lista o mirá los nombres disponibles en{" "}
+            Elegí un ícono de la lista o mirá los nombres disponibles en{" "}
             <a href="https://tabler.io/icons" target="_blank" rel="noreferrer" className="text-golfo underline">
               tabler.io/icons
             </a>
@@ -1122,6 +1155,85 @@ function CategoriasAdmin() {
             Agregar
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function CategoryCard({
+  c,
+  subs,
+  newSubLabel,
+  onNewSubLabelChange,
+  onAddSub,
+  onDeleteSub,
+  onUpdate,
+  onDelete,
+  onToggleTipo,
+}: {
+  c: CategoryRow;
+  subs: SubcategoryRow[];
+  newSubLabel: string;
+  onNewSubLabelChange: (v: string) => void;
+  onAddSub: () => void;
+  onDeleteSub: (id: string) => void;
+  onUpdate: (id: string, patch: { label?: string; icon?: string }) => void;
+  onDelete: () => void;
+  onToggleTipo: (t: TipoPublicacion) => void;
+}) {
+  return (
+    <div className="rounded-lg border border-piedra/50 bg-white p-3">
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <i className={`ti ${c.icon} text-oliva`} aria-hidden />
+        <input
+          defaultValue={c.label}
+          onBlur={(e) => e.target.value.trim() !== c.label && onUpdate(c.id, { label: e.target.value.trim() })}
+          className="flex-1 rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
+        />
+        <input
+          defaultValue={c.icon}
+          onBlur={(e) => e.target.value.trim() !== c.icon && onUpdate(c.id, { icon: e.target.value.trim() })}
+          placeholder="ti-icono"
+          className="w-32 rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
+        />
+        <button onClick={onDelete} className="rounded-lg border border-red-700 px-2 py-1.5 text-xs text-red-700">
+          Eliminar
+        </button>
+      </div>
+      <div className="mb-2 flex flex-wrap gap-1.5">
+        {TIPO_OPTIONS.map((t) => (
+          <button
+            key={t.value}
+            type="button"
+            onClick={() => onToggleTipo(t.value)}
+            className={`rounded-full border px-2 py-0.5 text-[10.5px] ${
+              (c.tipo_scope || []).includes(t.value) ? "border-oliva bg-oliva text-hueso" : "border-piedra/60 bg-white text-tinta-suave"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {subs.map((s) => (
+          <span key={s.id} className="flex items-center gap-1 rounded-full bg-hueso-2 px-2.5 py-1 text-[11px] text-tinta">
+            {s.label}
+            <button onClick={() => onDeleteSub(s.id)} aria-label="Quitar subcategoría">
+              <i className="ti ti-x text-[10px]" aria-hidden />
+            </button>
+          </span>
+        ))}
+      </div>
+      <div className="mt-2 flex gap-1.5">
+        <input
+          value={newSubLabel}
+          onChange={(e) => onNewSubLabelChange(e.target.value)}
+          placeholder="Nueva subcategoría"
+          className="flex-1 rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
+        />
+        <button onClick={onAddSub} className="rounded-lg border border-oliva px-2.5 py-1.5 text-xs text-oliva">
+          Agregar
+        </button>
       </div>
     </div>
   );
@@ -1413,11 +1525,13 @@ function AdminListingRow({
                 className="w-full rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
               >
                 <option value="">(sin categoría)</option>
-                {Object.entries(categories).map(([key, c]) => (
-                  <option key={key} value={key}>
-                    {c.label}
-                  </option>
-                ))}
+                {Object.entries(categories)
+                  .filter(([, c]) => !l.tipo || c.tipoScope.includes(l.tipo as TipoPublicacion))
+                  .map(([key, c]) => (
+                    <option key={key} value={key}>
+                      {c.label}
+                    </option>
+                  ))}
               </select>
             </div>
             <LabeledInput label="Subcategoría" value={form.subcategoria} onChange={(v) => setForm({ ...form, subcategoria: v })} />
