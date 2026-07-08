@@ -5,6 +5,8 @@ import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import type { ListingRow } from "@/lib/supabase/types";
 import { REPORT_MOTIVO_LABELS } from "@/lib/reportMotivos";
+import { SITE_URL } from "@/lib/seo";
+import ShareButton from "./ShareButton";
 
 interface ListingReport {
   id: string;
@@ -314,6 +316,26 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
                         </p>
                       )}
                       <div className="mb-2.5 flex flex-wrap gap-2">
+                        {l.status === "activa" && (
+                          <a
+                            href={`/publicacion/${l.id}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex items-center gap-1.5 rounded-lg border border-piedra/70 bg-white px-3 py-1.5 text-[12px] font-medium text-tinta"
+                          >
+                            <i className="ti ti-external-link text-sm" aria-hidden />
+                            Ver publicación
+                          </a>
+                        )}
+                        {l.status === "activa" && (
+                          <ShareButton
+                            url={`${SITE_URL}/publicacion/${l.id}`}
+                            title={l.nombre}
+                            text={l.descripcion.slice(0, 120)}
+                            className="flex items-center gap-1.5 rounded-lg border border-piedra/70 bg-white px-3 py-1.5 text-[12px] font-medium text-tinta"
+                            label="Compartir"
+                          />
+                        )}
                         {l.status === "activa" && (
                           <ActionButton onClick={() => changeStatus(l, "pausada")} busy={statusBusyId === l.id} icon="ti-player-pause">
                             Pausar

@@ -17,6 +17,7 @@ export default function HomeEntryButtons({ onExplorar, onOfrezco, onBusco, onPub
       >
         <i className="ti ti-compass mb-1 block text-xl text-oliva" aria-hidden />
         <span>Estoy mirando</span>
+        <span className="mt-0.5 block text-[10.5px] font-normal text-tinta-suave">Explorá todo lo que hay</span>
       </button>
       <button
         type="button"
@@ -25,6 +26,7 @@ export default function HomeEntryButtons({ onExplorar, onOfrezco, onBusco, onPub
       >
         <i className="ti ti-plus mb-1 block text-xl" aria-hidden />
         <span>Publicar</span>
+        <span className="mt-0.5 block text-[10.5px] font-normal text-hueso/80">Gratis y al instante</span>
       </button>
       <button
         type="button"
@@ -33,6 +35,7 @@ export default function HomeEntryButtons({ onExplorar, onOfrezco, onBusco, onPub
       >
         <i className="ti ti-tag mb-1 block text-xl" aria-hidden />
         <span>Se ofrece</span>
+        <span className="mt-0.5 block text-[10.5px] font-normal text-hueso/80">Productos y servicios</span>
       </button>
       <button
         type="button"
@@ -41,6 +44,7 @@ export default function HomeEntryButtons({ onExplorar, onOfrezco, onBusco, onPub
       >
         <i className="ti ti-search mb-1 block text-xl" aria-hidden />
         <span>Se busca</span>
+        <span className="mt-0.5 block text-[10.5px] font-normal text-hueso/80">Pedí lo que necesitás</span>
       </button>
     </div>
   );
