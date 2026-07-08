@@ -471,6 +471,27 @@ export interface Database {
         Args: { p_listing_id: string; p_status: string };
         Returns: undefined;
       };
+      crear_borrador: {
+        Args: {
+          p_intencion: string;
+          p_tipo?: string | null;
+          p_categoria?: string | null;
+          p_subcategoria?: string | null;
+          p_zona?: string | null;
+          p_cuadrante?: string | null;
+          p_direccion?: string | null;
+          p_nombre?: string | null;
+          p_descripcion?: string | null;
+          p_foto_url?: string | null;
+          p_modalidad?: string[] | null;
+          p_tags?: string[] | null;
+          p_etiquetas?: string[] | null;
+          p_precio?: number | null;
+          p_precio_a_consultar?: boolean | null;
+          p_whatsapp_publico?: boolean | null;
+        };
+        Returns: string;
+      };
       mi_update_listing: {
         Args: {
           p_listing_id: string;

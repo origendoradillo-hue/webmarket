@@ -225,6 +225,15 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
     await loadListings();
   }
 
+  async function publicarBorrador(l: ListingRow) {
+    if (!editForm || editForm.zona.trim() === "") {
+      alert("Completá el barrio antes de publicar.");
+      return;
+    }
+    await handleSave(l);
+    await changeStatus(l, "activa");
+  }
+
   async function changeStatus(l: ListingRow, status: "activa" | "pausada" | "eliminada") {
     if (status === "eliminada" && !confirm("¿Eliminar esta publicación? No se puede deshacer.")) return;
     setStatusBusyId(l.id);
@@ -315,7 +324,18 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
                           {new Date(l.expires_at).toLocaleDateString("es-AR")}
                         </p>
                       )}
+                      {l.status === "borrador" && (
+                        <p className="mb-2.5 text-[12px] leading-relaxed text-tinta-suave">
+                          Todavía no está publicada. Completá los datos que falten y tocá &quot;Publicar&quot; para que
+                          sea visible en el sitio.
+                        </p>
+                      )}
                       <div className="mb-2.5 flex flex-wrap gap-2">
+                        {l.status === "borrador" && (
+                          <ActionButton onClick={() => publicarBorrador(l)} busy={saving || statusBusyId === l.id} icon="ti-send">
+                            Publicar
+                          </ActionButton>
+                        )}
                         {l.status === "activa" && (
                           <a
                             href={`/publicacion/${l.id}`}

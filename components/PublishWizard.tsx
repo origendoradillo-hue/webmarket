@@ -327,7 +327,63 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
 
   function goBack() {
     if (stepIndex > 0) setStepIndex(stepIndex - 1);
-    else onClose();
+    else attemptClose();
+  }
+
+  function attemptClose() {
+    if (submitting) return;
+    if (data.nombre.trim() !== "" && confirm("¿Guardar como borrador para seguir después?")) {
+      handleSaveBorrador();
+      return;
+    }
+    onClose();
+  }
+
+  async function handleSaveBorrador() {
+    setSubmitting(true);
+    const supabase = createClient();
+    try {
+      const fotoUrls: string[] = [];
+      for (const fotoData of data.fotosData) {
+        const blob = await (await fetch(fotoData)).blob();
+        const path = `${user.id}/${Date.now()}-${fotoUrls.length}.jpg`;
+        const { error: uploadError } = await supabase.storage.from("listing-photos").upload(path, blob, {
+          contentType: blob.type || "image/jpeg",
+        });
+        if (uploadError) throw uploadError;
+        fotoUrls.push(supabase.storage.from("listing-photos").getPublicUrl(path).data.publicUrl);
+      }
+
+      const { error } = await supabase.rpc("crear_borrador", {
+        p_intencion: data.intencion!,
+        p_tipo: data.tipo,
+        p_categoria: data.cat,
+        p_subcategoria: data.sub,
+        p_zona: data.zona,
+        p_cuadrante: data.cuadrante,
+        p_direccion: data.direccion || null,
+        p_nombre: data.nombre,
+        p_descripcion: data.desc,
+        p_foto_url: fotoUrls[0] ?? null,
+        p_modalidad: data.modalidad,
+        p_tags: data.tags
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean),
+        p_etiquetas: data.etiquetas,
+        p_precio: data.precio.trim() === "" ? null : Number(data.precio),
+        p_precio_a_consultar: data.precioConsultar,
+        p_whatsapp_publico: data.whatsappPublico,
+      });
+      if (error) throw error;
+
+      onPublished();
+      onClose();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "No se pudo guardar el borrador.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   const isFirst = stepIndex === 0;
@@ -338,7 +394,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
   return (
     <div
       className="fixed inset-0 z-50 flex items-stretch justify-center bg-oliva-dd/55 sm:items-center sm:p-6"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
+      onClick={(e) => e.target === e.currentTarget && attemptClose()}
     >
       <div className="flex h-full w-full flex-col bg-white sm:h-auto sm:max-h-[90vh] sm:max-w-md sm:rounded-2xl">
         {stepIndex === -1 ? (
