@@ -67,10 +67,21 @@ function FechaLugar({ a }: { a: Anuncio }) {
   if (a.fechaEvento) parts.push(new Date(a.fechaEvento).toLocaleDateString("es-AR", { timeZone: "UTC" }));
   if (lugarTrim && !esLink) parts.push(lugarTrim);
   if (mapsUrl) {
+    // Botón, no <a>: la tarjeta entera puede ser un link (SlideLink) cuando
+    // hay CTA, y un <a> anidado dentro de otro <a> es HTML inválido.
     parts.push(
-      <a key="maps" href={mapsUrl} target="_blank" rel="noreferrer" className="underline">
+      <button
+        key="maps"
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          window.open(mapsUrl, "_blank", "noreferrer");
+        }}
+        className="underline"
+      >
         Ver en mapa
-      </a>
+      </button>
     );
   }
 
@@ -88,15 +99,42 @@ function FechaLugar({ a }: { a: Anuncio }) {
 
 function CtaButton({ cta }: { cta: Cta }) {
   return (
-    <a
-      href={cta.href}
-      target="_blank"
-      rel="noreferrer"
-      className="mt-1 inline-flex w-fit items-center gap-1.5 rounded-lg bg-dorado px-4 py-2 text-[12.5px] font-semibold text-oliva-dd transition hover:brightness-95"
-    >
+    <span className="mt-1 inline-flex w-fit items-center gap-1.5 rounded-lg bg-dorado px-4 py-2 text-[12.5px] font-semibold text-oliva-dd transition group-hover:brightness-95">
       {cta.label}
       <i className="ti ti-arrow-right text-sm" aria-hidden />
+    </span>
+  );
+}
+
+// Toda la tarjeta se vuelve clickeable cuando hay CTA (antes solo lo era
+// el botón interno) — así se puede "ver más información" tocando
+// cualquier parte del anuncio, no solo un link chico.
+function SlideLink({ cta, className, children }: { cta: Cta | null; className: string; children: React.ReactNode }) {
+  if (!cta) return <div className={className}>{children}</div>;
+  return (
+    <a href={cta.href} target="_blank" rel="noreferrer" className={`group ${className}`}>
+      {children}
     </a>
+  );
+}
+
+// Fondo institucional por defecto para flyer_on_sign / background_image
+// cuando el admin todavía no cargó una foto de fondo propia — un paisaje
+// de estepa abstraído con los colores de la marca, en vez de un degradé liso.
+function DefaultFondo() {
+  return (
+    <svg
+      viewBox="0 0 400 300"
+      preserveAspectRatio="xMidYMid slice"
+      className="absolute inset-0 h-full w-full"
+      aria-hidden
+    >
+      <rect width="400" height="300" fill="#1C261C" />
+      <circle cx="322" cy="58" r="30" fill="#B8863E" opacity="0.28" />
+      <path d="M0 175 Q90 140 180 172 T400 158 V300 H0 Z" fill="#33402A" />
+      <path d="M0 215 Q110 185 230 213 T400 200 V300 H0 Z" fill="#2A331F" />
+      <path d="M0 255 Q130 232 260 252 T400 244 V300 H0 Z" fill="#232C1B" />
+    </svg>
   );
 }
 
@@ -106,9 +144,9 @@ function FlyerOnSignSlide({ a, priority }: SlideProps) {
   const cta = buildCta(a);
 
   return (
-    <div className="grid sm:grid-cols-2">
-      <div className="relative flex items-center justify-center overflow-hidden bg-gradient-to-br from-oliva-d via-oliva to-oliva-dd px-6 py-7 sm:py-10">
-        {a.backgroundImagen && !bgFailed && (
+    <SlideLink cta={cta} className="grid sm:grid-cols-2">
+      <div className="relative flex items-center justify-center overflow-hidden px-6 py-8 sm:py-10">
+        {a.backgroundImagen && !bgFailed ? (
           <Image
             src={a.backgroundImagen}
             alt=""
@@ -118,24 +156,34 @@ function FlyerOnSignSlide({ a, priority }: SlideProps) {
             sizes="(min-width: 640px) 50vw, 100vw"
             onError={() => setBgFailed(true)}
           />
+        ) : (
+          <DefaultFondo />
         )}
         <div className="absolute inset-0 bg-oliva-dd/25" />
-        <div className="relative mx-auto aspect-[4/5] w-full max-w-[300px] overflow-hidden rounded-md border-[3px] border-dorado bg-hueso-2 shadow-xl sm:max-w-[240px]">
-          {a.imagen && !imgFailed ? (
-            <Image
-              src={a.imagen}
-              alt={a.titulo}
-              fill
-              className="object-contain"
-              sizes="(min-width: 640px) 240px, 300px"
-              priority={priority}
-              onError={() => setImgFailed(true)}
-            />
-          ) : (
-            <div className="flex h-full items-center justify-center">
-              <i className="ti ti-photo-off text-4xl text-piedra" aria-hidden />
-            </div>
-          )}
+        <div className="relative flex flex-col items-center">
+          <div className="relative aspect-[4/5] w-full max-w-[300px] overflow-hidden rounded-md border-[3px] border-dorado bg-hueso-2 shadow-xl sm:max-w-[240px]">
+            {a.imagen && !imgFailed ? (
+              <Image
+                src={a.imagen}
+                alt={a.titulo}
+                fill
+                className="object-contain"
+                sizes="(min-width: 640px) 240px, 300px"
+                priority={priority}
+                onError={() => setImgFailed(true)}
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center">
+                <i className="ti ti-photo-off text-4xl text-piedra" aria-hidden />
+              </div>
+            )}
+          </div>
+          {/* Postes del cartel: sugieren que el flyer está montado sobre un soporte, no flotando */}
+          <div className="flex w-full max-w-[260px] justify-between px-7 sm:max-w-[210px]" aria-hidden>
+            <span className="h-4 w-1.5 rounded-b-sm bg-nogal/80" />
+            <span className="h-4 w-1.5 rounded-b-sm bg-nogal/80" />
+          </div>
+          <div className="mt-0.5 h-1.5 w-[70%] max-w-[220px] rounded-full bg-black/25 blur-[2px]" aria-hidden />
         </div>
       </div>
 
@@ -146,7 +194,7 @@ function FlyerOnSignSlide({ a, priority }: SlideProps) {
         <FechaLugar a={a} />
         {cta && <CtaButton cta={cta} />}
       </div>
-    </div>
+    </SlideLink>
   );
 }
 
@@ -155,7 +203,7 @@ function FullBannerSlide({ a, priority }: SlideProps) {
   const cta = buildCta(a);
 
   return (
-    <div className="relative h-44 w-full sm:h-64">
+    <SlideLink cta={cta} className="relative block h-44 w-full sm:h-64">
       {a.imagen && !imgFailed ? (
         <Image
           src={a.imagen}
@@ -167,9 +215,7 @@ function FullBannerSlide({ a, priority }: SlideProps) {
           onError={() => setImgFailed(true)}
         />
       ) : (
-        <div className="absolute inset-0 flex items-center justify-center bg-oliva-dd">
-          <i className="ti ti-speakerphone text-5xl text-dorado/80" aria-hidden />
-        </div>
+        <DefaultFondo />
       )}
       <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />
       <div className="absolute left-3 top-3">
@@ -185,7 +231,7 @@ function FullBannerSlide({ a, priority }: SlideProps) {
           </div>
         )}
       </div>
-    </div>
+    </SlideLink>
   );
 }
 
@@ -195,7 +241,7 @@ function BackgroundImageSlide({ a, priority }: SlideProps) {
   const bg = a.backgroundImagen || a.imagen;
 
   return (
-    <div className="relative h-52 w-full sm:h-72">
+    <SlideLink cta={cta} className="relative block h-52 w-full sm:h-72">
       {bg && !imgFailed ? (
         <Image
           src={bg}
@@ -208,7 +254,7 @@ function BackgroundImageSlide({ a, priority }: SlideProps) {
           onError={() => setImgFailed(true)}
         />
       ) : (
-        <div className="absolute inset-0 bg-gradient-to-br from-oliva-d via-oliva to-oliva-dd" />
+        <DefaultFondo />
       )}
       <div className="absolute inset-0 bg-oliva-dd/20" />
       <div className="absolute inset-x-3 bottom-3 max-w-[420px] rounded-xl bg-oliva-dd/92 p-4 shadow-lg sm:inset-x-auto sm:bottom-6 sm:left-6">
@@ -222,7 +268,7 @@ function BackgroundImageSlide({ a, priority }: SlideProps) {
           </div>
         )}
       </div>
-    </div>
+    </SlideLink>
   );
 }
 
@@ -230,7 +276,10 @@ function TextOnlySlide({ a }: SlideProps) {
   const cta = buildCta(a);
 
   return (
-    <div className="flex min-h-[176px] flex-col items-start justify-center gap-2 bg-oliva-dd px-5 py-6 sm:min-h-[220px] sm:px-10">
+    <SlideLink
+      cta={cta}
+      className="flex min-h-[176px] flex-col items-start justify-center gap-2 bg-oliva-dd px-5 py-6 sm:min-h-[220px] sm:px-10"
+    >
       <div className="flex h-11 w-11 items-center justify-center rounded-full bg-dorado/15">
         <i className={`ti ${TIPO_ICON[a.tipo]} text-xl text-dorado`} aria-hidden />
       </div>
@@ -239,7 +288,7 @@ function TextOnlySlide({ a }: SlideProps) {
       <p className="max-w-[560px] text-[13px] leading-relaxed text-white/85 sm:text-[13.5px]">{a.descripcion}</p>
       <FechaLugar a={a} />
       {cta && <CtaButton cta={cta} />}
-    </div>
+    </SlideLink>
   );
 }
 
