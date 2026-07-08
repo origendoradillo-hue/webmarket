@@ -24,6 +24,7 @@ import AnuncioRequestForm from "./AnuncioRequestForm";
 import AuthModal from "./AuthModal";
 import ProfileModal from "./ProfileModal";
 import MyListingsModal from "./MyListingsModal";
+import FavoritosModal from "./FavoritosModal";
 import ForcePasswordModal from "./ForcePasswordModal";
 import ReportListingModal from "./ReportListingModal";
 import ReviewModal from "./ReviewModal";
@@ -91,6 +92,8 @@ export default function HomeClient() {
   const [authMode, setAuthMode] = useState<"login" | "signup" | "forgot" | "reset">("login");
   const [profileOpen, setProfileOpen] = useState(false);
   const [myListingsOpen, setMyListingsOpen] = useState(false);
+  const [favoritosOpen, setFavoritosOpen] = useState(false);
+  const [favoritoIds, setFavoritoIds] = useState<Set<string>>(new Set());
   const [reportOpen, setReportOpen] = useState(false);
   const [reviewTarget, setReviewTarget] = useState<{ listingId: string; listingNombre: string; publisherName?: string } | null>(null);
   const [reviewReminder, setReviewReminder] = useState<{ listingId: string; nombre: string; publisherName: string } | null>(null);
@@ -216,6 +219,36 @@ export default function HomeClient() {
     setExpiryReminder({ nombre: data.nombre, diasRestantes });
   }, [user]);
 
+  const loadFavoritos = useCallback(async () => {
+    if (!user) {
+      setFavoritoIds(new Set());
+      return;
+    }
+    const supabase = createClient();
+    const { data } = await supabase.from("favoritos").select("listing_id").eq("user_id", user.id);
+    setFavoritoIds(new Set((data || []).map((f) => f.listing_id)));
+  }, [user]);
+
+  async function toggleFavorito(listingId: string) {
+    if (!user) {
+      openAuth();
+      return;
+    }
+    const supabase = createClient();
+    const isFavorito = favoritoIds.has(listingId);
+    setFavoritoIds((prev) => {
+      const next = new Set(prev);
+      if (isFavorito) next.delete(listingId);
+      else next.add(listingId);
+      return next;
+    });
+    if (isFavorito) {
+      await supabase.from("favoritos").delete().eq("user_id", user.id).eq("listing_id", listingId);
+    } else {
+      await supabase.from("favoritos").insert({ user_id: user.id, listing_id: listingId });
+    }
+  }
+
   useEffect(() => {
     loadRealListings();
     loadRealAnuncios();
@@ -232,7 +265,8 @@ export default function HomeClient() {
   useEffect(() => {
     loadReviewReminder();
     loadExpiryReminder();
-  }, [loadReviewReminder, loadExpiryReminder]);
+    loadFavoritos();
+  }, [loadReviewReminder, loadExpiryReminder, loadFavoritos]);
 
   useEffect(() => {
     if (window.location.search.includes("reset=1")) {
@@ -426,6 +460,7 @@ export default function HomeClient() {
         onOpenAuth={openAuth}
         onOpenProfile={() => setProfileOpen(true)}
         onOpenMyListings={() => setMyListingsOpen(true)}
+        onOpenFavoritos={() => setFavoritosOpen(true)}
         onSignOut={handleSignOut}
         isStaff={isStaff}
       />
@@ -537,8 +572,8 @@ export default function HomeClient() {
       <main className="mx-auto max-w-[1240px] px-4 pb-12 sm:px-7">
         {screen === "home" && (
           <>
-            <CuratedRow title="Selección Origen" icon="ti-sparkles" listings={seleccionOrigen.slice(0, 4)} onOpen={setActiveListing} />
-            <CuratedRow title="Productos destacados" icon="ti-star" listings={destacados.slice(0, 4)} onOpen={setActiveListing} />
+            <CuratedRow title="Selección Origen" icon="ti-sparkles" listings={seleccionOrigen.slice(0, 4)} onOpen={setActiveListing} favoritoIds={favoritoIds} onToggleFavorito={toggleFavorito} />
+            <CuratedRow title="Productos destacados" icon="ti-star" listings={destacados.slice(0, 4)} onOpen={setActiveListing} favoritoIds={favoritoIds} onToggleFavorito={toggleFavorito} />
           </>
         )}
 
@@ -549,12 +584,12 @@ export default function HomeClient() {
                 <AnuncioCarousel anuncios={anunciosCategoria} />
               </div>
             )}
-            <CuratedRow title="Selección Origen" icon="ti-sparkles" listings={seleccionOrigen} onOpen={setActiveListing} />
-            <CuratedRow title="Productos recientes" icon="ti-box" listings={productosRecientes} onOpen={setActiveListing} />
-            <CuratedRow title="Servicios disponibles" icon="ti-tools" listings={serviciosDisponibles} onOpen={setActiveListing} />
-            <CuratedRow title="Usados recientes" icon="ti-recycle" listings={usadosRecientes} onOpen={setActiveListing} />
-            <CuratedRow title="Emprendimientos destacados" icon="ti-building-store" listings={emprendimientosDestacados} onOpen={setActiveListing} />
-            <CuratedRow title="Búsquedas activas" icon="ti-search" listings={busquedasActivas} onOpen={setActiveListing} />
+            <CuratedRow title="Selección Origen" icon="ti-sparkles" listings={seleccionOrigen} onOpen={setActiveListing} favoritoIds={favoritoIds} onToggleFavorito={toggleFavorito} />
+            <CuratedRow title="Productos recientes" icon="ti-box" listings={productosRecientes} onOpen={setActiveListing} favoritoIds={favoritoIds} onToggleFavorito={toggleFavorito} />
+            <CuratedRow title="Servicios disponibles" icon="ti-tools" listings={serviciosDisponibles} onOpen={setActiveListing} favoritoIds={favoritoIds} onToggleFavorito={toggleFavorito} />
+            <CuratedRow title="Usados recientes" icon="ti-recycle" listings={usadosRecientes} onOpen={setActiveListing} favoritoIds={favoritoIds} onToggleFavorito={toggleFavorito} />
+            <CuratedRow title="Emprendimientos destacados" icon="ti-building-store" listings={emprendimientosDestacados} onOpen={setActiveListing} favoritoIds={favoritoIds} onToggleFavorito={toggleFavorito} />
+            <CuratedRow title="Búsquedas activas" icon="ti-search" listings={busquedasActivas} onOpen={setActiveListing} favoritoIds={favoritoIds} onToggleFavorito={toggleFavorito} />
           </div>
         )}
 
@@ -590,7 +625,12 @@ export default function HomeClient() {
                     </button>
                   ))}
                 </div>
-                <ListingGrid listings={filtered} onOpen={setActiveListing} />
+                <ListingGrid
+                  listings={filtered}
+                  onOpen={setActiveListing}
+                  favoritoIds={favoritoIds}
+                  onToggleFavorito={toggleFavorito}
+                />
               </>
             )}
           </div>
@@ -656,6 +696,18 @@ export default function HomeClient() {
             loadRealListings();
           }}
           user={user}
+        />
+      )}
+      {user && (
+        <FavoritosModal
+          open={favoritosOpen}
+          onClose={() => setFavoritosOpen(false)}
+          favoritoIds={favoritoIds}
+          onToggleFavorito={toggleFavorito}
+          onOpenListing={(l) => {
+            setFavoritosOpen(false);
+            setActiveListing(l);
+          }}
         />
       )}
       {user && <ForcePasswordModal open={mustChangePassword} user={user} onDone={() => setMustChangePassword(false)} />}

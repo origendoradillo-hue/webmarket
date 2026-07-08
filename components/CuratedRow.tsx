@@ -9,9 +9,11 @@ interface CuratedRowProps {
   icon?: string;
   listings: Listing[];
   onOpen: (l: Listing) => void;
+  favoritoIds?: Set<string>;
+  onToggleFavorito?: (id: string) => void;
 }
 
-export default function CuratedRow({ title, icon, listings, onOpen }: CuratedRowProps) {
+export default function CuratedRow({ title, icon, listings, onOpen, favoritoIds, onToggleFavorito }: CuratedRowProps) {
   const scrollerRef = useRef<HTMLDivElement>(null);
 
   if (listings.length === 0) return null;
@@ -30,7 +32,12 @@ export default function CuratedRow({ title, icon, listings, onOpen }: CuratedRow
         <div ref={scrollerRef} className="no-scrollbar flex gap-3 overflow-x-auto scroll-smooth pb-1">
           {listings.map((l) => (
             <div key={l.id} className="w-[210px] flex-shrink-0">
-              <ListingCard listing={l} onOpen={() => onOpen(l)} />
+              <ListingCard
+                listing={l}
+                onOpen={() => onOpen(l)}
+                isFavorito={favoritoIds?.has(String(l.id))}
+                onToggleFavorito={onToggleFavorito ? () => onToggleFavorito(String(l.id)) : undefined}
+              />
             </div>
           ))}
         </div>

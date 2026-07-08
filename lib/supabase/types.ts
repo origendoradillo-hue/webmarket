@@ -201,6 +201,19 @@ export interface Database {
         };
         Relationships: [];
       };
+      favoritos: {
+        Row: {
+          user_id: string;
+          listing_id: string;
+          created_at: string;
+        };
+        Insert: {
+          user_id: string;
+          listing_id: string;
+        };
+        Update: never;
+        Relationships: [];
+      };
       listing_images: {
         Row: {
           id: string;
@@ -557,3 +570,4 @@ export type ReviewRow = Database["public"]["Tables"]["reviews"]["Row"];
 export type ReviewReportRow = Database["public"]["Tables"]["review_reports"]["Row"];
 export type RenewalRequestRow = Database["public"]["Tables"]["renewal_requests"]["Row"];
 export type SupportRequestRow = Database["public"]["Tables"]["support_requests"]["Row"];
+export type FavoritoRow = Database["public"]["Tables"]["favoritos"]["Row"];

@@ -7,9 +7,11 @@ import { Listing } from "@/lib/types";
 interface ListingCardProps {
   listing: Listing;
   onOpen: () => void;
+  isFavorito?: boolean;
+  onToggleFavorito?: () => void;
 }
 
-export default function ListingCard({ listing: l, onOpen }: ListingCardProps) {
+export default function ListingCard({ listing: l, onOpen, isFavorito, onToggleFavorito }: ListingCardProps) {
   const fallbackColor = fallbackColorFor(l.id);
   const isVecino = l.tipoPublicador === "vecino";
   const isNegocio = l.tipoPublicador === "negocio";
@@ -49,10 +51,19 @@ export default function ListingCard({ listing: l, onOpen }: ListingCardProps) {
           />
         )}
 
-        <i
-          className="ti ti-heart absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-oliva-dd/50 text-[13px] text-white"
-          aria-hidden
-        />
+        {onToggleFavorito && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleFavorito();
+            }}
+            aria-label={isFavorito ? "Sacar de favoritos" : "Guardar en favoritos"}
+            className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-oliva-dd/50 text-[13px] text-white"
+          >
+            <i className={`ti ti-heart ${isFavorito ? "text-dorado" : ""}`} aria-hidden />
+          </button>
+        )}
 
         {isDemanda ? (
           <div className="absolute left-2 top-2 rounded-full bg-golfo px-2 py-1 text-[9px] font-medium text-hueso">Busco</div>
