@@ -32,7 +32,9 @@ export default function FavoritosModal({ open, onClose, favoritoIds, onToggleFav
     const supabase = createClient();
     const { data } = await supabase
       .from("listings")
-      .select("*, profiles(full_name, nickname, rating_promedio, resenas_count, instagram_url, facebook_url)")
+      .select(
+        "*, profiles!listings_publisher_id_fkey(full_name, nickname, rating_promedio, resenas_count, instagram_url, facebook_url)"
+      )
       .in("id", ids)
       .eq("status", "activa");
     const rows =

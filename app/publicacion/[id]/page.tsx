@@ -27,7 +27,7 @@ async function getListing(id: string): Promise<ListingWithPublisher | null> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("listings")
-    .select("*, profiles(full_name, nickname, whatsapp_number, instagram_url, facebook_url)")
+    .select("*, profiles!listings_publisher_id_fkey(full_name, nickname, whatsapp_number, instagram_url, facebook_url)")
     .eq("id", id)
     .eq("status", "activa")
     .maybeSingle();

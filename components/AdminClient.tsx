@@ -212,7 +212,7 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
     const supabase = createClient();
     const { data } = await supabase
       .from("listings")
-      .select("*, profiles(full_name, email, whatsapp_number)")
+      .select("*, profiles!listings_publisher_id_fkey(full_name, email, whatsapp_number)")
       .order("created_at", { ascending: false });
     setListings((data as never as ListingWithPublisher[]) || []);
   }, []);

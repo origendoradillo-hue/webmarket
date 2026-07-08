@@ -126,7 +126,9 @@ export default function HomeClient() {
     }
     const { data, error } = await supabase
       .from("listings")
-      .select("*, profiles(full_name, nickname, rating_promedio, resenas_count, instagram_url, facebook_url)")
+      .select(
+        "*, profiles!listings_publisher_id_fkey(full_name, nickname, rating_promedio, resenas_count, instagram_url, facebook_url)"
+      )
       .eq("status", "activa")
       .order("created_at", { ascending: false });
 
@@ -172,7 +174,7 @@ export default function HomeClient() {
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const { data: clicks } = await supabase
       .from("whatsapp_clicks")
-      .select("listing_id, created_at, listings(nombre, publisher_id, profiles(full_name, nickname))")
+      .select("listing_id, created_at, listings(nombre, publisher_id, profiles!listings_publisher_id_fkey(full_name, nickname))")
       .eq("clicked_by", user.id)
       .lt("created_at", since)
       .order("created_at", { ascending: false });
