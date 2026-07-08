@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { useCategories } from "@/lib/useCategories";
 import { CategoryKey, Etiqueta, TipoPublicacion } from "@/lib/types";
+import { TIPO_OPTIONS } from "@/lib/tipos";
 import { createClient } from "@/lib/supabase/client";
 import { trackEvent } from "@/lib/analytics";
 
@@ -80,16 +81,6 @@ const DEFAULTS: PublishData = {
   whatsappPublico: false,
 };
 
-const TIPO_OPTIONS: { value: TipoPublicacion; icon: string; label: string }[] = [
-  { value: "producto", icon: "ti-box", label: "Producto" },
-  { value: "servicio", icon: "ti-tools", label: "Servicio" },
-  { value: "experiencia", icon: "ti-compass", label: "Experiencia" },
-  { value: "inmueble", icon: "ti-home", label: "Inmuebles" },
-  { value: "usado", icon: "ti-recycle", label: "Usados" },
-  { value: "emprendimiento", icon: "ti-building-store", label: "Emprendimiento" },
-  { value: "otro", icon: "ti-dots", label: "Otro" },
-];
-
 function fotoRequerida(d: PublishData): boolean {
   if (d.intencion !== "ofrezco" || !d.tipo) return false;
   return ["producto", "experiencia", "inmueble", "usado", "emprendimiento"].includes(d.tipo);
@@ -112,8 +103,7 @@ function isValid(step: string, d: PublishData): boolean {
     case "tipo":
       return !!d.tipo;
     case "categoria":
-      if (d.tipo === "usado") return !!d.sub;
-      return !!d.cat && !!d.sub;
+      return !!d.cat;
     case "datos":
       return d.nombre.trim() !== "" && d.desc.trim() !== "" && (!fotoRequerida(d) || d.fotosData.length > 0);
     case "detalles":
@@ -479,15 +469,36 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
 
               {step === "categoria" && (
                 <>
-                  {data.tipo === "usado" ? (
+                  <p className="mb-1 font-slab text-lg font-semibold text-tinta">1. Elegí la categoría</p>
+                  <p className="mb-4 text-[13px] text-tinta-suave">
+                    Después vas a poder elegir la subcategoría (opcional) dentro de esta categoría.
+                  </p>
+                  <div className="mb-3.5 grid grid-cols-2 gap-2">
+                    {Object.entries(categories)
+                      .filter(([, c]) => data.tipo && c.tipoScope.includes(data.tipo))
+                      .map(([key, c]) => (
+                        <button
+                          key={key}
+                          onClick={() => {
+                            update("cat", key);
+                            update("sub", null);
+                          }}
+                          className={`flex items-center gap-2 rounded-lg border px-2.5 py-2.5 text-left text-[12.5px] text-tinta ${
+                            data.cat === key ? "border-2 border-oliva bg-[#F1F4EE]" : "border-piedra/70"
+                          }`}
+                        >
+                          <i className={`ti ${c.icon} text-oliva`} aria-hidden /> {c.label}
+                        </button>
+                      ))}
+                  </div>
+                  {data.cat && (categories[data.cat]?.subs.length ?? 0) > 0 && (
                     <>
-                      <p className="mb-1 font-slab text-lg font-semibold text-tinta">Usados</p>
-                      <p className="mb-4 text-[13px] text-tinta-suave">Elegí qué tipo de artículo es</p>
+                      <p className="mb-2 font-slab text-[13.5px] font-semibold text-tinta">2. Subcategoría (opcional)</p>
                       <div className="flex flex-wrap gap-1.5">
-                        {(categories.usados?.subs || []).filter((s) => s !== "Herramientas").map((s) => (
+                        {(categories[data.cat]?.subs || []).map((s) => (
                           <button
                             key={s}
-                            onClick={() => update("sub", s)}
+                            onClick={() => update("sub", data.sub === s ? null : s)}
                             className={`rounded-full border px-3 py-1.5 text-xs ${
                               data.sub === s ? "border-dorado bg-dorado text-white" : "border-arena bg-hueso-2 text-tinta"
                             }`}
@@ -496,45 +507,6 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
                           </button>
                         ))}
                       </div>
-                    </>
-                  ) : (
-                    <>
-                      <p className="mb-1 font-slab text-lg font-semibold text-tinta">1. Elegí el rubro</p>
-                      <p className="mb-4 text-[13px] text-tinta-suave">Después vas a elegir la subcategoría dentro de este rubro.</p>
-                      <div className="mb-3.5 grid grid-cols-2 gap-2">
-                        {Object.entries(categories).map(([key, c]) => (
-                          <button
-                            key={key}
-                            onClick={() => {
-                              update("cat", key);
-                              update("sub", null);
-                            }}
-                            className={`flex items-center gap-2 rounded-lg border px-2.5 py-2.5 text-left text-[12.5px] text-tinta ${
-                              data.cat === key ? "border-2 border-oliva bg-[#F1F4EE]" : "border-piedra/70"
-                            }`}
-                          >
-                            <i className={`ti ${c.icon} text-oliva`} aria-hidden /> {c.label}
-                          </button>
-                        ))}
-                      </div>
-                      {data.cat && (
-                        <>
-                          <p className="mb-2 font-slab text-[13.5px] font-semibold text-tinta">2. Ahora elegí la subcategoría</p>
-                          <div className="flex flex-wrap gap-1.5">
-                            {(categories[data.cat]?.subs || []).map((s) => (
-                              <button
-                                key={s}
-                                onClick={() => update("sub", s)}
-                                className={`rounded-full border px-3 py-1.5 text-xs ${
-                                  data.sub === s ? "border-dorado bg-dorado text-white" : "border-arena bg-hueso-2 text-tinta"
-                                }`}
-                              >
-                                {s}
-                              </button>
-                            ))}
-                          </div>
-                        </>
-                      )}
                     </>
                   )}
                 </>
