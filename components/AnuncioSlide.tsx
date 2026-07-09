@@ -123,8 +123,13 @@ function SlideLink({ cta, className, children }: { cta: Cta | null; className: s
 // el admin todavía no cargó una imagen propia.
 const FONDO_ESTEPA = "/brand/anuncio-fondo-estepa.png";
 const FONDO_INSTITUCIONAL = "/brand/anuncio-fondo-institucional.png";
+const CARTEL_COLGANTE = "/brand/cartel-colgante.png";
 
-const POSTE_GRADIENTE = "linear-gradient(90deg, #111 0%, #3a3a34 45%, #0b0b09 100%)";
+// Rectángulo exacto (medido en la imagen fuente, 900x1050px) donde el
+// cartel tiene el recorte en croma verde para insertar el flyer del
+// usuario — el resto del PNG (postes, travesaño, marco) es transparente
+// alrededor y opaco en el marco/estructura.
+const CARTEL_FLYER_RECT = { left: "23.44%", top: "26.19%", width: "53%", height: "58%" };
 
 function FlyerBadge() {
   return (
@@ -142,7 +147,7 @@ function FlyerOnSignSlide({ a, priority }: SlideProps) {
 
   return (
     <SlideLink cta={cta} className="grid sm:grid-cols-2">
-      <div className="relative flex min-h-[300px] items-center justify-center overflow-hidden p-7 sm:min-h-[360px]">
+      <div className="relative flex min-h-[380px] items-center justify-center overflow-hidden p-6 sm:min-h-[440px]">
         <Image
           src={a.backgroundImagen && !bgFailed ? a.backgroundImagen : FONDO_ESTEPA}
           alt=""
@@ -153,32 +158,17 @@ function FlyerOnSignSlide({ a, priority }: SlideProps) {
           priority={priority}
           onError={() => setBgFailed(true)}
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-oliva-dd/35 to-oliva-dd/5" />
+        <div className="absolute inset-0 bg-gradient-to-r from-oliva-dd/30 to-oliva-dd/5" />
 
-        {/* Estructura de cartel: dos postes + travesaño superior + ganchos de los que
-            "cuelga" el tablero con el flyer del usuario, sin recortarlo (object-contain). */}
-        <div className="relative grid w-[min(320px,86%)] place-items-center px-8 pb-6 pt-9">
-          <span
-            className="absolute left-6 top-4 -bottom-6 w-3.5 rounded-full shadow-[0_9px_18px_rgba(0,0,0,0.3)]"
-            style={{ background: POSTE_GRADIENTE }}
-            aria-hidden
-          />
-          <span
-            className="absolute right-6 top-4 -bottom-6 w-3.5 rounded-full shadow-[0_9px_18px_rgba(0,0,0,0.3)]"
-            style={{ background: POSTE_GRADIENTE }}
-            aria-hidden
-          />
-          <span
-            className="absolute left-6 right-6 top-3 h-3.5 rounded-full shadow-[0_9px_18px_rgba(0,0,0,0.3)]"
-            style={{ background: POSTE_GRADIENTE }}
-            aria-hidden
-          />
-          <div className="absolute left-1/2 top-5 flex w-[52%] -translate-x-1/2 justify-between" aria-hidden>
-            <span className="relative h-8 w-2 rounded-full bg-[#191914] shadow-[0_5px_10px_rgba(0,0,0,0.28)] after:absolute after:-bottom-1 after:left-1/2 after:h-3.5 after:w-3.5 after:-translate-x-1/2 after:rounded-full after:border-[3px] after:border-[#191914] after:bg-hueso-2" />
-            <span className="relative h-8 w-2 rounded-full bg-[#191914] shadow-[0_5px_10px_rgba(0,0,0,0.28)] after:absolute after:-bottom-1 after:left-1/2 after:h-3.5 after:w-3.5 after:-translate-x-1/2 after:rounded-full after:border-[3px] after:border-[#191914] after:bg-hueso-2" />
-          </div>
-
-          <div className="relative z-[2] aspect-[4/5] w-[min(220px,78%)] overflow-hidden rounded-md border-[7px] border-[#161612] bg-hueso-2/95 p-1 shadow-[0_16px_36px_rgba(0,0,0,0.32)]">
+        {/* Cartel real (postes, travesaño, ganchos, marco) — el flyer del
+            usuario se compone sobre el recorte de croma verde del PNG,
+            en el rectángulo exacto medido en CARTEL_FLYER_RECT. */}
+        <div className="relative h-[300px] sm:h-[380px]" style={{ aspectRatio: "900 / 1050" }}>
+          <Image src={CARTEL_COLGANTE} alt="" aria-hidden fill className="object-contain" sizes="380px" />
+          <div
+            className="absolute overflow-hidden rounded-sm bg-hueso-2"
+            style={CARTEL_FLYER_RECT}
+          >
             {a.imagen && !imgFailed ? (
               <Image
                 src={a.imagen}
