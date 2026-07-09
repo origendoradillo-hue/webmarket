@@ -99,22 +99,85 @@ function FechaLugar({ a }: { a: Anuncio }) {
 
 function CtaButton({ cta }: { cta: Cta }) {
   return (
-    <span className="mt-1 inline-flex w-fit items-center gap-1.5 rounded-lg bg-dorado px-4 py-2 text-[12.5px] font-semibold text-oliva-dd transition group-hover:brightness-95">
+    <a
+      href={cta.href}
+      target="_blank"
+      rel="noreferrer"
+      // La tarjeta entera abre el modal de detalle al tocarla — este botón
+      // es una acción aparte (ir directo al link externo), por eso frena
+      // la propagación en vez de dejar que también abra el modal.
+      onClick={(e) => e.stopPropagation()}
+      className="mt-1 inline-flex w-fit items-center gap-1.5 rounded-lg bg-dorado px-4 py-2 text-[12.5px] font-semibold text-oliva-dd transition hover:brightness-95"
+    >
       {cta.label}
       <i className="ti ti-arrow-right text-sm" aria-hidden />
-    </span>
+    </a>
   );
 }
 
-// Toda la tarjeta se vuelve clickeable cuando hay CTA (antes solo lo era
-// el botón interno) — así se puede "ver más información" tocando
-// cualquier parte del anuncio, no solo un link chico.
-function SlideLink({ cta, className, children }: { cta: Cta | null; className: string; children: React.ReactNode }) {
-  if (!cta) return <div className={className}>{children}</div>;
+// Toda la tarjeta es clickeable siempre (tenga o no CTA externo) para
+// abrir el modal con la descripción completa del anuncio.
+function SlideLink({ onOpen, className, children }: { onOpen: () => void; className: string; children: React.ReactNode }) {
   return (
-    <a href={cta.href} target="_blank" rel="noreferrer" className={`group ${className}`}>
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpen();
+        }
+      }}
+      className={`cursor-pointer ${className}`}
+    >
       {children}
-    </a>
+    </div>
+  );
+}
+
+function AnuncioDetailModal({ a, onClose }: { a: Anuncio; onClose: () => void }) {
+  const cta = buildCta(a);
+  const imgSrc = a.imagen || a.backgroundImagen;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-stretch justify-center bg-oliva-dd/55 sm:items-center sm:p-6"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="flex h-full w-full flex-col overflow-hidden bg-white sm:h-auto sm:max-h-[90vh] sm:max-w-md sm:rounded-2xl">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-piedra/50 bg-white px-4 py-3.5">
+          <span className="font-slab text-[13px] font-semibold text-tinta">Anuncio</span>
+          <button type="button" onClick={onClose} aria-label="Cerrar">
+            <i className="ti ti-x text-lg text-tinta" aria-hidden />
+          </button>
+        </div>
+        <div className="overflow-y-auto">
+          {imgSrc && (
+            <div className="relative aspect-[4/3] w-full bg-hueso-2">
+              <Image src={imgSrc} alt={a.titulo} fill className="object-contain" sizes="480px" />
+            </div>
+          )}
+          <div className="flex flex-col gap-2 px-5 py-4">
+            <TipoBadge tipo={a.tipo} />
+            <h3 className="font-slab text-lg font-semibold text-tinta">{a.titulo}</h3>
+            <FechaLugar a={a} />
+            <p className="whitespace-pre-line text-[13.5px] leading-relaxed text-tinta-suave">{a.descripcion}</p>
+            {cta && (
+              <a
+                href={cta.href}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-2 inline-flex w-fit items-center gap-1.5 rounded-lg bg-dorado px-4 py-2 text-[12.5px] font-semibold text-oliva-dd transition hover:brightness-95"
+              >
+                {cta.label}
+                <i className="ti ti-arrow-right text-sm" aria-hidden />
+              </a>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -143,10 +206,12 @@ function FlyerBadge() {
 function FlyerOnSignSlide({ a, priority }: SlideProps) {
   const [imgFailed, setImgFailed] = useState(false);
   const [bgFailed, setBgFailed] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
   const cta = buildCta(a);
 
   return (
-    <SlideLink cta={cta} className="grid sm:grid-cols-2">
+    <>
+    <SlideLink onOpen={() => setDetailOpen(true)} className="grid sm:grid-cols-2">
       <div className="relative flex min-h-[380px] items-center justify-center overflow-hidden p-6 sm:min-h-[440px]">
         <Image
           src={a.backgroundImagen && !bgFailed ? a.backgroundImagen : FONDO_ESTEPA}
@@ -196,15 +261,19 @@ function FlyerOnSignSlide({ a, priority }: SlideProps) {
         {cta && <CtaButton cta={cta} />}
       </div>
     </SlideLink>
+    {detailOpen && <AnuncioDetailModal a={a} onClose={() => setDetailOpen(false)} />}
+    </>
   );
 }
 
 function FullBannerSlide({ a, priority }: SlideProps) {
   const [imgFailed, setImgFailed] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
   const cta = buildCta(a);
 
   return (
-    <SlideLink cta={cta} className="relative block h-44 w-full sm:h-64">
+    <>
+    <SlideLink onOpen={() => setDetailOpen(true)} className="relative block h-44 w-full sm:h-64">
       <Image
         src={a.imagen && !imgFailed ? a.imagen : FONDO_ESTEPA}
         alt={a.titulo}
@@ -229,16 +298,20 @@ function FullBannerSlide({ a, priority }: SlideProps) {
         )}
       </div>
     </SlideLink>
+    {detailOpen && <AnuncioDetailModal a={a} onClose={() => setDetailOpen(false)} />}
+    </>
   );
 }
 
 function BackgroundImageSlide({ a, priority }: SlideProps) {
   const [imgFailed, setImgFailed] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
   const cta = buildCta(a);
   const bg = a.backgroundImagen || a.imagen;
 
   return (
-    <SlideLink cta={cta} className="relative block h-52 w-full sm:h-72">
+    <>
+    <SlideLink onOpen={() => setDetailOpen(true)} className="relative block h-52 w-full sm:h-72">
       <Image
         src={bg && !imgFailed ? bg : FONDO_ESTEPA}
         alt=""
@@ -262,15 +335,19 @@ function BackgroundImageSlide({ a, priority }: SlideProps) {
         )}
       </div>
     </SlideLink>
+    {detailOpen && <AnuncioDetailModal a={a} onClose={() => setDetailOpen(false)} />}
+    </>
   );
 }
 
 function TextOnlySlide({ a }: SlideProps) {
+  const [detailOpen, setDetailOpen] = useState(false);
   const cta = buildCta(a);
 
   return (
+    <>
     <SlideLink
-      cta={cta}
+      onOpen={() => setDetailOpen(true)}
       className="relative flex min-h-[176px] flex-col items-start justify-center gap-2 overflow-hidden px-5 py-6 sm:min-h-[220px] sm:px-10"
     >
       <Image src={FONDO_INSTITUCIONAL} alt="" aria-hidden fill className="object-cover" sizes="100vw" />
@@ -286,6 +363,8 @@ function TextOnlySlide({ a }: SlideProps) {
         {cta && <CtaButton cta={cta} />}
       </div>
     </SlideLink>
+    {detailOpen && <AnuncioDetailModal a={a} onClose={() => setDetailOpen(false)} />}
+    </>
   );
 }
 
