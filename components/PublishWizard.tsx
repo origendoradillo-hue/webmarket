@@ -455,10 +455,6 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
                         selected={data.tipo === t.value}
                         onClick={() => {
                           update("tipo", t.value);
-                          if (t.value === "usado") {
-                            update("cat", "usados");
-                            update("sub", null);
-                          }
                           setStepIndex((i) => i + 1);
                         }}
                       />
