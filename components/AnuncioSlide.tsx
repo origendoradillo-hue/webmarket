@@ -118,67 +118,13 @@ function SlideLink({ cta, className, children }: { cta: Cta | null; className: s
   );
 }
 
-// Fondo institucional por defecto para flyer_on_sign / background_image
-// cuando el admin todavía no cargó una foto de fondo propia — un paisaje
-// de estepa abstraído con los colores de la marca, en vez de un degradé liso.
-function DefaultFondo() {
-  return (
-    <svg
-      viewBox="0 0 400 300"
-      preserveAspectRatio="xMidYMid slice"
-      className="absolute inset-0 h-full w-full"
-      aria-hidden
-    >
-      <rect width="400" height="300" fill="#1C261C" />
-      <circle cx="322" cy="58" r="30" fill="#B8863E" opacity="0.28" />
-      <path d="M0 175 Q90 140 180 172 T400 158 V300 H0 Z" fill="#33402A" />
-      <path d="M0 215 Q110 185 230 213 T400 200 V300 H0 Z" fill="#2A331F" />
-      <path d="M0 255 Q130 232 260 252 T400 244 V300 H0 Z" fill="#232C1B" />
-    </svg>
-  );
-}
+// Fondos institucionales por defecto — fotos reales de la estepa
+// patagónica, para flyer_on_sign / background_image / full_banner cuando
+// el admin todavía no cargó una imagen propia.
+const FONDO_ESTEPA = "/brand/anuncio-fondo-estepa.png";
+const FONDO_INSTITUCIONAL = "/brand/anuncio-fondo-institucional.png";
 
-// Escena ilustrada de "cartel de campo": cielo, meseta lejana, lomas,
-// franja de agua (el golfo), duna, camino de tierra, pastos y alambrado.
-// No es una foto real (no puedo generar fotografía) — es la ilustración
-// de marca que reemplaza al fondo liso cuando el admin no subió una
-// imagen de fondo propia.
-function CartelDeCampoFondo() {
-  return (
-    <svg viewBox="0 0 480 600" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 h-full w-full" aria-hidden>
-      <defs>
-        <linearGradient id="cartelCielo" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#AFC2C4" />
-          <stop offset="70%" stopColor="#E9E1CF" />
-          <stop offset="100%" stopColor="#F2EDE4" />
-        </linearGradient>
-      </defs>
-      <rect width="480" height="600" fill="url(#cartelCielo)" />
-      <path d="M0 250 L70 220 L150 245 L230 215 L320 240 L400 218 L480 235 V600 H0 Z" fill="#7C8A78" opacity="0.35" />
-      <path d="M0 300 Q120 265 240 295 T480 285 V600 H0 Z" fill="#8E9B7C" opacity="0.55" />
-      <rect x="0" y="330" width="480" height="14" fill="#4C6B70" opacity="0.4" />
-      <path d="M0 350 Q140 320 260 345 T480 335 V600 H0 Z" fill="#C9A672" opacity="0.55" />
-      <path d="M0 400 Q160 370 300 392 T480 380 V600 H0 Z" fill="#33402A" opacity="0.3" />
-      <path
-        d="M195 600 C205 520 215 470 235 420 C245 395 255 385 265 375 L285 380 C272 392 260 405 250 428 C230 478 222 525 218 600 Z"
-        fill="#EFE6D3"
-        opacity="0.55"
-      />
-      <g stroke="#2A331F" strokeWidth="2" opacity="0.55" strokeLinecap="round" fill="none">
-        <path d="M40 560 Q35 535 42 512" />
-        <path d="M55 562 Q52 540 58 518" />
-        <path d="M400 545 Q396 522 404 500" />
-        <path d="M415 548 Q412 528 418 508" />
-        <path d="M430 552 Q428 532 434 514" />
-      </g>
-      <g stroke="#5C3D2E" strokeWidth="3" opacity="0.5" strokeLinecap="round">
-        <line x1="30" y1="470" x2="30" y2="520" />
-        <line x1="70" y1="465" x2="70" y2="515" />
-        <line x1="30" y1="485" x2="70" y2="480" />
-      </g>
-    </svg>
-  );
-}
+const POSTE_GRADIENTE = "linear-gradient(90deg, #111 0%, #3a3a34 45%, #0b0b09 100%)";
 
 function FlyerBadge() {
   return (
@@ -196,43 +142,50 @@ function FlyerOnSignSlide({ a, priority }: SlideProps) {
 
   return (
     <SlideLink cta={cta} className="grid sm:grid-cols-2">
-      <div className="relative flex items-center justify-center overflow-hidden px-6 py-12 sm:py-14">
-        {a.backgroundImagen && !bgFailed ? (
-          <Image
-            src={a.backgroundImagen}
-            alt=""
+      <div className="relative flex min-h-[300px] items-center justify-center overflow-hidden p-7 sm:min-h-[360px]">
+        <Image
+          src={a.backgroundImagen && !bgFailed ? a.backgroundImagen : FONDO_ESTEPA}
+          alt=""
+          aria-hidden
+          fill
+          className="object-cover"
+          sizes="(min-width: 640px) 50vw, 100vw"
+          priority={priority}
+          onError={() => setBgFailed(true)}
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-oliva-dd/35 to-oliva-dd/5" />
+
+        {/* Estructura de cartel: dos postes + travesaño superior + ganchos de los que
+            "cuelga" el tablero con el flyer del usuario, sin recortarlo (object-contain). */}
+        <div className="relative grid w-[min(320px,86%)] place-items-center px-8 pb-6 pt-9">
+          <span
+            className="absolute left-6 top-4 -bottom-6 w-3.5 rounded-full shadow-[0_9px_18px_rgba(0,0,0,0.3)]"
+            style={{ background: POSTE_GRADIENTE }}
             aria-hidden
-            fill
-            className="object-cover"
-            sizes="(min-width: 640px) 50vw, 100vw"
-            onError={() => setBgFailed(true)}
           />
-        ) : (
-          <CartelDeCampoFondo />
-        )}
-        <div className="absolute inset-0 bg-oliva-dd/10" />
-        <div className="relative flex w-full max-w-[300px] flex-col items-center sm:max-w-[240px]">
-          {/* Cartel: dos postes + travesaño del que "cuelga" el tablero con el flyer */}
-          <div
-            className="absolute -top-4 left-1/2 h-[3px] w-[calc(100%+30px)] -translate-x-1/2 rounded-full bg-nogal shadow-sm"
+          <span
+            className="absolute right-6 top-4 -bottom-6 w-3.5 rounded-full shadow-[0_9px_18px_rgba(0,0,0,0.3)]"
+            style={{ background: POSTE_GRADIENTE }}
             aria-hidden
           />
-          <div className="absolute -top-4 bottom-1 left-0 w-[3px] -translate-x-[15px] rounded-full bg-nogal" aria-hidden />
-          <div className="absolute -top-4 bottom-1 right-0 w-[3px] translate-x-[15px] rounded-full bg-nogal" aria-hidden />
-          <span className="absolute -top-4 left-3 h-4 w-px bg-nogal/70" aria-hidden />
-          <span className="absolute -top-4 right-3 h-4 w-px bg-nogal/70" aria-hidden />
-          <div className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-oliva-dd px-2 py-0.5 text-[8px] font-semibold uppercase tracking-wider text-dorado shadow">
-            Origen El Doradillo
+          <span
+            className="absolute left-6 right-6 top-3 h-3.5 rounded-full shadow-[0_9px_18px_rgba(0,0,0,0.3)]"
+            style={{ background: POSTE_GRADIENTE }}
+            aria-hidden
+          />
+          <div className="absolute left-1/2 top-5 flex w-[52%] -translate-x-1/2 justify-between" aria-hidden>
+            <span className="relative h-8 w-2 rounded-full bg-[#191914] shadow-[0_5px_10px_rgba(0,0,0,0.28)] after:absolute after:-bottom-1 after:left-1/2 after:h-3.5 after:w-3.5 after:-translate-x-1/2 after:rounded-full after:border-[3px] after:border-[#191914] after:bg-hueso-2" />
+            <span className="relative h-8 w-2 rounded-full bg-[#191914] shadow-[0_5px_10px_rgba(0,0,0,0.28)] after:absolute after:-bottom-1 after:left-1/2 after:h-3.5 after:w-3.5 after:-translate-x-1/2 after:rounded-full after:border-[3px] after:border-[#191914] after:bg-hueso-2" />
           </div>
 
-          <div className="relative aspect-[4/5] w-full max-w-[300px] overflow-hidden rounded-md border-[3px] border-dorado bg-hueso-2 shadow-xl sm:max-w-[240px]">
+          <div className="relative z-[2] aspect-[4/5] w-[min(220px,78%)] overflow-hidden rounded-md border-[7px] border-[#161612] bg-hueso-2/95 p-1 shadow-[0_16px_36px_rgba(0,0,0,0.32)]">
             {a.imagen && !imgFailed ? (
               <Image
                 src={a.imagen}
                 alt={a.titulo}
                 fill
                 className="object-contain"
-                sizes="(min-width: 640px) 240px, 300px"
+                sizes="220px"
                 priority={priority}
                 onError={() => setImgFailed(true)}
               />
@@ -242,7 +195,6 @@ function FlyerOnSignSlide({ a, priority }: SlideProps) {
               </div>
             )}
           </div>
-          <div className="mt-2 h-1.5 w-[70%] max-w-[220px] rounded-full bg-black/25 blur-[2px]" aria-hidden />
         </div>
       </div>
 
@@ -263,19 +215,15 @@ function FullBannerSlide({ a, priority }: SlideProps) {
 
   return (
     <SlideLink cta={cta} className="relative block h-44 w-full sm:h-64">
-      {a.imagen && !imgFailed ? (
-        <Image
-          src={a.imagen}
-          alt={a.titulo}
-          fill
-          className="object-cover"
-          sizes="100vw"
-          priority={priority}
-          onError={() => setImgFailed(true)}
-        />
-      ) : (
-        <DefaultFondo />
-      )}
+      <Image
+        src={a.imagen && !imgFailed ? a.imagen : FONDO_ESTEPA}
+        alt={a.titulo}
+        fill
+        className="object-cover"
+        sizes="100vw"
+        priority={priority}
+        onError={() => setImgFailed(true)}
+      />
       <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />
       <div className="absolute left-3 top-3">
         <TipoBadge tipo={a.tipo} variant="solid" />
@@ -301,20 +249,16 @@ function BackgroundImageSlide({ a, priority }: SlideProps) {
 
   return (
     <SlideLink cta={cta} className="relative block h-52 w-full sm:h-72">
-      {bg && !imgFailed ? (
-        <Image
-          src={bg}
-          alt=""
-          aria-hidden
-          fill
-          className="object-cover"
-          sizes="100vw"
-          priority={priority}
-          onError={() => setImgFailed(true)}
-        />
-      ) : (
-        <DefaultFondo />
-      )}
+      <Image
+        src={bg && !imgFailed ? bg : FONDO_ESTEPA}
+        alt=""
+        aria-hidden
+        fill
+        className="object-cover"
+        sizes="100vw"
+        priority={priority}
+        onError={() => setImgFailed(true)}
+      />
       <div className="absolute inset-0 bg-oliva-dd/20" />
       <div className="absolute inset-x-3 bottom-3 max-w-[420px] rounded-xl bg-oliva-dd/92 p-4 shadow-lg sm:inset-x-auto sm:bottom-6 sm:left-6">
         <TipoBadge tipo={a.tipo} variant="solid" />
@@ -337,16 +281,20 @@ function TextOnlySlide({ a }: SlideProps) {
   return (
     <SlideLink
       cta={cta}
-      className="flex min-h-[176px] flex-col items-start justify-center gap-2 bg-oliva-dd px-5 py-6 sm:min-h-[220px] sm:px-10"
+      className="relative flex min-h-[176px] flex-col items-start justify-center gap-2 overflow-hidden px-5 py-6 sm:min-h-[220px] sm:px-10"
     >
-      <div className="flex h-11 w-11 items-center justify-center rounded-full bg-dorado/15">
-        <i className={`ti ${TIPO_ICON[a.tipo]} text-xl text-dorado`} aria-hidden />
+      <Image src={FONDO_INSTITUCIONAL} alt="" aria-hidden fill className="object-cover" sizes="100vw" />
+      <div className="absolute inset-0 bg-hueso/85" />
+      <div className="relative flex h-11 w-11 items-center justify-center rounded-full border-2 border-dorado bg-hueso-2">
+        <i className={`ti ${TIPO_ICON[a.tipo]} text-xl text-oliva`} aria-hidden />
       </div>
-      <TipoBadge tipo={a.tipo} variant="solid" />
-      <h3 className="font-slab text-lg font-semibold leading-tight text-white sm:text-xl">{a.titulo}</h3>
-      <p className="max-w-[560px] text-[13px] leading-relaxed text-white/85 sm:text-[13.5px]">{a.descripcion}</p>
-      <FechaLugar a={a} />
-      {cta && <CtaButton cta={cta} />}
+      <div className="relative flex flex-col gap-2">
+        <TipoBadge tipo={a.tipo} />
+        <h3 className="font-slab text-lg font-semibold leading-tight text-tinta sm:text-xl">{a.titulo}</h3>
+        <p className="max-w-[560px] text-[13px] leading-relaxed text-tinta-suave sm:text-[13.5px]">{a.descripcion}</p>
+        <FechaLugar a={a} />
+        {cta && <CtaButton cta={cta} />}
+      </div>
     </SlideLink>
   );
 }
