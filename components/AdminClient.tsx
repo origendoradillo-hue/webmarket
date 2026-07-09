@@ -19,6 +19,7 @@ import type {
 import { REPORT_MOTIVO_LABELS, requiereSuspensionReciproca } from "@/lib/reportMotivos";
 import type { Anuncio, AnuncioLayoutType, ImageOrientation, TipoPublicacion } from "@/lib/types";
 import { TIPO_OPTIONS } from "@/lib/tipos";
+import { SITE_URL } from "@/lib/seo";
 import AnuncioSlide from "./AnuncioSlide";
 
 type Tab =
@@ -1423,6 +1424,25 @@ function AdminListingRow({
     else onSaved();
   }
 
+  async function convertirEnAnuncio() {
+    if (
+      !confirm(
+        `¿Crear un anuncio a partir de "${l.nombre}"? Se copia nombre, descripción y foto. Después lo terminás de armar (layout, fecha, imagen de fondo) desde la pestaña Anuncios antes de publicarlo.`
+      )
+    )
+      return;
+    setSaving(true);
+    const supabase = createClient();
+    const { error } = await supabase.rpc("admin_convertir_listing_en_anuncio", {
+      p_listing_id: l.id,
+      p_cta_url: `${SITE_URL}/publicacion/${l.id}`,
+      p_cta_label: "Ver publicación",
+    });
+    setSaving(false);
+    if (error) alert(error.message);
+    else alert('Anuncio creado como borrador (estado "Aprobado"). Buscalo en la pestaña Anuncios para completarlo y publicarlo.');
+  }
+
   async function agregarNota() {
     if (!nota.trim()) return;
     const supabase = createClient();
@@ -1512,6 +1532,9 @@ function AdminListingRow({
                 <i className="ti ti-brand-whatsapp" aria-hidden /> Contactar publicador
               </a>
             )}
+            <button disabled={saving} onClick={convertirEnAnuncio} className="rounded-lg border border-dorado px-2.5 py-1.5 text-xs text-dorado">
+              <i className="ti ti-speakerphone" aria-hidden /> Convertir en anuncio
+            </button>
           </div>
 
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">

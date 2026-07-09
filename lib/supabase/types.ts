@@ -403,6 +403,10 @@ export interface Database {
         Args: { p_listing_id: string; p_new_publisher_id: string };
         Returns: undefined;
       };
+      admin_convertir_listing_en_anuncio: {
+        Args: { p_listing_id: string; p_tipo?: string; p_cta_url?: string | null; p_cta_label?: string | null };
+        Returns: string;
+      };
       admin_update_profile: {
         Args: { p_user_id: string; p_full_name?: string | null; p_whatsapp_number?: string | null };
         Returns: undefined;
