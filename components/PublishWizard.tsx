@@ -7,6 +7,7 @@ import { CategoryKey, Etiqueta, TipoPublicacion } from "@/lib/types";
 import { TIPO_OPTIONS } from "@/lib/tipos";
 import { createClient } from "@/lib/supabase/client";
 import { trackEvent } from "@/lib/analytics";
+import { resizeImage } from "@/lib/resizeImage";
 
 type Intencion = "ofrezco" | "busco";
 
@@ -184,13 +185,14 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
   function handleFoto(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
     if (files.length === 0) return;
-    files.forEach((file) => {
+    files.forEach(async (file) => {
+      const resized = await resizeImage(file);
       const reader = new FileReader();
       reader.onload = (ev) => {
         const dataUrl = ev.target?.result as string;
         setData((prev) => ({ ...prev, fotosData: [...prev.fotosData, dataUrl] }));
       };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(resized);
     });
     e.target.value = "";
   }

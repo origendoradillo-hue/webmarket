@@ -20,6 +20,7 @@ import { REPORT_MOTIVO_LABELS, requiereSuspensionReciproca } from "@/lib/reportM
 import type { Anuncio, AnuncioLayoutType, ImageOrientation, TipoPublicacion } from "@/lib/types";
 import { TIPO_OPTIONS } from "@/lib/tipos";
 import { SITE_URL } from "@/lib/seo";
+import { resizeImage } from "@/lib/resizeImage";
 import AnuncioSlide from "./AnuncioSlide";
 
 type Tab =
@@ -111,6 +112,17 @@ function detectImageOrientation(file: File): Promise<"vertical" | "horizontal" |
     };
     img.src = url;
   });
+}
+
+async function downloadImage(url: string, filename: string) {
+  const res = await fetch(url);
+  const blob = await res.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = objectUrl;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(objectUrl);
 }
 
 const ROLE_OPTIONS = ["publicador", "admin", "superadmin"];
@@ -1337,8 +1349,9 @@ function AdminListingRow({
     const supabase = createClient();
     let orden = images.length;
     for (const file of files) {
+      const resized = await resizeImage(file);
       const path = `admin/${l.id}/${Date.now()}-${orden}.jpg`;
-      const { error: uploadError } = await supabase.storage.from("listing-photos").upload(path, file, { contentType: file.type || "image/jpeg" });
+      const { error: uploadError } = await supabase.storage.from("listing-photos").upload(path, resized, { contentType: "image/jpeg" });
       if (uploadError) {
         alert(uploadError.message);
         continue;
@@ -1477,8 +1490,9 @@ function AdminListingRow({
     if (!file) return;
     setSaving(true);
     const supabase = createClient();
+    const resized = await resizeImage(file);
     const path = `admin/${l.id}/${Date.now()}.jpg`;
-    const { error: uploadError } = await supabase.storage.from("listing-photos").upload(path, file, { contentType: file.type || "image/jpeg" });
+    const { error: uploadError } = await supabase.storage.from("listing-photos").upload(path, resized, { contentType: "image/jpeg" });
     if (uploadError) {
       alert(uploadError.message);
       setSaving(false);
@@ -1607,8 +1621,18 @@ function AdminListingRow({
           <div>
             <label className="mb-1 block text-[11px] font-medium text-tinta">Foto de portada (cargar/reemplazar en nombre del vecino)</label>
             {l.foto_url && (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img src={l.foto_url} alt="Foto de portada actual" className="mb-1.5 h-16 w-16 rounded object-cover" />
+              <div className="relative mb-1.5 h-16 w-16">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={l.foto_url} alt="Foto de portada actual" className="h-full w-full rounded object-cover" />
+                <button
+                  type="button"
+                  onClick={() => downloadImage(l.foto_url!, `portada-${l.id}.jpg`)}
+                  aria-label="Descargar foto de portada"
+                  className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-white"
+                >
+                  <i className="ti ti-download text-[9px]" aria-hidden />
+                </button>
+              </div>
             )}
             <input type="file" accept="image/*" onChange={subirFoto} className="text-xs" />
           </div>
@@ -1620,6 +1644,14 @@ function AdminListingRow({
                 <div key={im.id} className="relative h-16 w-16 overflow-hidden rounded-md border border-piedra/70">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={im.url} alt="Foto" className="h-full w-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => downloadImage(im.url, `foto-${im.id}.jpg`)}
+                    aria-label="Descargar foto"
+                    className="absolute bottom-0.5 left-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-white"
+                  >
+                    <i className="ti ti-download text-[9px]" aria-hidden />
+                  </button>
                   <button
                     type="button"
                     onClick={() => quitarFoto(im.id)}
@@ -1783,9 +1815,10 @@ function AdminAnuncioRow({
     if (!file) return;
     setUploadingImagen(true);
     const orientation = await detectImageOrientation(file);
+    const resized = await resizeImage(file);
     const supabase = createClient();
     const path = `anuncios/${a.id}/${Date.now()}-flyer.jpg`;
-    const { error: uploadError } = await supabase.storage.from("listing-photos").upload(path, file, { contentType: file.type || "image/jpeg" });
+    const { error: uploadError } = await supabase.storage.from("listing-photos").upload(path, resized, { contentType: "image/jpeg" });
     if (uploadError) {
       alert(uploadError.message);
       setUploadingImagen(false);
@@ -1812,9 +1845,10 @@ function AdminAnuncioRow({
     const file = e.target.files?.[0];
     if (!file) return;
     setUploadingFondo(true);
+    const resized = await resizeImage(file);
     const supabase = createClient();
     const path = `anuncios/${a.id}/${Date.now()}-fondo.jpg`;
-    const { error: uploadError } = await supabase.storage.from("listing-photos").upload(path, file, { contentType: file.type || "image/jpeg" });
+    const { error: uploadError } = await supabase.storage.from("listing-photos").upload(path, resized, { contentType: "image/jpeg" });
     if (uploadError) {
       alert(uploadError.message);
       setUploadingFondo(false);

@@ -48,7 +48,7 @@ export default function CuratedRow({ title, icon, listings, onOpen, favoritoIds,
               type="button"
               onClick={() => scrollBy(-440)}
               aria-label={`${title}: anterior`}
-              className="absolute -left-4 top-1/2 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-piedra/50 bg-white text-tinta opacity-70 shadow-md transition-opacity hover:opacity-100 hover:bg-hueso-2 lg:flex"
+              className="absolute -left-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white transition hover:bg-black/60 sm:-left-4 sm:h-9 sm:w-9 sm:border sm:border-piedra/50 sm:bg-white sm:text-tinta sm:opacity-70 sm:shadow-md sm:hover:bg-hueso-2"
             >
               <i className="ti ti-chevron-left text-lg" aria-hidden />
             </button>
@@ -56,7 +56,7 @@ export default function CuratedRow({ title, icon, listings, onOpen, favoritoIds,
               type="button"
               onClick={() => scrollBy(440)}
               aria-label={`${title}: siguiente`}
-              className="absolute -right-4 top-1/2 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-piedra/50 bg-white text-tinta opacity-70 shadow-md transition-opacity hover:opacity-100 hover:bg-hueso-2 lg:flex"
+              className="absolute -right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white transition hover:bg-black/60 sm:-right-4 sm:h-9 sm:w-9 sm:border sm:border-piedra/50 sm:bg-white sm:text-tinta sm:opacity-70 sm:shadow-md sm:hover:bg-hueso-2"
             >
               <i className="ti ti-chevron-right text-lg" aria-hidden />
             </button>

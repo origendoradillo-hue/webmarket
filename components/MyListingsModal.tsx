@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { ListingRow } from "@/lib/supabase/types";
 import { REPORT_MOTIVO_LABELS } from "@/lib/reportMotivos";
 import { SITE_URL } from "@/lib/seo";
+import { resizeImage } from "@/lib/resizeImage";
 import ShareButton from "./ShareButton";
 
 interface ListingReport {
@@ -153,10 +154,11 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
 
   function handleNewPhotos(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
-    files.forEach((file) => {
+    files.forEach(async (file) => {
+      const resized = await resizeImage(file);
       const reader = new FileReader();
       reader.onload = (ev) => setNewPhotos((prev) => [...prev, ev.target?.result as string]);
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(resized);
     });
     e.target.value = "";
   }
