@@ -208,12 +208,13 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, user, o
           )}
 
           <h2 className="mb-1 font-slab text-xl font-semibold text-tinta sm:text-[22px]">{l.nombre}</h2>
+          {l.subtitulo && <p className="mb-1 text-[14px] text-tinta-suave">{l.subtitulo}</p>}
           <p className="mb-1 text-[13px] text-tinta-suave">
             {l.categoria && categories[l.categoria] ? `${categories[l.categoria].label}${l.subcategoria ? ` · ${l.subcategoria}` : ""}` : "Otro"}
           </p>
-          {(l.precio || l.precioConsultar) && (
+          {(l.precio || l.precioConsultar || l.precioRegalo) && (
             <p className="mb-1 font-slab text-lg font-semibold text-tinta">
-              {l.precioConsultar ? "Precio a consultar" : `$${l.precio!.toLocaleString("es-AR")}`}
+              {l.precioRegalo ? "Se regala" : l.precioConsultar ? "Precio a consultar" : `$${l.precio!.toLocaleString("es-AR")}`}
             </p>
           )}
           <p className="mb-3 flex items-center gap-1 text-[13.5px] font-medium text-tinta">

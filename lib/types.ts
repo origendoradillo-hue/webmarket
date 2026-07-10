@@ -28,6 +28,7 @@ export type Etiqueta = "turismo" | "alquileres_temporarios";
 export interface Listing {
   id: number | string;
   nombre: string;
+  subtitulo?: string;
   intencion: Intencion;
   tipo?: TipoPublicacion;
   categoria?: CategoryKey;
@@ -54,6 +55,7 @@ export interface Listing {
   tags?: string[];
   precio?: number;
   precioConsultar?: boolean;
+  precioRegalo?: boolean;
   detalles?: Record<string, unknown>;
   whatsappPublico?: boolean;
   publisherId?: string;

@@ -406,7 +406,7 @@ export default function HomeClient() {
       if (intencionFilter !== "all" && l.intencion !== intencionFilter) return false;
       if (tipoFilter !== "all" && l.tipo !== tipoFilter) return false;
       if (q) {
-        const haystack = `${l.nombre} ${l.subcategoria || ""} ${l.categoria ? categories[l.categoria]?.label || "" : ""} ${(l.tags || []).join(" ")}`.toLowerCase();
+        const haystack = `${l.nombre} ${l.subtitulo || ""} ${l.subcategoria || ""} ${l.categoria ? categories[l.categoria]?.label || "" : ""} ${(l.tags || []).join(" ")}`.toLowerCase();
         if (!haystack.includes(q)) return false;
       }
       return true;

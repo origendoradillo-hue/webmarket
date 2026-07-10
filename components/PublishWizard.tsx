@@ -17,11 +17,13 @@ interface PublishData {
   cat: CategoryKey | null;
   sub: string | null;
   nombre: string;
+  subtitulo: string;
   desc: string;
   fotosData: string[];
   tags: string;
   precio: string;
   precioConsultar: boolean;
+  precioRegalo: boolean;
   modalidad: string[];
   etiquetas: Etiqueta[];
   // Producto
@@ -56,11 +58,13 @@ const DEFAULTS: PublishData = {
   cat: null,
   sub: null,
   nombre: "",
+  subtitulo: "",
   desc: "",
   fotosData: [],
   tags: "",
   precio: "",
   precioConsultar: false,
+  precioRegalo: false,
   modalidad: [],
   etiquetas: [],
   disponibilidad: "recurrente",
@@ -282,6 +286,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
           cuadrante: data.cuadrante,
           direccion: data.direccion || null,
           nombre: data.nombre,
+          subtitulo: data.subtitulo || null,
           descripcion: data.desc,
           foto_url: fotoUrl,
           modalidad: data.modalidad,
@@ -293,6 +298,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
           cantidad,
           precio: precioNum,
           precio_a_consultar: data.intencion === "busco" ? false : data.precioConsultar,
+          precio_regalo: data.intencion === "busco" ? false : data.precioRegalo,
           whatsapp_publico: data.whatsappPublico,
           detalles,
         })
@@ -355,6 +361,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
         p_cuadrante: data.cuadrante,
         p_direccion: data.direccion || null,
         p_nombre: data.nombre,
+        p_subtitulo: data.subtitulo || null,
         p_descripcion: data.desc,
         p_foto_url: fotoUrls[0] ?? null,
         p_modalidad: data.modalidad,
@@ -365,6 +372,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
         p_etiquetas: data.etiquetas,
         p_precio: data.precio.trim() === "" ? null : Number(data.precio),
         p_precio_a_consultar: data.precioConsultar,
+        p_precio_regalo: data.precioRegalo,
         p_whatsapp_publico: data.whatsappPublico,
       });
       if (error) throw error;
@@ -513,12 +521,21 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
               {step === "datos" && (
                 <>
                   <p className="mb-4 font-slab text-lg font-semibold text-tinta">Datos de la publicación</p>
-                  <Field label="Nombre">
+                  <Field label="Título">
                     <input
                       type="text"
                       placeholder="Ej: Aceite de oliva extra virgen"
                       value={data.nombre}
                       onChange={(e) => update("nombre", e.target.value)}
+                      className="w-full rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta"
+                    />
+                  </Field>
+                  <Field label="Subtítulo (opcional)">
+                    <input
+                      type="text"
+                      placeholder="Ej: 500ml, cosecha propia"
+                      value={data.subtitulo}
+                      onChange={(e) => update("subtitulo", e.target.value)}
                       className="w-full rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta"
                     />
                   </Field>
@@ -543,24 +560,55 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
                   </Field>
                   {data.intencion === "ofrezco" && (
                     <Field label="Precio">
-                      <div className="flex items-center gap-2.5">
+                      <div className="flex flex-col gap-2">
+                        <div className="flex flex-wrap gap-3 text-[12px] text-tinta">
+                          <label className="flex items-center gap-1.5">
+                            <input
+                              type="radio"
+                              name="precioModo"
+                              checked={!data.precioConsultar && !data.precioRegalo}
+                              onChange={() => {
+                                update("precioConsultar", false);
+                                update("precioRegalo", false);
+                              }}
+                            />
+                            Precio fijo
+                          </label>
+                          <label className="flex items-center gap-1.5">
+                            <input
+                              type="radio"
+                              name="precioModo"
+                              checked={data.precioConsultar}
+                              onChange={() => {
+                                update("precioConsultar", true);
+                                update("precioRegalo", false);
+                              }}
+                            />
+                            A consultar
+                          </label>
+                          <label className="flex items-center gap-1.5">
+                            <input
+                              type="radio"
+                              name="precioModo"
+                              checked={data.precioRegalo}
+                              onChange={() => {
+                                update("precioRegalo", true);
+                                update("precioConsultar", false);
+                                update("precio", "");
+                              }}
+                            />
+                            Se regala
+                          </label>
+                        </div>
                         <input
                           type="number"
                           min={0}
                           placeholder="Monto"
-                          disabled={data.precioConsultar}
+                          disabled={data.precioConsultar || data.precioRegalo}
                           value={data.precio}
                           onChange={(e) => update("precio", e.target.value)}
                           className="w-full rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta disabled:bg-hueso-2"
                         />
-                        <label className="flex flex-shrink-0 items-center gap-1.5 text-[12px] text-tinta">
-                          <input
-                            type="checkbox"
-                            checked={data.precioConsultar}
-                            onChange={(e) => update("precioConsultar", e.target.checked)}
-                          />
-                          A consultar
-                        </label>
                       </div>
                     </Field>
                   )}

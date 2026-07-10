@@ -48,9 +48,11 @@ const STATUS_COLOR: Record<string, string> = {
 
 interface EditForm {
   nombre: string;
+  subtitulo: string;
   descripcion: string;
   precio: string;
   precioConsultar: boolean;
+  precioRegalo: boolean;
   zona: string;
   cuadrante: string;
   direccion: string;
@@ -138,9 +140,11 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
     setNewPhotos([]);
     setEditForm({
       nombre: l.nombre,
+      subtitulo: l.subtitulo || "",
       descripcion: l.descripcion,
       precio: l.precio != null ? String(l.precio) : "",
       precioConsultar: l.precio_a_consultar,
+      precioRegalo: l.precio_regalo,
       zona: l.zona,
       cuadrante: l.cuadrante || "",
       direccion: l.direccion || "",
@@ -199,9 +203,11 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
     const { error } = await supabase.rpc("mi_update_listing", {
       p_listing_id: l.id,
       p_nombre: editForm.nombre,
+      p_subtitulo: editForm.subtitulo || null,
       p_descripcion: editForm.descripcion,
       p_precio: editForm.precio.trim() === "" ? null : Number(editForm.precio),
       p_precio_a_consultar: editForm.precioConsultar,
+      p_precio_regalo: editForm.precioRegalo,
       p_zona: editForm.zona,
       p_cuadrante: editForm.cuadrante || null,
       p_direccion: editForm.direccion || null,
@@ -411,10 +417,17 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
                         </div>
                       ))}
 
-                      <MiniField label="Nombre">
+                      <MiniField label="Título">
                         <input
                           value={editForm.nombre}
                           onChange={(e) => setEditForm({ ...editForm, nombre: e.target.value })}
+                          className="w-full rounded-lg border border-piedra/70 bg-white px-2.5 py-2 text-[13px] text-tinta"
+                        />
+                      </MiniField>
+                      <MiniField label="Subtítulo (opcional)">
+                        <input
+                          value={editForm.subtitulo}
+                          onChange={(e) => setEditForm({ ...editForm, subtitulo: e.target.value })}
                           className="w-full rounded-lg border border-piedra/70 bg-white px-2.5 py-2 text-[13px] text-tinta"
                         />
                       </MiniField>
@@ -425,23 +438,44 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
                           className="min-h-[56px] w-full resize-y rounded-lg border border-piedra/70 bg-white px-2.5 py-2 text-[13px] text-tinta"
                         />
                       </MiniField>
-                      <div className="mb-2.5 flex items-center gap-2.5">
+                      <div className="mb-2.5 flex flex-col gap-2">
+                        <div className="flex flex-wrap gap-3 text-[11.5px] text-tinta">
+                          <label className="flex items-center gap-1.5">
+                            <input
+                              type="radio"
+                              name="precioModoEdit"
+                              checked={!editForm.precioConsultar && !editForm.precioRegalo}
+                              onChange={() => setEditForm({ ...editForm, precioConsultar: false, precioRegalo: false })}
+                            />
+                            Precio fijo
+                          </label>
+                          <label className="flex items-center gap-1.5">
+                            <input
+                              type="radio"
+                              name="precioModoEdit"
+                              checked={editForm.precioConsultar}
+                              onChange={() => setEditForm({ ...editForm, precioConsultar: true, precioRegalo: false })}
+                            />
+                            A consultar
+                          </label>
+                          <label className="flex items-center gap-1.5">
+                            <input
+                              type="radio"
+                              name="precioModoEdit"
+                              checked={editForm.precioRegalo}
+                              onChange={() => setEditForm({ ...editForm, precioRegalo: true, precioConsultar: false, precio: "" })}
+                            />
+                            Se regala
+                          </label>
+                        </div>
                         <input
                           type="number"
                           placeholder="Precio"
-                          disabled={editForm.precioConsultar}
+                          disabled={editForm.precioConsultar || editForm.precioRegalo}
                           value={editForm.precio}
                           onChange={(e) => setEditForm({ ...editForm, precio: e.target.value })}
                           className="w-full rounded-lg border border-piedra/70 bg-white px-2.5 py-2 text-[13px] text-tinta disabled:bg-hueso-2"
                         />
-                        <label className="flex flex-shrink-0 items-center gap-1.5 text-[11.5px] text-tinta">
-                          <input
-                            type="checkbox"
-                            checked={editForm.precioConsultar}
-                            onChange={(e) => setEditForm({ ...editForm, precioConsultar: e.target.checked })}
-                          />
-                          A consultar
-                        </label>
                       </div>
                       <div className="mb-2.5 grid grid-cols-2 gap-2">
                         <input

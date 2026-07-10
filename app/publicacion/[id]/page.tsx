@@ -87,7 +87,7 @@ export default async function PublicacionPage({ params }: PageProps) {
     description: listing.descripcion,
     image: listing.foto_url || undefined,
     url,
-    ...(listing.precio && !listing.precio_a_consultar
+    ...(listing.precio && !listing.precio_a_consultar && !listing.precio_regalo
       ? { offers: { "@type": "Offer", price: listing.precio, priceCurrency: "ARS", availability: "https://schema.org/InStock" } }
       : {}),
   };
@@ -126,9 +126,10 @@ export default async function PublicacionPage({ params }: PageProps) {
               {listing.subcategoria ? ` · ${listing.subcategoria}` : ""}
             </p>
             <h1 className="mb-2 font-slab text-2xl font-semibold text-tinta">{listing.nombre}</h1>
-            {(listing.precio || listing.precio_a_consultar) && (
+            {listing.subtitulo && <p className="mb-2 text-[15px] text-tinta-suave">{listing.subtitulo}</p>}
+            {(listing.precio || listing.precio_a_consultar || listing.precio_regalo) && (
               <p className="mb-2 font-slab text-lg font-semibold text-tinta">
-                {listing.precio_a_consultar ? "Precio a consultar" : `$${listing.precio!.toLocaleString("es-AR")}`}
+                {listing.precio_regalo ? "Se regala" : listing.precio_a_consultar ? "Precio a consultar" : `$${listing.precio!.toLocaleString("es-AR")}`}
               </p>
             )}
             <p className="mb-4 flex items-center gap-1 text-[13.5px] text-tinta">

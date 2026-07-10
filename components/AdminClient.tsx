@@ -1294,11 +1294,13 @@ function AdminListingRow({
   const [reassignTo, setReassignTo] = useState("");
   const [form, setForm] = useState({
     nombre: l.nombre,
+    subtitulo: l.subtitulo || "",
     descripcion: l.descripcion,
     categoria: l.categoria || "",
     subcategoria: l.subcategoria || "",
     precio: l.precio ? String(l.precio) : "",
     precioConsultar: l.precio_a_consultar,
+    precioRegalo: l.precio_regalo,
     zona: l.zona,
     cuadrante: l.cuadrante || "",
     direccion: l.direccion || "",
@@ -1390,11 +1392,13 @@ function AdminListingRow({
     const { error } = await supabase.rpc("admin_update_listing", {
       p_listing_id: l.id,
       p_nombre: form.nombre,
+      p_subtitulo: form.subtitulo || null,
       p_descripcion: form.descripcion,
       p_categoria: form.categoria || null,
       p_subcategoria: form.subcategoria || null,
       p_precio: form.precio ? Number(form.precio) : null,
       p_precio_a_consultar: form.precioConsultar,
+      p_precio_regalo: form.precioRegalo,
       p_zona: form.zona,
       p_cuadrante: form.cuadrante || null,
       p_direccion: form.direccion || null,
@@ -1570,7 +1574,8 @@ function AdminListingRow({
           </div>
 
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <LabeledInput label="Nombre" value={form.nombre} onChange={(v) => setForm({ ...form, nombre: v })} />
+            <LabeledInput label="Título" value={form.nombre} onChange={(v) => setForm({ ...form, nombre: v })} />
+            <LabeledInput label="Subtítulo" value={form.subtitulo} onChange={(v) => setForm({ ...form, subtitulo: v })} />
             <LabeledInput label="Barrio" value={form.zona} onChange={(v) => setForm({ ...form, zona: v })} />
             <div>
               <label className="mb-1 block text-[11px] font-medium text-tinta">Categoría</label>
@@ -1590,11 +1595,43 @@ function AdminListingRow({
               </select>
             </div>
             <LabeledInput label="Subcategoría" value={form.subcategoria} onChange={(v) => setForm({ ...form, subcategoria: v })} />
-            <LabeledInput label="Precio" type="number" value={form.precio} onChange={(v) => setForm({ ...form, precio: v })} />
-            <div className="flex items-end pb-1.5">
-              <label className="flex items-center gap-1.5 text-[11px] text-tinta">
-                <input type="checkbox" checked={form.precioConsultar} onChange={(e) => setForm({ ...form, precioConsultar: e.target.checked })} />
+            <div>
+              <label className="mb-1 block text-[11px] font-medium text-tinta">Precio</label>
+              <input
+                type="number"
+                disabled={form.precioConsultar || form.precioRegalo}
+                value={form.precio}
+                onChange={(e) => setForm({ ...form, precio: e.target.value })}
+                className="w-full rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta disabled:bg-hueso-2"
+              />
+            </div>
+            <div className="flex items-center gap-3 pb-1.5 text-[11px] text-tinta sm:col-span-2">
+              <label className="flex items-center gap-1.5">
+                <input
+                  type="radio"
+                  name="precioModoAdmin"
+                  checked={!form.precioConsultar && !form.precioRegalo}
+                  onChange={() => setForm({ ...form, precioConsultar: false, precioRegalo: false })}
+                />
+                Precio fijo
+              </label>
+              <label className="flex items-center gap-1.5">
+                <input
+                  type="radio"
+                  name="precioModoAdmin"
+                  checked={form.precioConsultar}
+                  onChange={() => setForm({ ...form, precioConsultar: true, precioRegalo: false })}
+                />
                 Precio a consultar
+              </label>
+              <label className="flex items-center gap-1.5">
+                <input
+                  type="radio"
+                  name="precioModoAdmin"
+                  checked={form.precioRegalo}
+                  onChange={() => setForm({ ...form, precioRegalo: true, precioConsultar: false, precio: "" })}
+                />
+                Se regala
               </label>
             </div>
             <LabeledInput label="Dirección" value={form.direccion} onChange={(v) => setForm({ ...form, direccion: v })} />

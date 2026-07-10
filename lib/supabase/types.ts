@@ -78,6 +78,7 @@ export interface Database {
           cuadrante: string | null;
           direccion: string | null;
           nombre: string;
+          subtitulo: string | null;
           descripcion: string;
           foto_url: string | null;
           modalidad: string[];
@@ -86,6 +87,7 @@ export interface Database {
           cantidad: number | null;
           precio: number | null;
           precio_a_consultar: boolean;
+          precio_regalo: boolean;
           whatsapp_publico: boolean;
           sello: boolean;
           destacada: boolean;
@@ -107,6 +109,7 @@ export interface Database {
           cuadrante?: string | null;
           direccion?: string | null;
           nombre: string;
+          subtitulo?: string | null;
           descripcion: string;
           foto_url?: string | null;
           modalidad?: string[];
@@ -115,6 +118,7 @@ export interface Database {
           cantidad?: number | null;
           precio?: number | null;
           precio_a_consultar?: boolean;
+          precio_regalo?: boolean;
           whatsapp_publico?: boolean;
           detalles?: Record<string, unknown>;
           status?: "activa";
@@ -489,6 +493,7 @@ export interface Database {
           p_cuadrante?: string | null;
           p_direccion?: string | null;
           p_nombre?: string | null;
+          p_subtitulo?: string | null;
           p_descripcion?: string | null;
           p_foto_url?: string | null;
           p_modalidad?: string[] | null;
@@ -496,6 +501,7 @@ export interface Database {
           p_etiquetas?: string[] | null;
           p_precio?: number | null;
           p_precio_a_consultar?: boolean | null;
+          p_precio_regalo?: boolean | null;
           p_whatsapp_publico?: boolean | null;
         };
         Returns: string;
@@ -504,11 +510,13 @@ export interface Database {
         Args: {
           p_listing_id: string;
           p_nombre?: string | null;
+          p_subtitulo?: string | null;
           p_descripcion?: string | null;
           p_categoria?: string | null;
           p_subcategoria?: string | null;
           p_precio?: number | null;
           p_precio_a_consultar?: boolean | null;
+          p_precio_regalo?: boolean | null;
           p_foto_url?: string | null;
           p_modalidad?: string[] | null;
           p_tags?: string[] | null;
@@ -525,11 +533,13 @@ export interface Database {
         Args: {
           p_listing_id: string;
           p_nombre?: string | null;
+          p_subtitulo?: string | null;
           p_descripcion?: string | null;
           p_categoria?: string | null;
           p_subcategoria?: string | null;
           p_precio?: number | null;
           p_precio_a_consultar?: boolean | null;
+          p_precio_regalo?: boolean | null;
           p_foto_url?: string | null;
           p_modalidad?: string[] | null;
           p_tags?: string[] | null;
