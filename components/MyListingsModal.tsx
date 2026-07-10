@@ -358,7 +358,7 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
                         )}
                         {l.status === "activa" && (
                           <ShareButton
-                            url={`${SITE_URL}/publicacion/${l.id}`}
+                            url={l.short_code ? `${SITE_URL}/p/${l.short_code}` : `${SITE_URL}/publicacion/${l.id}`}
                             title={l.nombre}
                             text={l.descripcion.slice(0, 120)}
                             className="flex items-center gap-1.5 rounded-lg border border-piedra/70 bg-white px-3 py-1.5 text-[12px] font-medium text-tinta"

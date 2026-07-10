@@ -177,7 +177,7 @@ function AnuncioDetailModal({ a, onClose }: { a: Anuncio; onClose: () => void })
               </a>
             )}
             <ShareButton
-              url={`${SITE_URL}/anuncio/${a.id}`}
+              url={a.shortCode ? `${SITE_URL}/p/${a.shortCode}` : `${SITE_URL}/anuncio/${a.id}`}
               title={a.titulo}
               text={a.descripcion.slice(0, 120)}
               className="mt-1 flex w-fit items-center gap-1.5 rounded-lg border border-piedra/60 px-4 py-2 text-[12.5px] font-semibold text-tinta"

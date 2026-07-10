@@ -65,6 +65,7 @@ export default async function AnuncioPage({ params }: PageProps) {
   if (!anuncio) notFound();
 
   const url = `${SITE_URL}/anuncio/${id}`;
+  const shareUrl = anuncio.short_code ? `${SITE_URL}/p/${anuncio.short_code}` : url;
   const imageUrl = anuncio.imagen_url || anuncio.background_image_url;
   const lugarTrim = anuncio.lugar?.trim();
   const esLinkLugar = !!lugarTrim && /^https?:\/\//i.test(lugarTrim);
@@ -129,7 +130,7 @@ export default async function AnuncioPage({ params }: PageProps) {
               </a>
             )}
             <ShareButton
-              url={url}
+              url={shareUrl}
               title={anuncio.titulo}
               text={anuncio.descripcion.slice(0, 120)}
               className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-piedra/60 py-2.5 text-[13px] font-semibold text-tinta"

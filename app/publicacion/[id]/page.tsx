@@ -79,6 +79,7 @@ export default async function PublicacionPage({ params }: PageProps) {
 
   const nombrePublicador = listing.profiles?.nickname?.trim() || listing.profiles?.full_name?.trim() || "Vecino de la zona";
   const url = `${SITE_URL}/publicacion/${id}`;
+  const shareUrl = listing.short_code ? `${SITE_URL}/p/${listing.short_code}` : url;
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -162,7 +163,7 @@ export default async function PublicacionPage({ params }: PageProps) {
               isOwner={!!user && user.id === listing.publisher_id}
             />
             <ShareButton
-              url={url}
+              url={shareUrl}
               title={listing.nombre}
               text={listing.descripcion.slice(0, 120)}
               className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-piedra/60 py-2.5 text-[13px] font-semibold text-tinta"

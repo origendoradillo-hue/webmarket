@@ -27,6 +27,7 @@ export type Etiqueta = "turismo" | "alquileres_temporarios";
 
 export interface Listing {
   id: number | string;
+  shortCode?: string;
   nombre: string;
   subtitulo?: string;
   intencion: Intencion;
@@ -77,6 +78,7 @@ export type ImageOrientation = "vertical" | "horizontal" | "square";
 
 export interface Anuncio {
   id: string;
+  shortCode?: string;
   tipo: TipoAnuncio;
   titulo: string;
   descripcion: string;

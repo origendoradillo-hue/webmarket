@@ -4,6 +4,7 @@ import { AnuncioRow } from "./types";
 export function mapAnuncioRow(row: AnuncioRow): Anuncio {
   return {
     id: row.id,
+    shortCode: row.short_code,
     tipo: row.tipo,
     titulo: row.titulo,
     descripcion: row.descripcion,

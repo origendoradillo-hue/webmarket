@@ -133,7 +133,7 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, user, o
           <span className="font-slab text-[13px] font-semibold text-tinta">Publicación</span>
           <div className="flex items-center gap-4">
             <ShareButton
-              url={`${SITE_URL}/publicacion/${listing.id}`}
+              url={listing.shortCode ? `${SITE_URL}/p/${listing.shortCode}` : `${SITE_URL}/publicacion/${listing.id}`}
               title={listing.nombre}
               text={listing.descripcion.slice(0, 120)}
             />

@@ -89,6 +89,7 @@ export interface Database {
           precio_a_consultar: boolean;
           precio_regalo: boolean;
           whatsapp_publico: boolean;
+          short_code: string;
           sello: boolean;
           destacada: boolean;
           emprendimiento_destacado: boolean;
@@ -147,6 +148,7 @@ export interface Database {
           background_image_url: string | null;
           cta_label: string | null;
           cta_url: string | null;
+          short_code: string;
           created_at: string;
           updated_at: string;
         };
