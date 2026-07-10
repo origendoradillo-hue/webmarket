@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useCategories } from "@/lib/useCategories";
-import { Anuncio, CategoryKey, Listing, TipoPublicacion } from "@/lib/types";
+import { Anuncio, CategoryKey, Cuadrante, Listing, TipoPublicacion } from "@/lib/types";
 import { TIPO_LABELS } from "@/lib/tipos";
 import { createClient } from "@/lib/supabase/client";
 import { mapListingRow } from "@/lib/supabase/mapListing";
@@ -13,6 +13,7 @@ import { trackEvent } from "@/lib/analytics";
 import Header from "./Header";
 import Hero from "./Hero";
 import CategoryFilters from "./CategoryFilters";
+import LocationFilters from "./LocationFilters";
 import HomeEntryButtons from "./HomeEntryButtons";
 import AnuncioCarousel from "./AnuncioCarousel";
 import AnuncioTicker from "./AnuncioTicker";
@@ -78,6 +79,9 @@ export default function HomeClient() {
   const [query, setQuery] = useState("");
   const [intencionFilter, setIntencionFilter] = useState<"all" | "ofrezco" | "busco">("all");
   const [tipoFilter, setTipoFilter] = useState<"all" | TipoPublicacion>("all");
+  const [sortMode, setSortMode] = useState<"relevancia" | "precio_asc" | "precio_desc">("relevancia");
+  const [zonaFilter, setZonaFilter] = useState<string | "all">("all");
+  const [cuadranteFilter, setCuadranteFilter] = useState<Cuadrante | "all">("all");
   const [activeListing, setActiveListing] = useState<Listing | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
   const [publishOpen, setPublishOpen] = useState(false);
@@ -307,6 +311,9 @@ export default function HomeClient() {
     setQuery("");
     setIntencionFilter("all");
     setTipoFilter("all");
+    setZonaFilter("all");
+    setCuadranteFilter("all");
+    setSortMode("relevancia");
     setResultadosIntencion(null);
     setScreen("home");
   }
@@ -314,6 +321,11 @@ export default function HomeClient() {
   function handleSelectCat(next: CategoryKey | "all") {
     setCat(next);
     setSub("all");
+  }
+
+  function handleSelectZona(next: string | "all") {
+    setZonaFilter(next);
+    setCuadranteFilter("all");
   }
 
   function handleExplorar() {
@@ -405,6 +417,8 @@ export default function HomeClient() {
       if (sub !== "all" && l.subcategoria !== sub) return false;
       if (intencionFilter !== "all" && l.intencion !== intencionFilter) return false;
       if (tipoFilter !== "all" && l.tipo !== tipoFilter) return false;
+      if (zonaFilter !== "all" && l.zona !== zonaFilter) return false;
+      if (cuadranteFilter !== "all" && l.cuadrante !== cuadranteFilter) return false;
       if (q) {
         const haystack = `${l.nombre} ${l.subtitulo || ""} ${l.subcategoria || ""} ${l.categoria ? categories[l.categoria]?.label || "" : ""} ${(l.tags || []).join(" ")}`.toLowerCase();
         if (!haystack.includes(q)) return false;
@@ -415,13 +429,29 @@ export default function HomeClient() {
     // después destacada — dentro de un mismo nivel, orden mezclado (no
     // separado por categoría/tipo).
     const priority = (l: Listing) => (l.sello ? 3 : 0) + (l.emprendimientoDestacado ? 2 : 0) + (l.destacada ? 1 : 0);
-    result.sort((a, b) => {
+    const relevanciaCompare = (a: Listing, b: Listing) => {
       const diff = priority(b) - priority(a);
       if (diff !== 0) return diff;
       return shuffleScore(a.id, shuffleSeed) - shuffleScore(b.id, shuffleSeed);
-    });
+    };
+    if (sortMode === "relevancia") {
+      result.sort(relevanciaCompare);
+    } else {
+      // Sin precio utilizable (a consultar, se regala, o directamente sin
+      // precio cargado) siempre queda al final, ordenado por relevancia
+      // entre sí; el resto se ordena por precio.
+      const tienePrecio = (l: Listing) => !l.precioConsultar && !l.precioRegalo && l.precio != null;
+      result.sort((a, b) => {
+        const aTiene = tienePrecio(a);
+        const bTiene = tienePrecio(b);
+        if (aTiene && !bTiene) return -1;
+        if (!aTiene && bTiene) return 1;
+        if (!aTiene && !bTiene) return relevanciaCompare(a, b);
+        return sortMode === "precio_asc" ? a.precio! - b.precio! : b.precio! - a.precio!;
+      });
+    }
     return result;
-  }, [allListings, cat, sub, query, intencionFilter, tipoFilter, categories, shuffleSeed]);
+  }, [allListings, cat, sub, query, intencionFilter, tipoFilter, zonaFilter, cuadranteFilter, categories, shuffleSeed, sortMode]);
 
   const seleccionOrigen = useMemo(() => allListings.filter((l) => l.sello), [allListings]);
   const destacados = useMemo(() => allListings.filter((l) => l.destacada), [allListings]);
@@ -606,6 +636,31 @@ export default function HomeClient() {
                 ))}
               </div>
               <CategoryFilters cat={cat} sub={sub} onSelectCat={handleSelectCat} onSelectSub={setSub} tipoFilter={tipoFilter} />
+              <LocationFilters
+                zona={zonaFilter}
+                cuadrante={cuadranteFilter}
+                onSelectZona={handleSelectZona}
+                onSelectCuadrante={setCuadranteFilter}
+              />
+              <div className="mb-2.5 flex flex-wrap gap-1.5">
+                {(
+                  [
+                    { value: "relevancia", label: "Relevancia" },
+                    { value: "precio_asc", label: "Precio: menor a mayor" },
+                    { value: "precio_desc", label: "Precio: mayor a menor" },
+                  ] as const
+                ).map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setSortMode(opt.value)}
+                    className={`flex-shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-[11.5px] ${
+                      sortMode === opt.value ? "border-oliva bg-oliva text-hueso" : "border-piedra/60 bg-white text-tinta"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
               <ListingGrid
                 listings={filtered}
                 onOpen={setActiveListing}
