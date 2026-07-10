@@ -7,6 +7,7 @@ import type { ListingRow } from "@/lib/supabase/types";
 import { REPORT_MOTIVO_LABELS } from "@/lib/reportMotivos";
 import { SITE_URL } from "@/lib/seo";
 import { resizeImage } from "@/lib/resizeImage";
+import { containsPhoneNumber, maskPhoneNumbers } from "@/lib/phoneDetection";
 import ShareButton from "./ShareButton";
 
 interface ListingReport {
@@ -204,7 +205,7 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
       p_listing_id: l.id,
       p_nombre: editForm.nombre,
       p_subtitulo: editForm.subtitulo || null,
-      p_descripcion: editForm.descripcion,
+      p_descripcion: maskPhoneNumbers(editForm.descripcion).masked,
       p_precio: editForm.precio.trim() === "" ? null : Number(editForm.precio),
       p_precio_a_consultar: editForm.precioConsultar,
       p_precio_regalo: editForm.precioRegalo,
@@ -437,6 +438,11 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
                           onChange={(e) => setEditForm({ ...editForm, descripcion: e.target.value })}
                           className="min-h-[56px] w-full resize-y rounded-lg border border-piedra/70 bg-white px-2.5 py-2 text-[13px] text-tinta"
                         />
+                        {containsPhoneNumber(editForm.descripcion) && (
+                          <p className="mt-1 text-[11px] text-dorado">
+                            Parece que incluiste un teléfono acá — usá Contactar en vez de dejarlo en la descripción. Al guardar lo vamos a ocultar.
+                          </p>
+                        )}
                       </MiniField>
                       <div className="mb-2.5 flex flex-col gap-2">
                         <div className="flex flex-wrap gap-3 text-[11.5px] text-tinta">

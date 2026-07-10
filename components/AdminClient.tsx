@@ -21,6 +21,7 @@ import type { Anuncio, AnuncioLayoutType, ImageOrientation, TipoPublicacion } fr
 import { TIPO_OPTIONS } from "@/lib/tipos";
 import { SITE_URL } from "@/lib/seo";
 import { resizeImage } from "@/lib/resizeImage";
+import { containsPhoneNumber, maskPhoneNumbers } from "@/lib/phoneDetection";
 import AnuncioSlide from "./AnuncioSlide";
 
 type Tab =
@@ -1393,7 +1394,7 @@ function AdminListingRow({
       p_listing_id: l.id,
       p_nombre: form.nombre,
       p_subtitulo: form.subtitulo || null,
-      p_descripcion: form.descripcion,
+      p_descripcion: maskPhoneNumbers(form.descripcion).masked,
       p_categoria: form.categoria || null,
       p_subcategoria: form.subcategoria || null,
       p_precio: form.precio ? Number(form.precio) : null,
@@ -1643,6 +1644,11 @@ function AdminListingRow({
               onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
               className="min-h-[60px] w-full rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
             />
+            {containsPhoneNumber(form.descripcion) && (
+              <p className="mt-1 text-[11px] text-dorado">
+                Parece que hay un teléfono en la descripción — al guardar se va a ocultar automáticamente.
+              </p>
+            )}
           </div>
           <LabeledInput label="Palabras clave (separadas por coma)" value={form.tags} onChange={(v) => setForm({ ...form, tags: v })} />
 

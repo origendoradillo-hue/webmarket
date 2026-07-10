@@ -8,6 +8,7 @@ import { TIPO_OPTIONS } from "@/lib/tipos";
 import { createClient } from "@/lib/supabase/client";
 import { trackEvent } from "@/lib/analytics";
 import { resizeImage } from "@/lib/resizeImage";
+import { containsPhoneNumber, maskPhoneNumbers } from "@/lib/phoneDetection";
 
 type Intencion = "ofrezco" | "busco";
 
@@ -287,7 +288,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
           direccion: data.direccion || null,
           nombre: data.nombre,
           subtitulo: data.subtitulo || null,
-          descripcion: data.desc,
+          descripcion: maskPhoneNumbers(data.desc).masked,
           foto_url: fotoUrl,
           modalidad: data.modalidad,
           tags: data.tags
@@ -362,7 +363,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
         p_direccion: data.direccion || null,
         p_nombre: data.nombre,
         p_subtitulo: data.subtitulo || null,
-        p_descripcion: data.desc,
+        p_descripcion: maskPhoneNumbers(data.desc).masked,
         p_foto_url: fotoUrls[0] ?? null,
         p_modalidad: data.modalidad,
         p_tags: data.tags
@@ -557,6 +558,11 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
                       onChange={(e) => update("desc", e.target.value)}
                       className="min-h-[64px] w-full resize-y rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta"
                     />
+                    {containsPhoneNumber(data.desc) && (
+                      <p className="mt-1 text-[11.5px] text-dorado">
+                        Parece que incluiste un teléfono acá — usá el botón de Contactar para que la consulta quede dentro de la plataforma. Al publicar lo vamos a ocultar automáticamente.
+                      </p>
+                    )}
                   </Field>
                   {data.intencion === "ofrezco" && (
                     <Field label="Precio">
