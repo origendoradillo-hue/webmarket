@@ -571,8 +571,8 @@ export default function HomeClient() {
       <main className="mx-auto max-w-[1240px] px-4 pb-12 sm:px-7">
         {screen === "home" && (
           <>
-            <CuratedRow title="Selección Origen" icon="ti-sparkles" listings={seleccionOrigen.slice(0, 4)} onOpen={setActiveListing} favoritoIds={favoritoIds} onToggleFavorito={toggleFavorito} />
-            <CuratedRow title="Productos destacados" icon="ti-star" listings={destacados.slice(0, 4)} onOpen={setActiveListing} favoritoIds={favoritoIds} onToggleFavorito={toggleFavorito} />
+            <CuratedRow title="Selección Origen" icon="ti-sparkles" listings={seleccionOrigen} onOpen={setActiveListing} favoritoIds={favoritoIds} onToggleFavorito={toggleFavorito} />
+            <CuratedRow title="Productos destacados" icon="ti-star" listings={destacados} onOpen={setActiveListing} favoritoIds={favoritoIds} onToggleFavorito={toggleFavorito} />
           </>
         )}
 

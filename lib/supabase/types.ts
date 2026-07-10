@@ -459,6 +459,10 @@ export interface Database {
         Args: { p_listing_id: string };
         Returns: undefined;
       };
+      admin_delete_anuncio: {
+        Args: { p_anuncio_id: string };
+        Returns: undefined;
+      };
       admin_set_verification_status: {
         Args: { p_request_id: string; p_estado: string; p_nota?: string | null };
         Returns: undefined;

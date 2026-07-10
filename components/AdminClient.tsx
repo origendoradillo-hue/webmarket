@@ -158,6 +158,7 @@ const ICON_SUGGESTIONS = [
 
 type ListingWithPublisher = ListingRow & { profiles: { full_name: string | null; email: string | null; whatsapp_number: string | null } | null };
 type AnuncioWithSolicitante = AnuncioRow & { profiles: { full_name: string | null; email: string | null; whatsapp_number: string | null } | null };
+type SupportRequestWithUser = SupportRequestRow & { profiles: { full_name: string | null; email: string | null } | null };
 type ReportWithDetails = ListingReportRow & {
   profiles: { full_name: string | null; email: string | null } | null;
   listings: { nombre: string; publisher_id: string } | null;
@@ -183,7 +184,7 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
   const [reports, setReports] = useState<ReportWithDetails[]>([]);
   const [verifications, setVerifications] = useState<VerificationWithUser[]>([]);
   const [reviewReports, setReviewReports] = useState<ReviewReportWithDetails[]>([]);
-  const [supportRequests, setSupportRequests] = useState<SupportRequestRow[]>([]);
+  const [supportRequests, setSupportRequests] = useState<SupportRequestWithUser[]>([]);
   const [users, setUsers] = useState<ProfileRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedListing, setExpandedListing] = useState<string | null>(null);
@@ -255,8 +256,11 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
 
   const loadSupportRequests = useCallback(async () => {
     const supabase = createClient();
-    const { data } = await supabase.from("support_requests").select("*").order("created_at", { ascending: false });
-    setSupportRequests(data || []);
+    const { data } = await supabase
+      .from("support_requests")
+      .select("*, profiles!support_requests_user_id_fkey(full_name, email)")
+      .order("created_at", { ascending: false });
+    setSupportRequests((data as never as SupportRequestWithUser[]) || []);
   }, []);
 
   const loadUsers = useCallback(async () => {
@@ -553,6 +557,7 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
                 expanded={expandedAnuncio === a.id}
                 onToggle={() => setExpandedAnuncio(expandedAnuncio === a.id ? null : a.id)}
                 onSaved={loadAnuncios}
+                isSuperadmin={isSuperadmin}
               />
             ))}
           </div>
@@ -1588,6 +1593,10 @@ function AdminListingRow({
 
           <div>
             <label className="mb-1 block text-[11px] font-medium text-tinta">Foto de portada (cargar/reemplazar en nombre del vecino)</label>
+            {l.foto_url && (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={l.foto_url} alt="Foto de portada actual" className="mb-1.5 h-16 w-16 rounded object-cover" />
+            )}
             <input type="file" accept="image/*" onChange={subirFoto} className="text-xs" />
           </div>
 
@@ -1693,11 +1702,13 @@ function AdminAnuncioRow({
   expanded,
   onToggle,
   onSaved,
+  isSuperadmin,
 }: {
   anuncio: AnuncioWithSolicitante;
   expanded: boolean;
   onToggle: () => void;
   onSaved: () => void;
+  isSuperadmin: boolean;
 }) {
   const [saving, setSaving] = useState(false);
   const [uploadingImagen, setUploadingImagen] = useState(false);
@@ -1817,6 +1828,16 @@ function AdminAnuncioRow({
     }
   }
 
+  async function eliminarPermanente() {
+    if (!confirm(`¿Eliminar definitivamente el anuncio "${a.titulo}"? Esta acción no se puede deshacer.`)) return;
+    setSaving(true);
+    const supabase = createClient();
+    const { error } = await supabase.rpc("admin_delete_anuncio", { p_anuncio_id: a.id });
+    setSaving(false);
+    if (error) alert(error.message);
+    else onSaved();
+  }
+
   async function agregarNota() {
     if (!nota.trim()) return;
     const supabase = createClient();
@@ -1882,6 +1903,16 @@ function AdminAnuncioRow({
               </a>
             )}
           </div>
+
+          {isSuperadmin && (
+            <button
+              onClick={eliminarPermanente}
+              disabled={saving}
+              className="w-fit rounded-lg border border-red-700 bg-red-700 px-3 py-1.5 text-xs font-semibold text-hueso disabled:opacity-60"
+            >
+              Eliminar anuncio definitivamente
+            </button>
+          )}
 
           <LabeledInput label="Título" value={form.titulo} onChange={(v) => setForm({ ...form, titulo: v })} />
           <div>
@@ -2372,7 +2403,7 @@ function AdminSupportRequestRow({
   onToggle,
   onSaved,
 }: {
-  request: SupportRequestRow;
+  request: SupportRequestWithUser;
   expanded: boolean;
   onToggle: () => void;
   onSaved: () => void;
@@ -2393,6 +2424,11 @@ function AdminSupportRequestRow({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="cursor-pointer" onClick={onToggle}>
           <p className="text-sm font-semibold text-tinta">{s.nombre}</p>
+          {s.user_id && (
+            <p className="text-xs font-medium text-golfo">
+              <i className="ti ti-user-check" aria-hidden /> Usuario registrado: {s.profiles?.full_name || s.profiles?.email || s.user_id}
+            </p>
+          )}
           <p className="text-xs text-tinta-suave">{s.contacto}</p>
           <p className="text-xs text-tinta-suave">{new Date(s.created_at).toLocaleString("es-AR")}</p>
         </div>
