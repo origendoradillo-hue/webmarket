@@ -255,6 +255,34 @@ plataforma, es contacto directo por WhatsApp).
 
 ---
 
+## 10. Roadmap / ideas futuras
+
+Ideas ya charladas pero deliberadamente no implementadas todavía — para
+retomar cuando tenga sentido, no para hacer ahora.
+
+- **Mensajería admin → publicador**: un hilo por publicación/usuario para
+  que el admin pida correcciones o avise moderación, sin depender de
+  WhatsApp externo para eso puntual. No es un chat entre usuarios (eso
+  sigue fuera de la plataforma, ver sección 9) — es solo staff → publicador.
+- **Notificaciones de perfil**: avisar dentro del perfil cuando "te
+  contactaron", "tenés un mensaje del admin", "tu publicación vence en
+  X días" o "tu publicación fue aprobada/observada".
+- **Preguntas públicas en la publicación** (tipo Mercado Libre): pregunta
+  visible con respuesta visible para todos, distinto del contacto
+  privado — evita responder lo mismo 20 veces y da confianza a quien
+  mira después.
+- **Marcar como "resuelto/vendido"** en vez de solo borrar: conserva
+  historial y evita publicaciones fantasma que desaparecen sin dejar
+  rastro.
+- **Orden por "más reciente"** en los listados, además de por relevancia.
+- **Alerta de búsqueda**: avisar cuando se publica algo nuevo en una
+  categoría que le interesa a un usuario.
+
+Ya existen y no hay que confundirlos con ideas pendientes: favoritos,
+reportar publicación, y contador de vistas por publicación.
+
+---
+
 ## Archivos incluidos en esta carpeta
 
 ```
