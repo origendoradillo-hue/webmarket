@@ -200,6 +200,7 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
   const [filtroTipo, setFiltroTipo] = useState("todos");
   const [filtroDesde, setFiltroDesde] = useState("");
   const [filtroHasta, setFiltroHasta] = useState("");
+  const [filtroDestacada, setFiltroDestacada] = useState("todas");
   const [newUserEmail, setNewUserEmail] = useState("");
   const [newUserName, setNewUserName] = useState("");
   const [newUserWhatsapp, setNewUserWhatsapp] = useState("");
@@ -388,7 +389,8 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
     filtroCategoria !== "todas" ||
     filtroTipo !== "todos" ||
     filtroDesde !== "" ||
-    filtroHasta !== "";
+    filtroHasta !== "" ||
+    filtroDestacada !== "todas";
   const filteredListings = listings.filter((l) => {
     // Sin filtros activos no repetimos las publicadas en las últimas 24h (ya
     // están arriba); pero si el admin está buscando/filtrando algo puntual,
@@ -398,6 +400,8 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
     if (filtroEstado !== "todos" && l.status !== filtroEstado) return false;
     if (filtroCategoria !== "todas" && l.categoria !== filtroCategoria) return false;
     if (filtroTipo !== "todos" && l.tipo !== filtroTipo) return false;
+    if (filtroDestacada === "si" && !l.destacada) return false;
+    if (filtroDestacada === "no" && l.destacada) return false;
     if (filtroTexto.trim()) {
       const q = filtroTexto.trim().toLowerCase();
       const haystack = `${l.nombre} ${l.profiles?.full_name || ""} ${l.profiles?.email || ""}`.toLowerCase();
@@ -518,6 +522,15 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
                       {t.label}
                     </option>
                   ))}
+                </select>
+                <select
+                  value={filtroDestacada}
+                  onChange={(e) => setFiltroDestacada(e.target.value)}
+                  className="rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
+                >
+                  <option value="todas">Destacada: todas</option>
+                  <option value="si">Solo destacadas</option>
+                  <option value="no">Solo no destacadas</option>
                 </select>
                 <input
                   type="date"
