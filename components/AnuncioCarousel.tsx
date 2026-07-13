@@ -10,16 +10,17 @@ interface AnuncioCarouselProps {
 
 export default function AnuncioCarousel({ anuncios }: AnuncioCarouselProps) {
   const [index, setIndex] = useState(0);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   useEffect(() => {
     if (index >= anuncios.length) setIndex(0);
   }, [anuncios.length, index]);
 
   useEffect(() => {
-    if (anuncios.length < 2) return;
-    const timer = setInterval(() => setIndex((i) => (i + 1) % anuncios.length), 6000);
+    if (anuncios.length < 2 || detailOpen) return;
+    const timer = setInterval(() => setIndex((i) => (i + 1) % anuncios.length), 9000);
     return () => clearInterval(timer);
-  }, [anuncios.length]);
+  }, [anuncios.length, detailOpen]);
 
   if (anuncios.length === 0) return null;
 
@@ -40,7 +41,7 @@ export default function AnuncioCarousel({ anuncios }: AnuncioCarouselProps) {
       </p>
 
       <div className="relative">
-        <AnuncioSlide anuncio={a} priority={index === 0} />
+        <AnuncioSlide anuncio={a} priority={index === 0} onDetailOpenChange={setDetailOpen} />
 
         {anuncios.length > 1 && (
           <>

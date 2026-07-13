@@ -29,6 +29,7 @@ const TIPO_ICON: Record<TipoAnuncio, string> = {
 interface SlideProps {
   a: Anuncio;
   priority: boolean;
+  onDetailOpenChange?: (open: boolean) => void;
 }
 
 interface Cta {
@@ -212,7 +213,7 @@ function FlyerBadge() {
   );
 }
 
-function FlyerOnSignSlide({ a, priority }: SlideProps) {
+function FlyerOnSignSlide({ a, priority, onDetailOpenChange }: SlideProps) {
   const [imgFailed, setImgFailed] = useState(false);
   const [bgFailed, setBgFailed] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -220,7 +221,13 @@ function FlyerOnSignSlide({ a, priority }: SlideProps) {
 
   return (
     <>
-    <SlideLink onOpen={() => setDetailOpen(true)} className="grid sm:grid-cols-2">
+    <SlideLink
+      onOpen={() => {
+        setDetailOpen(true);
+        onDetailOpenChange?.(true);
+      }}
+      className="grid sm:grid-cols-2"
+    >
       <div className="relative flex min-h-[380px] items-center justify-center overflow-hidden p-6 sm:min-h-[440px]">
         <Image
           src={a.backgroundImagen && !bgFailed ? a.backgroundImagen : FONDO_ESTEPA}
@@ -270,19 +277,33 @@ function FlyerOnSignSlide({ a, priority }: SlideProps) {
         {cta && <CtaButton cta={cta} />}
       </div>
     </SlideLink>
-    {detailOpen && <AnuncioDetailModal a={a} onClose={() => setDetailOpen(false)} />}
+    {detailOpen && (
+      <AnuncioDetailModal
+        a={a}
+        onClose={() => {
+          setDetailOpen(false);
+          onDetailOpenChange?.(false);
+        }}
+      />
+    )}
     </>
   );
 }
 
-function FullBannerSlide({ a, priority }: SlideProps) {
+function FullBannerSlide({ a, priority, onDetailOpenChange }: SlideProps) {
   const [imgFailed, setImgFailed] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const cta = buildCta(a);
 
   return (
     <>
-    <SlideLink onOpen={() => setDetailOpen(true)} className="relative block h-44 w-full sm:h-64">
+    <SlideLink
+      onOpen={() => {
+        setDetailOpen(true);
+        onDetailOpenChange?.(true);
+      }}
+      className="relative block h-44 w-full sm:h-64"
+    >
       <Image
         src={a.imagen && !imgFailed ? a.imagen : FONDO_ESTEPA}
         alt={a.titulo}
@@ -307,12 +328,20 @@ function FullBannerSlide({ a, priority }: SlideProps) {
         )}
       </div>
     </SlideLink>
-    {detailOpen && <AnuncioDetailModal a={a} onClose={() => setDetailOpen(false)} />}
+    {detailOpen && (
+      <AnuncioDetailModal
+        a={a}
+        onClose={() => {
+          setDetailOpen(false);
+          onDetailOpenChange?.(false);
+        }}
+      />
+    )}
     </>
   );
 }
 
-function BackgroundImageSlide({ a, priority }: SlideProps) {
+function BackgroundImageSlide({ a, priority, onDetailOpenChange }: SlideProps) {
   const [imgFailed, setImgFailed] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const cta = buildCta(a);
@@ -320,7 +349,13 @@ function BackgroundImageSlide({ a, priority }: SlideProps) {
 
   return (
     <>
-    <SlideLink onOpen={() => setDetailOpen(true)} className="relative block h-52 w-full sm:h-72">
+    <SlideLink
+      onOpen={() => {
+        setDetailOpen(true);
+        onDetailOpenChange?.(true);
+      }}
+      className="relative block h-52 w-full sm:h-72"
+    >
       <Image
         src={bg && !imgFailed ? bg : FONDO_ESTEPA}
         alt=""
@@ -344,19 +379,30 @@ function BackgroundImageSlide({ a, priority }: SlideProps) {
         )}
       </div>
     </SlideLink>
-    {detailOpen && <AnuncioDetailModal a={a} onClose={() => setDetailOpen(false)} />}
+    {detailOpen && (
+      <AnuncioDetailModal
+        a={a}
+        onClose={() => {
+          setDetailOpen(false);
+          onDetailOpenChange?.(false);
+        }}
+      />
+    )}
     </>
   );
 }
 
-function TextOnlySlide({ a }: SlideProps) {
+function TextOnlySlide({ a, onDetailOpenChange }: SlideProps) {
   const [detailOpen, setDetailOpen] = useState(false);
   const cta = buildCta(a);
 
   return (
     <>
     <SlideLink
-      onOpen={() => setDetailOpen(true)}
+      onOpen={() => {
+        setDetailOpen(true);
+        onDetailOpenChange?.(true);
+      }}
       className="relative flex min-h-[176px] flex-col items-start justify-center gap-2 overflow-hidden px-5 py-6 sm:min-h-[220px] sm:px-10"
     >
       <Image src={FONDO_INSTITUCIONAL} alt="" aria-hidden fill className="object-cover" sizes="100vw" />
@@ -372,7 +418,15 @@ function TextOnlySlide({ a }: SlideProps) {
         {cta && <CtaButton cta={cta} />}
       </div>
     </SlideLink>
-    {detailOpen && <AnuncioDetailModal a={a} onClose={() => setDetailOpen(false)} />}
+    {detailOpen && (
+      <AnuncioDetailModal
+        a={a}
+        onClose={() => {
+          setDetailOpen(false);
+          onDetailOpenChange?.(false);
+        }}
+      />
+    )}
     </>
   );
 }
@@ -384,18 +438,19 @@ export function resolveLayout(a: Anuncio): AnuncioLayoutType {
 interface AnuncioSlideProps {
   anuncio: Anuncio;
   priority: boolean;
+  onDetailOpenChange?: (open: boolean) => void;
 }
 
-export default function AnuncioSlide({ anuncio, priority }: AnuncioSlideProps) {
+export default function AnuncioSlide({ anuncio, priority, onDetailOpenChange }: AnuncioSlideProps) {
   switch (resolveLayout(anuncio)) {
     case "flyer_on_sign":
-      return <FlyerOnSignSlide a={anuncio} priority={priority} />;
+      return <FlyerOnSignSlide a={anuncio} priority={priority} onDetailOpenChange={onDetailOpenChange} />;
     case "background_image":
-      return <BackgroundImageSlide a={anuncio} priority={priority} />;
+      return <BackgroundImageSlide a={anuncio} priority={priority} onDetailOpenChange={onDetailOpenChange} />;
     case "text_only":
-      return <TextOnlySlide a={anuncio} priority={priority} />;
+      return <TextOnlySlide a={anuncio} priority={priority} onDetailOpenChange={onDetailOpenChange} />;
     case "full_banner":
     default:
-      return <FullBannerSlide a={anuncio} priority={priority} />;
+      return <FullBannerSlide a={anuncio} priority={priority} onDetailOpenChange={onDetailOpenChange} />;
   }
 }
