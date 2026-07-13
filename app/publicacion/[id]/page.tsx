@@ -8,6 +8,7 @@ import { SITE_URL, SITE_NAME } from "@/lib/seo";
 import ContactarPublicacionButton from "@/components/ContactarPublicacionButton";
 import ShareButton from "@/components/ShareButton";
 import RegistrarVista from "@/components/RegistrarVista";
+import ListingQuestions from "@/components/ListingQuestions";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -196,6 +197,12 @@ export default async function PublicacionPage({ params }: PageProps) {
             ))}
           </div>
         )}
+
+        <ListingQuestions
+          listingId={id}
+          isLoggedIn={!!user}
+          isOwner={!!user && user.id === listing.publisher_id}
+        />
       </main>
     </div>
   );

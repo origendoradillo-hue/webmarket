@@ -327,6 +327,28 @@ export interface Database {
         };
         Relationships: [];
       };
+      listing_questions: {
+        Row: {
+          id: string;
+          listing_id: string;
+          asker_id: string | null;
+          pregunta: string;
+          respuesta: string | null;
+          estado: "visible" | "oculta";
+          created_at: string;
+          respondida_at: string | null;
+        };
+        Insert: {
+          listing_id: string;
+          asker_id: string;
+          pregunta: string;
+        };
+        Update: {
+          respuesta?: string | null;
+          estado?: "visible" | "oculta";
+        };
+        Relationships: [];
+      };
       reviews: {
         Row: {
           id: string;
@@ -443,6 +465,14 @@ export interface Database {
       };
       responder_denuncia: {
         Args: { p_report_id: string; p_respuesta: string };
+        Returns: undefined;
+      };
+      responder_pregunta: {
+        Args: { p_question_id: string; p_respuesta: string };
+        Returns: undefined;
+      };
+      admin_set_question_status: {
+        Args: { p_question_id: string; p_estado: string };
         Returns: undefined;
       };
       renovar_publicacion: {

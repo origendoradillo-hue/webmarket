@@ -19,6 +19,13 @@ interface ListingReport {
   respuesta_denunciado: string | null;
 }
 
+interface ListingQuestion {
+  id: string;
+  listing_id: string;
+  pregunta: string;
+  respuesta: string | null;
+}
+
 interface MyListingsModalProps {
   open: boolean;
   onClose: () => void;
@@ -74,6 +81,9 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
   const [reportsByListing, setReportsByListing] = useState<Record<string, ListingReport[]>>({});
   const [respuestaDraft, setRespuestaDraft] = useState<Record<string, string>>({});
   const [respondingId, setRespondingId] = useState<string | null>(null);
+  const [questionsByListing, setQuestionsByListing] = useState<Record<string, ListingQuestion[]>>({});
+  const [respuestaPreguntaDraft, setRespuestaPreguntaDraft] = useState<Record<string, string>>({});
+  const [respondingQuestionId, setRespondingQuestionId] = useState<string | null>(null);
 
   const loadListings = useCallback(async () => {
     const supabase = createClient();
@@ -100,7 +110,31 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
       (grouped[r.listing_id] ||= []).push(r);
     }
     setReportsByListing(grouped);
+
+    const { data: questions } = await supabase
+      .from("listing_questions")
+      .select("id, listing_id, pregunta, respuesta")
+      .in("listing_id", ids);
+    const groupedQuestions: Record<string, ListingQuestion[]> = {};
+    for (const q of questions || []) {
+      (groupedQuestions[q.listing_id] ||= []).push(q);
+    }
+    setQuestionsByListing(groupedQuestions);
   }, [user.id]);
+
+  async function responderPregunta(questionId: string) {
+    const respuesta = (respuestaPreguntaDraft[questionId] || "").trim();
+    if (!respuesta) return;
+    setRespondingQuestionId(questionId);
+    const supabase = createClient();
+    const { error } = await supabase.rpc("responder_pregunta", { p_question_id: questionId, p_respuesta: respuesta });
+    setRespondingQuestionId(null);
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    await loadListings();
+  }
 
   async function responderDenuncia(reportId: string) {
     const respuesta = (respuestaDraft[reportId] || "").trim();
@@ -409,6 +443,34 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
                               <button
                                 onClick={() => responderDenuncia(r.id)}
                                 disabled={respondingId === r.id}
+                                className="flex-shrink-0 rounded-lg bg-oliva px-3 py-2 text-[12px] font-semibold text-hueso disabled:opacity-60"
+                              >
+                                Responder
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+
+                      {(questionsByListing[l.id] || []).map((q) => (
+                        <div key={q.id} className="mb-3 rounded-lg bg-hueso-2 p-3">
+                          <p className="mb-1 text-[12.5px] font-semibold text-tinta">Pregunta: {q.pregunta}</p>
+                          {q.respuesta ? (
+                            <p className="text-[12px] text-tinta-suave">
+                              <span className="font-medium text-tinta">Tu respuesta:</span> {q.respuesta}
+                            </p>
+                          ) : (
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                value={respuestaPreguntaDraft[q.id] || ""}
+                                onChange={(e) => setRespuestaPreguntaDraft({ ...respuestaPreguntaDraft, [q.id]: e.target.value })}
+                                placeholder="Tu respuesta"
+                                className="w-full rounded-lg border border-piedra/70 bg-white px-2.5 py-2 text-[12.5px] text-tinta"
+                              />
+                              <button
+                                onClick={() => responderPregunta(q.id)}
+                                disabled={respondingQuestionId === q.id}
                                 className="flex-shrink-0 rounded-lg bg-oliva px-3 py-2 text-[12px] font-semibold text-hueso disabled:opacity-60"
                               >
                                 Responder

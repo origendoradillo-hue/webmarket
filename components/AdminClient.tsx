@@ -1310,6 +1310,7 @@ function AdminListingRow({
   });
 
   const [images, setImages] = useState<{ id: string; url: string }[]>([]);
+  const [questions, setQuestions] = useState<{ id: string; pregunta: string; respuesta: string | null; estado: string }[]>([]);
   const rowRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -1338,12 +1339,31 @@ function AdminListingRow({
     setImages(data || []);
   }, [l.id]);
 
+  const loadQuestions = useCallback(async () => {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("listing_questions")
+      .select("id, pregunta, respuesta, estado")
+      .eq("listing_id", l.id)
+      .order("created_at", { ascending: false });
+    setQuestions(data || []);
+  }, [l.id]);
+
+  async function toggleQuestionEstado(questionId: string, estadoActual: string) {
+    const supabase = createClient();
+    const nuevoEstado = estadoActual === "visible" ? "oculta" : "visible";
+    const { error } = await supabase.rpc("admin_set_question_status", { p_question_id: questionId, p_estado: nuevoEstado });
+    if (error) alert(error.message);
+    else loadQuestions();
+  }
+
   useEffect(() => {
     if (expanded) {
       loadHistorial();
       loadImages();
+      loadQuestions();
     }
-  }, [expanded, loadHistorial, loadImages]);
+  }, [expanded, loadHistorial, loadImages, loadQuestions]);
 
   async function agregarFotos(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
@@ -1749,6 +1769,30 @@ function AdminListingRow({
               >
                 Eliminar publicación definitivamente
               </button>
+            </div>
+          )}
+
+          {questions.length > 0 && (
+            <div className="border-t border-piedra/40 pt-3">
+              <label className="mb-1.5 block text-[11px] font-medium text-tinta">Preguntas</label>
+              <div className="flex flex-col gap-1.5">
+                {questions.map((q) => (
+                  <div key={q.id} className="flex items-start justify-between gap-2 rounded-lg bg-hueso-2 p-2.5">
+                    <div className="text-[11.5px] text-tinta">
+                      <p className="font-medium">{q.pregunta}</p>
+                      <p className="text-tinta-suave">{q.respuesta || "Sin responder"}</p>
+                    </div>
+                    <button
+                      onClick={() => toggleQuestionEstado(q.id, q.estado)}
+                      className={`flex-shrink-0 rounded-lg border px-2 py-1 text-[10.5px] ${
+                        q.estado === "visible" ? "border-piedra/70 text-tinta" : "border-red-700 text-red-700"
+                      }`}
+                    >
+                      {q.estado === "visible" ? "Ocultar" : "Mostrar"}
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 

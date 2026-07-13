@@ -12,6 +12,7 @@ import { trackEvent } from "@/lib/analytics";
 import ReportReviewModal from "./ReportReviewModal";
 import ShareButton from "./ShareButton";
 import SeBuscaPlaceholder from "./SeBuscaPlaceholder";
+import ListingQuestions from "./ListingQuestions";
 
 interface ReviewWithReviewer {
   id: string;
@@ -366,6 +367,8 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, user, o
               </div>
             </div>
           )}
+
+          <ListingQuestions listingId={String(l.id)} isLoggedIn={isLoggedIn} isOwner={!!user && user.id === l.publisherId} />
 
           <button
             onClick={() => (isLoggedIn ? onReport() : onRequireAuth())}
