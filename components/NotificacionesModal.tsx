@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
+import { useCategories } from "@/lib/useCategories";
 
 interface DisplayItem {
   id: string;
@@ -28,18 +29,22 @@ const TIPO_ICON: Record<string, string> = {
   aprobada: "ti-circle-check",
   observada: "ti-alert-triangle",
   vence_pronto: "ti-clock",
+  mensaje_moderacion: "ti-messages",
+  alerta_categoria: "ti-bell-ringing",
 };
 
 const DIAS_VENCE_PRONTO = 5;
 
 export default function NotificacionesModal({ open, onClose, user, onRead }: NotificacionesModalProps) {
+  const { categories } = useCategories();
   const [items, setItems] = useState<DisplayItem[]>([]);
+  const [alertas, setAlertas] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
     const supabase = createClient();
-    const [{ data: notifs }, { data: listings }] = await Promise.all([
+    const [{ data: notifs }, { data: listings }, { data: alertasData }] = await Promise.all([
       supabase
         .from("notificaciones")
         .select("id, tipo, listing_id, mensaje, leida, created_at")
@@ -52,7 +57,9 @@ export default function NotificacionesModal({ open, onClose, user, onRead }: Not
         .eq("publisher_id", user.id)
         .eq("status", "activa")
         .not("expires_at", "is", null),
+      supabase.from("alertas_categoria").select("categoria").eq("user_id", user.id),
     ]);
+    setAlertas((alertasData || []).map((a) => a.categoria));
 
     const venceProntos: DisplayItem[] = (listings || [])
       .filter((l) => {
@@ -82,6 +89,12 @@ export default function NotificacionesModal({ open, onClose, user, onRead }: Not
     if (open) load();
   }, [open, load]);
 
+  async function quitarAlerta(categoriaId: string) {
+    const supabase = createClient();
+    await supabase.from("alertas_categoria").delete().eq("user_id", user.id).eq("categoria", categoriaId);
+    setAlertas((prev) => prev.filter((c) => c !== categoriaId));
+  }
+
   if (!open) return null;
 
   return (
@@ -97,6 +110,24 @@ export default function NotificacionesModal({ open, onClose, user, onRead }: Not
           </button>
         </div>
         <div className="overflow-y-auto px-4 py-4 sm:px-5">
+          {!loading && alertas.length > 0 && (
+            <div className="mb-4 border-b border-piedra/40 pb-4">
+              <p className="mb-2 text-[12px] font-semibold text-tinta">Tus alertas de categoría</p>
+              <div className="flex flex-wrap gap-1.5">
+                {alertas.map((c) => (
+                  <span
+                    key={c}
+                    className="flex items-center gap-1 rounded-full border border-dorado bg-dorado/10 px-2.5 py-1 text-[11px] text-nogal"
+                  >
+                    {categories[c]?.label || c}
+                    <button onClick={() => quitarAlerta(c)} aria-label={`Sacar alerta de ${categories[c]?.label || c}`}>
+                      <i className="ti ti-x text-[11px]" aria-hidden />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
           {loading ? (
             <p className="py-10 text-center text-[13px] text-tinta-suave">Cargando...</p>
           ) : items.length === 0 ? (
