@@ -9,9 +9,19 @@ interface CategoryFiltersProps {
   onSelectCat: (cat: CategoryKey | "all") => void;
   onSelectSub: (sub: string | "all") => void;
   tipoFilter?: TipoPublicacion | "all";
+  isSubscribed?: boolean;
+  onToggleSubscribe?: () => void;
 }
 
-export default function CategoryFilters({ cat, sub, onSelectCat, onSelectSub, tipoFilter = "all" }: CategoryFiltersProps) {
+export default function CategoryFilters({
+  cat,
+  sub,
+  onSelectCat,
+  onSelectSub,
+  tipoFilter = "all",
+  isSubscribed,
+  onToggleSubscribe,
+}: CategoryFiltersProps) {
   const { categories } = useCategories();
   const catEntries = Object.entries(categories).filter(([, c]) => tipoFilter === "all" || c.tipoScope.includes(tipoFilter));
 
@@ -60,6 +70,17 @@ export default function CategoryFilters({ cat, sub, onSelectCat, onSelectSub, ti
               {s}
             </button>
           ))}
+          {onToggleSubscribe && (
+            <button
+              onClick={onToggleSubscribe}
+              className={`ml-auto flex flex-shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] ${
+                isSubscribed ? "border-dorado bg-dorado text-hueso-2" : "border-piedra/70 bg-white text-nogal"
+              }`}
+            >
+              <i className={`ti ${isSubscribed ? "ti-bell-ringing" : "ti-bell"} text-[11px]`} aria-hidden />
+              {isSubscribed ? "Te avisamos de novedades" : "Avisarme de novedades"}
+            </button>
+          )}
         </div>
       )}
     </div>

@@ -94,6 +94,7 @@ export default function HomeClient() {
   const [favoritosOpen, setFavoritosOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [unreadNotifCount, setUnreadNotifCount] = useState(0);
+  const [alertCategorias, setAlertCategorias] = useState<Set<string>>(new Set());
   const [favoritoIds, setFavoritoIds] = useState<Set<string>>(new Set());
   const [reportOpen, setReportOpen] = useState(false);
   const [reviewTarget, setReviewTarget] = useState<{ listingId: string; listingNombre: string; publisherName?: string } | null>(null);
@@ -314,6 +315,38 @@ export default function HomeClient() {
       .eq("leida", false)
       .then(({ count }) => setUnreadNotifCount(count || 0));
   }, [user]);
+
+  useEffect(() => {
+    if (!user) {
+      setAlertCategorias(new Set());
+      return;
+    }
+    const supabase = createClient();
+    supabase
+      .from("alertas_categoria")
+      .select("categoria")
+      .eq("user_id", user.id)
+      .then(({ data }) => setAlertCategorias(new Set((data || []).map((a) => a.categoria))));
+  }, [user]);
+
+  async function toggleAlertCategoria(categoriaId: string) {
+    if (!user) {
+      openAuth();
+      return;
+    }
+    const supabase = createClient();
+    if (alertCategorias.has(categoriaId)) {
+      await supabase.from("alertas_categoria").delete().eq("user_id", user.id).eq("categoria", categoriaId);
+      setAlertCategorias((prev) => {
+        const next = new Set(prev);
+        next.delete(categoriaId);
+        return next;
+      });
+    } else {
+      const { error } = await supabase.from("alertas_categoria").insert({ user_id: user.id, categoria: categoriaId });
+      if (!error) setAlertCategorias((prev) => new Set(prev).add(categoriaId));
+    }
+  }
 
   function handleSearchSubmit() {
     if (query.trim() === "") return;
@@ -654,7 +687,15 @@ export default function HomeClient() {
                   </button>
                 ))}
               </div>
-              <CategoryFilters cat={cat} sub={sub} onSelectCat={handleSelectCat} onSelectSub={setSub} tipoFilter={tipoFilter} />
+              <CategoryFilters
+                cat={cat}
+                sub={sub}
+                onSelectCat={handleSelectCat}
+                onSelectSub={setSub}
+                tipoFilter={tipoFilter}
+                isSubscribed={cat !== "all" && alertCategorias.has(cat)}
+                onToggleSubscribe={cat !== "all" ? () => toggleAlertCategoria(cat) : undefined}
+              />
               <LocationFilters
                 zona={zonaFilter}
                 cuadrante={cuadranteFilter}

@@ -26,6 +26,14 @@ interface ListingQuestion {
   respuesta: string | null;
 }
 
+interface MensajeModeracion {
+  id: string;
+  listing_id: string;
+  es_staff: boolean;
+  mensaje: string;
+  created_at: string;
+}
+
 interface MyListingsModalProps {
   open: boolean;
   onClose: () => void;
@@ -86,6 +94,9 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
   const [questionsByListing, setQuestionsByListing] = useState<Record<string, ListingQuestion[]>>({});
   const [respuestaPreguntaDraft, setRespuestaPreguntaDraft] = useState<Record<string, string>>({});
   const [respondingQuestionId, setRespondingQuestionId] = useState<string | null>(null);
+  const [mensajesByListing, setMensajesByListing] = useState<Record<string, MensajeModeracion[]>>({});
+  const [nuevoMensajeDraft, setNuevoMensajeDraft] = useState<Record<string, string>>({});
+  const [enviandoMensajeId, setEnviandoMensajeId] = useState<string | null>(null);
 
   const loadListings = useCallback(async () => {
     const supabase = createClient();
@@ -122,7 +133,33 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
       (groupedQuestions[q.listing_id] ||= []).push(q);
     }
     setQuestionsByListing(groupedQuestions);
+
+    const { data: mensajes } = await supabase
+      .from("mensajes_moderacion")
+      .select("id, listing_id, es_staff, mensaje, created_at")
+      .in("listing_id", ids)
+      .order("created_at", { ascending: true });
+    const groupedMensajes: Record<string, MensajeModeracion[]> = {};
+    for (const m of mensajes || []) {
+      (groupedMensajes[m.listing_id] ||= []).push(m);
+    }
+    setMensajesByListing(groupedMensajes);
   }, [user.id]);
+
+  async function enviarMensaje(listingId: string) {
+    const mensaje = (nuevoMensajeDraft[listingId] || "").trim();
+    if (!mensaje) return;
+    setEnviandoMensajeId(listingId);
+    const supabase = createClient();
+    const { error } = await supabase.rpc("enviar_mensaje_moderacion", { p_listing_id: listingId, p_mensaje: mensaje });
+    setEnviandoMensajeId(null);
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    setNuevoMensajeDraft((prev) => ({ ...prev, [listingId]: "" }));
+    await loadListings();
+  }
 
   async function responderPregunta(questionId: string) {
     const respuesta = (respuestaPreguntaDraft[questionId] || "").trim();
@@ -486,6 +523,43 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
                           )}
                         </div>
                       ))}
+
+                      {(mensajesByListing[l.id] || []).length > 0 && (
+                        <div className="mb-3 rounded-lg border border-piedra/50 bg-white p-3">
+                          <p className="mb-2 text-[12px] font-semibold text-tinta">Mensajes con el equipo de Origen</p>
+                          <div className="flex flex-col gap-1.5">
+                            {(mensajesByListing[l.id] || []).map((m) => (
+                              <div
+                                key={m.id}
+                                className={`max-w-[85%] rounded-lg p-2.5 text-[12px] ${
+                                  m.es_staff ? "self-start bg-hueso-2 text-tinta" : "self-end bg-oliva text-hueso"
+                                }`}
+                              >
+                                <p>{m.mensaje}</p>
+                                <p className={`mt-0.5 text-[10px] ${m.es_staff ? "text-tinta-suave" : "text-hueso/70"}`}>
+                                  {m.es_staff ? "Equipo de Origen" : "Vos"} · {new Date(m.created_at).toLocaleString("es-AR")}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      <div className="mb-3 flex gap-2">
+                        <input
+                          type="text"
+                          value={nuevoMensajeDraft[l.id] || ""}
+                          onChange={(e) => setNuevoMensajeDraft({ ...nuevoMensajeDraft, [l.id]: e.target.value })}
+                          placeholder="Escribirle al equipo de Origen sobre esta publicación"
+                          className="w-full rounded-lg border border-piedra/70 bg-white px-2.5 py-2 text-[12.5px] text-tinta"
+                        />
+                        <button
+                          onClick={() => enviarMensaje(l.id)}
+                          disabled={enviandoMensajeId === l.id}
+                          className="flex-shrink-0 rounded-lg bg-oliva px-3 py-2 text-[12px] font-semibold text-hueso disabled:opacity-60"
+                        >
+                          Enviar
+                        </button>
+                      </div>
 
                       <MiniField label="Título">
                         <input

@@ -1312,6 +1312,9 @@ function AdminListingRow({
 
   const [images, setImages] = useState<{ id: string; url: string }[]>([]);
   const [questions, setQuestions] = useState<{ id: string; pregunta: string; respuesta: string | null; estado: string }[]>([]);
+  const [mensajes, setMensajes] = useState<{ id: string; es_staff: boolean; mensaje: string; created_at: string }[]>([]);
+  const [nuevoMensaje, setNuevoMensaje] = useState("");
+  const [enviandoMensaje, setEnviandoMensaje] = useState(false);
   const rowRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -1358,13 +1361,38 @@ function AdminListingRow({
     else loadQuestions();
   }
 
+  const loadMensajes = useCallback(async () => {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("mensajes_moderacion")
+      .select("id, es_staff, mensaje, created_at")
+      .eq("listing_id", l.id)
+      .order("created_at", { ascending: true });
+    setMensajes(data || []);
+  }, [l.id]);
+
+  async function enviarMensaje() {
+    if (!nuevoMensaje.trim()) return;
+    setEnviandoMensaje(true);
+    const supabase = createClient();
+    const { error } = await supabase.rpc("enviar_mensaje_moderacion", { p_listing_id: l.id, p_mensaje: nuevoMensaje.trim() });
+    setEnviandoMensaje(false);
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    setNuevoMensaje("");
+    loadMensajes();
+  }
+
   useEffect(() => {
     if (expanded) {
       loadHistorial();
       loadImages();
       loadQuestions();
+      loadMensajes();
     }
-  }, [expanded, loadHistorial, loadImages, loadQuestions]);
+  }, [expanded, loadHistorial, loadImages, loadQuestions, loadMensajes]);
 
   async function agregarFotos(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
@@ -1796,6 +1824,43 @@ function AdminListingRow({
               </div>
             </div>
           )}
+
+          <div className="border-t border-piedra/40 pt-3">
+            <label className="mb-1.5 block text-[11px] font-medium text-tinta">Mensaje al publicador (el vecino lo ve)</label>
+            {mensajes.length > 0 && (
+              <div className="mb-2 flex flex-col gap-1.5">
+                {mensajes.map((m) => (
+                  <div
+                    key={m.id}
+                    className={`max-w-[85%] rounded-lg p-2.5 text-[11.5px] ${
+                      m.es_staff ? "self-end bg-oliva text-hueso" : "self-start bg-hueso-2 text-tinta"
+                    }`}
+                  >
+                    <p>{m.mensaje}</p>
+                    <p className={`mt-0.5 text-[10px] ${m.es_staff ? "text-hueso/70" : "text-tinta-suave"}`}>
+                      {m.es_staff ? "Vos (staff)" : "Vecino"} · {new Date(m.created_at).toLocaleString("es-AR")}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={nuevoMensaje}
+                onChange={(e) => setNuevoMensaje(e.target.value)}
+                placeholder="Ej: subí una foto más clara del producto"
+                className="w-full rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
+              />
+              <button
+                onClick={enviarMensaje}
+                disabled={enviandoMensaje}
+                className="flex-shrink-0 rounded-lg bg-oliva px-3 py-1.5 text-xs font-semibold text-hueso disabled:opacity-60"
+              >
+                Enviar
+              </button>
+            </div>
+          </div>
 
           <div className="border-t border-piedra/40 pt-3">
             <label className="mb-1 block text-[11px] font-medium text-tinta">Nota interna (no visible al público)</label>

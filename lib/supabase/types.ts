@@ -398,13 +398,40 @@ export interface Database {
         Row: {
           id: string;
           user_id: string;
-          tipo: "contacto" | "pregunta_nueva" | "pregunta_respondida" | "aprobada" | "observada";
+          tipo: "contacto" | "pregunta_nueva" | "pregunta_respondida" | "aprobada" | "observada" | "mensaje_moderacion" | "alerta_categoria";
           listing_id: string | null;
           mensaje: string;
           leida: boolean;
           created_at: string;
         };
         Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      mensajes_moderacion: {
+        Row: {
+          id: string;
+          listing_id: string;
+          autor_id: string | null;
+          es_staff: boolean;
+          mensaje: string;
+          created_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      alertas_categoria: {
+        Row: {
+          id: string;
+          user_id: string;
+          categoria: string;
+          created_at: string;
+        };
+        Insert: {
+          user_id: string;
+          categoria: string;
+        };
         Update: never;
         Relationships: [];
       };
@@ -531,6 +558,10 @@ export interface Database {
       };
       marcar_notificaciones_leidas: {
         Args: Record<string, never>;
+        Returns: undefined;
+      };
+      enviar_mensaje_moderacion: {
+        Args: { p_listing_id: string; p_mensaje: string };
         Returns: undefined;
       };
       admin_set_review_report_status: {
