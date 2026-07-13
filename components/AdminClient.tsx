@@ -68,6 +68,7 @@ const LISTING_STATUS_LABELS: Record<string, string> = {
   pausada: "Pausada",
   vencida: "Vencida",
   eliminada: "Eliminada",
+  resuelta: "Resuelta/Vendida",
 };
 const LISTING_STATUS_OPTIONS = Object.keys(LISTING_STATUS_LABELS);
 

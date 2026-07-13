@@ -41,6 +41,7 @@ const STATUS_LABEL: Record<string, string> = {
   pausada: "Pausada",
   vencida: "Vencida",
   eliminada: "Eliminada",
+  resuelta: "Resuelta",
 };
 
 const STATUS_COLOR: Record<string, string> = {
@@ -52,6 +53,7 @@ const STATUS_COLOR: Record<string, string> = {
   pausada: "bg-piedra text-hueso",
   vencida: "bg-nogal text-hueso",
   eliminada: "bg-tinta text-hueso",
+  resuelta: "bg-golfo text-hueso",
 };
 
 interface EditForm {
@@ -277,7 +279,7 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
     await changeStatus(l, "activa");
   }
 
-  async function changeStatus(l: ListingRow, status: "activa" | "pausada" | "eliminada") {
+  async function changeStatus(l: ListingRow, status: "activa" | "pausada" | "eliminada" | "resuelta") {
     if (status === "eliminada" && !confirm("¿Eliminar esta publicación? No se puede deshacer.")) return;
     setStatusBusyId(l.id);
     const supabase = createClient();
@@ -354,7 +356,7 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
                       </p>
                     </div>
                     <span className={`flex-shrink-0 rounded-full px-2.5 py-1 text-[10.5px] font-medium ${STATUS_COLOR[l.status] ?? "bg-piedra text-hueso"}`}>
-                      {STATUS_LABEL[l.status] ?? l.status}
+                      {l.status === "resuelta" ? (l.intencion === "ofrezco" ? "Vendida" : "Resuelta") : STATUS_LABEL[l.status] ?? l.status}
                     </span>
                     <i className={`ti ${expandedId === l.id ? "ti-chevron-up" : "ti-chevron-down"} text-tinta-suave`} aria-hidden />
                   </button>
@@ -404,7 +406,12 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
                             Pausar
                           </ActionButton>
                         )}
-                        {(l.status === "pausada" || l.status === "vencida") && (
+                        {l.status === "activa" && (
+                          <ActionButton onClick={() => changeStatus(l, "resuelta")} busy={statusBusyId === l.id} icon="ti-check">
+                            {l.intencion === "ofrezco" ? "Marcar como vendida" : "Marcar como resuelta"}
+                          </ActionButton>
+                        )}
+                        {(l.status === "pausada" || l.status === "vencida" || l.status === "resuelta") && (
                           <ActionButton onClick={() => changeStatus(l, "activa")} busy={statusBusyId === l.id} icon="ti-player-play">
                             Reactivar
                           </ActionButton>

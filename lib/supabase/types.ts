@@ -96,7 +96,7 @@ export interface Database {
           detalles: Record<string, unknown>;
           expires_at: string | null;
           views_count: number;
-          status: "borrador" | "en_revision" | "activa" | "observada" | "rechazada" | "pausada" | "vencida" | "eliminada";
+          status: "borrador" | "en_revision" | "activa" | "observada" | "rechazada" | "pausada" | "vencida" | "eliminada" | "resuelta";
           created_at: string;
           updated_at: string;
         };
