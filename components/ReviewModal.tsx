@@ -40,6 +40,11 @@ export default function ReviewModal({ open, onClose, listingId, listingNombre, p
       setMessage("Elegí una calificación de 1 a 5 estrellas.");
       return;
     }
+    if (comentario.trim() === "") {
+      setStatus("error");
+      setMessage("Escribí un comentario para dejar tu calificación.");
+      return;
+    }
     setStatus("sending");
     const supabase = createClient();
     const { error } = await supabase.rpc("submit_review", {
@@ -117,11 +122,12 @@ export default function ReviewModal({ open, onClose, listingId, listingNombre, p
                 ))}
               </div>
 
-              <label className="mb-1.5 block text-[12.5px] font-medium text-tinta">Comentario (opcional)</label>
+              <label className="mb-1.5 block text-[12.5px] font-medium text-tinta">Comentario</label>
               <textarea
                 value={comentario}
                 onChange={(e) => setComentario(e.target.value)}
                 placeholder="Contanos cómo fue tu experiencia"
+                required
                 className="mb-3 min-h-[80px] w-full resize-y rounded-lg border border-piedra/70 px-3 py-2.5 text-[13.5px] text-tinta"
               />
 

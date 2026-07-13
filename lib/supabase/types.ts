@@ -507,6 +507,14 @@ export interface Database {
         Args: { p_listing_id: string; p_rating: number; p_comentario?: string | null };
         Returns: undefined;
       };
+      editar_review: {
+        Args: { p_review_id: string; p_rating: number; p_comentario: string };
+        Returns: undefined;
+      };
+      eliminar_review: {
+        Args: { p_review_id: string };
+        Returns: undefined;
+      };
       admin_set_review_report_status: {
         Args: { p_report_id: string; p_estado: string };
         Returns: undefined;

@@ -16,6 +16,7 @@ import ListingQuestions from "./ListingQuestions";
 
 interface ReviewWithReviewer {
   id: string;
+  reviewer_id: string;
   rating: number;
   comentario: string | null;
   created_at: string;
@@ -40,6 +41,10 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, user, o
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [reviews, setReviews] = useState<ReviewWithReviewer[]>([]);
   const [reportReviewId, setReportReviewId] = useState<string | null>(null);
+  const [editingReviewId, setEditingReviewId] = useState<string | null>(null);
+  const [editRating, setEditRating] = useState(0);
+  const [editComentario, setEditComentario] = useState("");
+  const [savingReview, setSavingReview] = useState(false);
 
   useEffect(() => {
     if (!l) return;
@@ -70,21 +75,66 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, user, o
       });
   }, [l?.id, l?.foto]);
 
+  async function loadReviews(publisherId: string) {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("reviews")
+      .select("id, reviewer_id, rating, comentario, created_at, profiles!reviews_reviewer_id_fkey(full_name)")
+      .eq("target_user_id", publisherId)
+      .eq("estado", "publicada")
+      .order("created_at", { ascending: false })
+      .limit(10);
+    setReviews((data as unknown as ReviewWithReviewer[]) || []);
+  }
+
   useEffect(() => {
     if (!l || !l.publisherId) {
       setReviews([]);
       return;
     }
-    const supabase = createClient();
-    supabase
-      .from("reviews")
-      .select("id, rating, comentario, created_at, profiles!reviews_reviewer_id_fkey(full_name)")
-      .eq("target_user_id", l.publisherId)
-      .eq("estado", "publicada")
-      .order("created_at", { ascending: false })
-      .limit(10)
-      .then(({ data }) => setReviews((data as unknown as ReviewWithReviewer[]) || []));
+    loadReviews(l.publisherId);
   }, [l?.publisherId]);
+
+  function startEditReview(r: ReviewWithReviewer) {
+    setEditingReviewId(r.id);
+    setEditRating(r.rating);
+    setEditComentario(r.comentario || "");
+  }
+
+  function cancelEditReview() {
+    setEditingReviewId(null);
+    setEditRating(0);
+    setEditComentario("");
+  }
+
+  async function saveEditReview(reviewId: string) {
+    if (editRating === 0 || editComentario.trim() === "") return;
+    setSavingReview(true);
+    const supabase = createClient();
+    const { error } = await supabase.rpc("editar_review", {
+      p_review_id: reviewId,
+      p_rating: editRating,
+      p_comentario: editComentario.trim(),
+    });
+    setSavingReview(false);
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    cancelEditReview();
+    if (l?.publisherId) await loadReviews(l.publisherId);
+  }
+
+  async function deleteReview(reviewId: string) {
+    if (!confirm("¿Eliminar tu reseña? No se puede deshacer.")) return;
+    const supabase = createClient();
+    const { error } = await supabase.rpc("eliminar_review", { p_review_id: reviewId });
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    if (l?.publisherId) await loadReviews(l.publisherId);
+  }
 
   if (!l) return null;
   const listing = l;
@@ -345,25 +395,65 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, user, o
             <div className="mt-5 border-t border-piedra/40 pt-4">
               <p className="mb-3 font-slab text-[13.5px] font-semibold text-tinta">Reseñas de este publicador</p>
               <div className="flex flex-col gap-3">
-                {reviews.map((r) => (
-                  <div key={r.id} className="rounded-lg bg-hueso-2 p-3">
-                    <div className="mb-1 flex items-center justify-between">
-                      <span className="text-[12.5px] font-semibold text-tinta">{r.profiles?.full_name || "Vecino"}</span>
-                      <span className="text-[11.5px] font-semibold text-dorado">
-                        <i className="ti ti-star" aria-hidden /> {r.rating}
-                      </span>
-                    </div>
-                    {r.comentario && <p className="mb-1.5 text-[12.5px] leading-relaxed text-tinta">{r.comentario}</p>}
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] text-tinta-suave">{new Date(r.created_at).toLocaleDateString("es-AR")}</span>
-                      {user && (
-                        <button onClick={() => setReportReviewId(r.id)} className="text-[11px] text-tinta-suave underline">
-                          Reportar
+                {reviews.map((r) =>
+                  editingReviewId === r.id ? (
+                    <div key={r.id} className="rounded-lg bg-hueso-2 p-3">
+                      <div className="mb-2 flex gap-1">
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <button key={n} type="button" onClick={() => setEditRating(n)} aria-label={`${n} estrellas`}>
+                            <i className={`ti ti-star text-xl ${n <= editRating ? "text-dorado" : "text-piedra/50"}`} aria-hidden />
+                          </button>
+                        ))}
+                      </div>
+                      <textarea
+                        value={editComentario}
+                        onChange={(e) => setEditComentario(e.target.value)}
+                        className="mb-2 min-h-[60px] w-full resize-y rounded-lg border border-piedra/70 bg-white px-2.5 py-2 text-[12.5px] text-tinta"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => saveEditReview(r.id)}
+                          disabled={savingReview}
+                          className="rounded-lg bg-oliva px-3 py-1.5 text-[12px] font-semibold text-hueso disabled:opacity-60"
+                        >
+                          Guardar
                         </button>
-                      )}
+                        <button onClick={cancelEditReview} className="rounded-lg border border-piedra/70 px-3 py-1.5 text-[12px] text-tinta">
+                          Cancelar
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ) : (
+                    <div key={r.id} className="rounded-lg bg-hueso-2 p-3">
+                      <div className="mb-1 flex items-center justify-between">
+                        <span className="text-[12.5px] font-semibold text-tinta">{r.profiles?.full_name || "Vecino"}</span>
+                        <span className="text-[11.5px] font-semibold text-dorado">
+                          <i className="ti ti-star" aria-hidden /> {r.rating}
+                        </span>
+                      </div>
+                      {r.comentario && <p className="mb-1.5 text-[12.5px] leading-relaxed text-tinta">{r.comentario}</p>}
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] text-tinta-suave">{new Date(r.created_at).toLocaleDateString("es-AR")}</span>
+                        {user && user.id === r.reviewer_id ? (
+                          <div className="flex gap-2.5">
+                            <button onClick={() => startEditReview(r)} className="text-[11px] text-tinta-suave underline">
+                              Editar
+                            </button>
+                            <button onClick={() => deleteReview(r.id)} className="text-[11px] text-red-700 underline">
+                              Eliminar
+                            </button>
+                          </div>
+                        ) : (
+                          user && (
+                            <button onClick={() => setReportReviewId(r.id)} className="text-[11px] text-tinta-suave underline">
+                              Reportar
+                            </button>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  )
+                )}
               </div>
             </div>
           )}
