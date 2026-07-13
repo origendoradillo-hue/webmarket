@@ -13,8 +13,10 @@ interface HeaderProps {
   onOpenProfile: () => void;
   onOpenMyListings: () => void;
   onOpenFavoritos: () => void;
+  onOpenNotificaciones: () => void;
   onSignOut: () => void;
   isStaff?: boolean;
+  unreadNotifCount?: number;
 }
 
 export default function Header({
@@ -26,8 +28,10 @@ export default function Header({
   onOpenProfile,
   onOpenMyListings,
   onOpenFavoritos,
+  onOpenNotificaciones,
   onSignOut,
   isStaff,
+  unreadNotifCount = 0,
 }: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -92,11 +96,14 @@ export default function Header({
             <button
               onClick={() => setMenuOpen((o) => !o)}
               title={userEmail}
-              className="flex items-center gap-1.5 rounded-lg border border-piedra/70 px-2.5 py-2 text-xs font-medium text-nogal sm:px-4 sm:text-sm"
+              className="relative flex items-center gap-1.5 rounded-lg border border-piedra/70 px-2.5 py-2 text-xs font-medium text-nogal sm:px-4 sm:text-sm"
             >
               <i className="ti ti-user-circle text-base" aria-hidden />
               <span className="hidden max-w-[120px] truncate sm:inline">{userEmail}</span>
               <i className="ti ti-chevron-down text-sm" aria-hidden />
+              {unreadNotifCount > 0 && (
+                <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-red-600" aria-hidden />
+              )}
             </button>
             {menuOpen && (
               <div className="absolute right-0 top-[calc(100%+6px)] z-30 w-44 overflow-hidden rounded-lg border border-piedra/50 bg-white shadow-lg">
@@ -119,6 +126,16 @@ export default function Header({
                 >
                   <i className="ti ti-list-details text-base text-oliva" aria-hidden />
                   Mis publicaciones
+                </button>
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onOpenNotificaciones();
+                  }}
+                  className="flex w-full items-center gap-2 border-t border-piedra/30 px-3.5 py-2.5 text-left text-[13px] text-tinta hover:bg-hueso-2"
+                >
+                  <i className="ti ti-bell text-base text-oliva" aria-hidden />
+                  Notificaciones {unreadNotifCount > 0 && `(${unreadNotifCount})`}
                 </button>
                 <button
                   onClick={() => {

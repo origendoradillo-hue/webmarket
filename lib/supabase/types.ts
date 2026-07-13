@@ -394,6 +394,20 @@ export interface Database {
         };
         Relationships: [];
       };
+      notificaciones: {
+        Row: {
+          id: string;
+          user_id: string;
+          tipo: "contacto" | "pregunta_nueva" | "pregunta_respondida" | "aprobada" | "observada";
+          listing_id: string | null;
+          mensaje: string;
+          leida: boolean;
+          created_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       support_requests: {
         Row: {
           id: string;
@@ -513,6 +527,10 @@ export interface Database {
       };
       eliminar_review: {
         Args: { p_review_id: string };
+        Returns: undefined;
+      };
+      marcar_notificaciones_leidas: {
+        Args: Record<string, never>;
         Returns: undefined;
       };
       admin_set_review_report_status: {

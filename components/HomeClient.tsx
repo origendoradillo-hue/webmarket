@@ -27,6 +27,7 @@ import AuthModal from "./AuthModal";
 import ProfileModal from "./ProfileModal";
 import MyListingsModal from "./MyListingsModal";
 import FavoritosModal from "./FavoritosModal";
+import NotificacionesModal from "./NotificacionesModal";
 import ForcePasswordModal from "./ForcePasswordModal";
 import ReportListingModal from "./ReportListingModal";
 import ReviewModal from "./ReviewModal";
@@ -91,6 +92,8 @@ export default function HomeClient() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [myListingsOpen, setMyListingsOpen] = useState(false);
   const [favoritosOpen, setFavoritosOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
   const [favoritoIds, setFavoritoIds] = useState<Set<string>>(new Set());
   const [reportOpen, setReportOpen] = useState(false);
   const [reviewTarget, setReviewTarget] = useState<{ listingId: string; listingNombre: string; publisherName?: string } | null>(null);
@@ -298,6 +301,20 @@ export default function HomeClient() {
       });
   }, [user]);
 
+  useEffect(() => {
+    if (!user) {
+      setUnreadNotifCount(0);
+      return;
+    }
+    const supabase = createClient();
+    supabase
+      .from("notificaciones")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("leida", false)
+      .then(({ count }) => setUnreadNotifCount(count || 0));
+  }, [user]);
+
   function handleSearchSubmit() {
     if (query.trim() === "") return;
     trackEvent("search", { search_term: query.trim() });
@@ -493,8 +510,10 @@ export default function HomeClient() {
         onOpenProfile={() => setProfileOpen(true)}
         onOpenMyListings={() => setMyListingsOpen(true)}
         onOpenFavoritos={() => setFavoritosOpen(true)}
+        onOpenNotificaciones={() => setNotifOpen(true)}
         onSignOut={handleSignOut}
         isStaff={isStaff}
+        unreadNotifCount={unreadNotifCount}
       />
       {expiryReminder && (
         <div className="flex flex-wrap items-center justify-between gap-2 bg-red-50 px-4 py-2.5 text-[12.5px] text-tinta sm:px-8">
@@ -746,6 +765,14 @@ export default function HomeClient() {
         />
       )}
       {user && <ForcePasswordModal open={mustChangePassword} user={user} onDone={() => setMustChangePassword(false)} />}
+      {user && (
+        <NotificacionesModal
+          open={notifOpen}
+          onClose={() => setNotifOpen(false)}
+          user={user}
+          onRead={() => setUnreadNotifCount(0)}
+        />
+      )}
     </>
   );
 }
