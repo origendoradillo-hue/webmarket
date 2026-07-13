@@ -28,6 +28,7 @@ export function mapListingRow(row: ListingRow, publisher: PublisherInfo | null, 
   return {
     id: row.id,
     shortCode: row.short_code,
+    createdAt: row.created_at,
     nombre: row.nombre,
     subtitulo: row.subtitulo || undefined,
     intencion: row.intencion,

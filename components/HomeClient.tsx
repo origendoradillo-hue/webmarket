@@ -80,7 +80,7 @@ export default function HomeClient() {
   const [query, setQuery] = useState("");
   const [intencionFilter, setIntencionFilter] = useState<"all" | "ofrezco" | "busco">("all");
   const [tipoFilter, setTipoFilter] = useState<"all" | TipoPublicacion>("all");
-  const [sortMode, setSortMode] = useState<"relevancia" | "precio_asc" | "precio_desc">("relevancia");
+  const [sortMode, setSortMode] = useState<"relevancia" | "precio_asc" | "precio_desc" | "reciente">("relevancia");
   const [zonaFilter, setZonaFilter] = useState<string | "all">("all");
   const [cuadranteFilter, setCuadranteFilter] = useState<Cuadrante | "all">("all");
   const [activeListing, setActiveListing] = useState<Listing | null>(null);
@@ -486,6 +486,8 @@ export default function HomeClient() {
     };
     if (sortMode === "relevancia") {
       result.sort(relevanciaCompare);
+    } else if (sortMode === "reciente") {
+      result.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
     } else {
       // Sin precio utilizable (a consultar, se regala, o directamente sin
       // precio cargado) siempre queda al final, ordenado por relevancia
@@ -706,6 +708,7 @@ export default function HomeClient() {
                 {(
                   [
                     { value: "relevancia", label: "Relevancia" },
+                    { value: "reciente", label: "Más reciente" },
                     { value: "precio_asc", label: "Precio: menor a mayor" },
                     { value: "precio_desc", label: "Precio: mayor a menor" },
                   ] as const

@@ -28,6 +28,7 @@ export type Etiqueta = "turismo" | "alquileres_temporarios";
 export interface Listing {
   id: number | string;
   shortCode?: string;
+  createdAt?: string;
   nombre: string;
   subtitulo?: string;
   intencion: Intencion;
