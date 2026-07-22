@@ -12,7 +12,6 @@ import { cropForShare } from "@/lib/cropForShare";
 import { containsPhoneNumber, maskPhoneNumbers } from "@/lib/phoneDetection";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import PhotoCropModal from "./PhotoCropModal";
-import DualCropFlow from "./DualCropFlow";
 
 type Intencion = "ofrezco" | "busco";
 
@@ -26,6 +25,10 @@ interface PublishData {
   desc: string;
   fotosData: string[];
   fotoPortadaData: string | null;
+  // dataURL de la foto de origen usada para generar fotoPortadaData —
+  // solo para saber qué miniatura marcar como "Portada" en el editor,
+  // no se guarda en la base.
+  portadaSourceUrl: string | null;
   tags: string;
   precio: string;
   precioConsultar: boolean;
@@ -68,6 +71,7 @@ const DEFAULTS: PublishData = {
   desc: "",
   fotosData: [],
   fotoPortadaData: null,
+  portadaSourceUrl: null,
   tags: "",
   precio: "",
   precioConsultar: false,
@@ -147,6 +151,8 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
   const [cropQueue, setCropQueue] = useState<File[]>([]);
   const [editingPhotoIndex, setEditingPhotoIndex] = useState<number | null>(null);
   const [editingPhotoFile, setEditingPhotoFile] = useState<File | null>(null);
+  const [portadaCropIndex, setPortadaCropIndex] = useState<number | null>(null);
+  const [portadaCropFile, setPortadaCropFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -211,19 +217,10 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
     });
   }
 
-  async function handleCropConfirm(blob: Blob, cardBlob?: Blob) {
+  async function handleCropConfirm(blob: Blob) {
     const resized = await resizeImage(blob);
     const dataUrl = await blobToDataUrl(resized);
-    let cardDataUrl: string | null = null;
-    if (cardBlob) {
-      const resizedCard = await resizeImage(cardBlob);
-      cardDataUrl = await blobToDataUrl(resizedCard);
-    }
-    setData((prev) => ({
-      ...prev,
-      fotosData: [...prev.fotosData, dataUrl],
-      fotoPortadaData: cardDataUrl ?? prev.fotoPortadaData,
-    }));
+    setData((prev) => ({ ...prev, fotosData: [...prev.fotosData, dataUrl] }));
     setCropQueue((prev) => prev.slice(1));
   }
 
@@ -237,22 +234,17 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
     setEditingPhotoIndex(index);
   }
 
-  async function handleEditPhotoConfirm(blob: Blob, cardBlob?: Blob) {
+  async function handleEditPhotoConfirm(blob: Blob) {
     const index = editingPhotoIndex;
     setEditingPhotoFile(null);
     setEditingPhotoIndex(null);
     if (index === null) return;
     const resized = await resizeImage(blob);
     const dataUrl = await blobToDataUrl(resized);
-    let cardDataUrl: string | null = null;
-    if (cardBlob) {
-      const resizedCard = await resizeImage(cardBlob);
-      cardDataUrl = await blobToDataUrl(resizedCard);
-    }
     setData((prev) => {
       const fotos = [...prev.fotosData];
       fotos[index] = dataUrl;
-      return { ...prev, fotosData: fotos, fotoPortadaData: cardDataUrl ?? prev.fotoPortadaData };
+      return { ...prev, fotosData: fotos };
     });
   }
 
@@ -260,7 +252,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
     setData((prev) => ({ ...prev, fotosData: prev.fotosData.filter((_, i) => i !== index) }));
   }
 
-  function makeFotoPortada(index: number) {
+  function makeFotoPrincipal(index: number) {
     setData((prev) => {
       if (index === 0) return prev;
       const fotos = [...prev.fotosData];
@@ -268,6 +260,22 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
       fotos.unshift(foto);
       return { ...prev, fotosData: fotos };
     });
+  }
+
+  async function openPortadaCrop(index: number) {
+    const blob = await (await fetch(data.fotosData[index])).blob();
+    setPortadaCropFile(new File([blob], "portada.jpg", { type: blob.type || "image/jpeg" }));
+    setPortadaCropIndex(index);
+  }
+
+  async function handlePortadaCropConfirm(blob: Blob) {
+    const index = portadaCropIndex;
+    setPortadaCropFile(null);
+    setPortadaCropIndex(null);
+    if (index === null) return;
+    const resized = await resizeImage(blob);
+    const dataUrl = await blobToDataUrl(resized);
+    setData((prev) => ({ ...prev, fotoPortadaData: dataUrl, portadaSourceUrl: prev.fotosData[index] }));
   }
 
   async function uploadFotoOg(supabase: SupabaseClient, coverBlob: Blob, userId: string): Promise<string | null> {
@@ -639,12 +647,18 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
                   {(data.intencion === "busco" || fotoRequerida(data) || data.tipo === "servicio" || data.tipo === "otro") && (
                     <Field label={fotoRequerida(data) ? "Fotos" : "Fotos (opcional)"}>
                       <PhotoDropzone
-                        label={data.intencion === "busco" ? "Foto de referencia si tenés (opcional)" : "Subí una o más fotos reales, como en Mercado Libre"}
+                        label={
+                          data.intencion === "busco"
+                            ? "Foto de referencia si tenés (opcional)"
+                            : "Subí fotos reales, como en Mercado Libre — recomendamos subir más de una"
+                        }
                         values={data.fotosData}
                         onChange={handleFoto}
                         onRemove={removeFoto}
-                        onMakePortada={makeFotoPortada}
+                        onMakePrincipal={makeFotoPrincipal}
                         onEdit={editFoto}
+                        portadaSourceUrl={data.portadaSourceUrl}
+                        onPickPortada={openPortadaCrop}
                       />
                     </Field>
                   )}
@@ -731,7 +745,10 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
                       onChange={(e) => update("tags", e.target.value)}
                       className="w-full rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta"
                     />
-                    <p className="mt-1 text-[11px] text-tinta-suave">Ayudan a que te encuentren en el buscador.</p>
+                    <p className="mt-1 text-[11px] text-tinta-suave">
+                      El buscador usa el título, la categoría y estas palabras clave — no busca dentro de la descripción, así que sumá
+                      las que creas que la gente va a escribir.
+                    </p>
                   </Field>
                 </>
               )}
@@ -1038,36 +1055,31 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
           </>
         )}
       </div>
-      {cropQueue.length > 0 &&
-        (data.fotosData.length === 0 ? (
-          <DualCropFlow
-            file={cropQueue[0]}
-            onConfirm={({ detailBlob, cardBlob }) => handleCropConfirm(detailBlob, cardBlob)}
-            onCancel={handleCropCancel}
-          />
-        ) : (
-          <PhotoCropModal file={cropQueue[0]} onConfirm={handleCropConfirm} onCancel={handleCropCancel} />
-        ))}
-      {editingPhotoFile &&
-        (editingPhotoIndex === 0 ? (
-          <DualCropFlow
-            file={editingPhotoFile}
-            onConfirm={({ detailBlob, cardBlob }) => handleEditPhotoConfirm(detailBlob, cardBlob)}
-            onCancel={() => {
-              setEditingPhotoFile(null);
-              setEditingPhotoIndex(null);
-            }}
-          />
-        ) : (
-          <PhotoCropModal
-            file={editingPhotoFile}
-            onConfirm={handleEditPhotoConfirm}
-            onCancel={() => {
-              setEditingPhotoFile(null);
-              setEditingPhotoIndex(null);
-            }}
-          />
-        ))}
+      {cropQueue.length > 0 && (
+        <PhotoCropModal file={cropQueue[0]} aspect={4 / 5} onConfirm={handleCropConfirm} onCancel={handleCropCancel} />
+      )}
+      {editingPhotoFile && (
+        <PhotoCropModal
+          file={editingPhotoFile}
+          aspect={4 / 5}
+          onConfirm={handleEditPhotoConfirm}
+          onCancel={() => {
+            setEditingPhotoFile(null);
+            setEditingPhotoIndex(null);
+          }}
+        />
+      )}
+      {portadaCropFile && (
+        <PhotoCropModal
+          file={portadaCropFile}
+          aspect={4 / 3}
+          onConfirm={handlePortadaCropConfirm}
+          onCancel={() => {
+            setPortadaCropFile(null);
+            setPortadaCropIndex(null);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -1113,15 +1125,19 @@ function PhotoDropzone({
   values,
   onChange,
   onRemove,
-  onMakePortada,
+  onMakePrincipal,
   onEdit,
+  portadaSourceUrl,
+  onPickPortada,
 }: {
   label: string;
   values: string[];
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onRemove: (index: number) => void;
-  onMakePortada?: (index: number) => void;
+  onMakePrincipal?: (index: number) => void;
   onEdit?: (index: number) => void;
+  portadaSourceUrl?: string | null;
+  onPickPortada?: (index: number) => void;
 }) {
   return (
     <div>
@@ -1132,24 +1148,21 @@ function PhotoDropzone({
       </div>
       {values.length > 0 && (
         <>
-          {values.length > 1 && onMakePortada && (
-            <p className="mt-2 text-[11px] text-tinta-suave">Tocá la estrella para elegir cuál va de portada.</p>
+          {values.length > 1 && onMakePrincipal && (
+            <p className="mt-2 text-[11px] text-tinta-suave">
+              La estrella pone esa foto primero. Tocá &quot;Portada&quot; para elegir cuál se ve en las tarjetas.
+            </p>
           )}
           <div className="mt-2.5 grid grid-cols-3 gap-2">
             {values.map((v, i) => (
               <div key={i} className="relative overflow-hidden rounded-lg border border-piedra/70">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={v} alt={`Vista previa ${i + 1}`} className="block h-20 w-full object-cover" />
-                {i === 0 && (
-                  <span className="absolute left-1 top-1 rounded-full bg-dorado px-1.5 py-0.5 text-[9px] font-semibold text-oliva-dd">
-                    Portada
-                  </span>
-                )}
-                {i !== 0 && onMakePortada && (
+                {i !== 0 && onMakePrincipal && (
                   <button
                     type="button"
-                    onClick={() => onMakePortada(i)}
-                    aria-label="Hacer portada"
+                    onClick={() => onMakePrincipal(i)}
+                    aria-label="Hacer principal"
                     className="absolute left-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white"
                   >
                     <i className="ti ti-star text-xs" aria-hidden />
@@ -1163,6 +1176,21 @@ function PhotoDropzone({
                 >
                   <i className="ti ti-x text-xs" aria-hidden />
                 </button>
+                {onPickPortada &&
+                  (v === portadaSourceUrl ? (
+                    <span className="absolute bottom-1 left-1 rounded-full bg-dorado px-1.5 py-0.5 text-[9px] font-semibold text-oliva-dd">
+                      Portada
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => onPickPortada(i)}
+                      aria-label="Usar como portada"
+                      className="absolute bottom-1 left-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[9px] font-medium text-white"
+                    >
+                      Portada
+                    </button>
+                  ))}
                 {onEdit && (
                   <button
                     type="button"

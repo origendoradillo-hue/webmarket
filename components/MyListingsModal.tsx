@@ -11,7 +11,6 @@ import { cropForShare } from "@/lib/cropForShare";
 import { containsPhoneNumber, maskPhoneNumbers } from "@/lib/phoneDetection";
 import ShareButton from "./ShareButton";
 import PhotoCropModal from "./PhotoCropModal";
-import DualCropFlow from "./DualCropFlow";
 import { urlToFile } from "@/lib/urlToFile";
 import { uploadCoverPhoto } from "@/lib/uploadCoverPhoto";
 
@@ -94,6 +93,9 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
   const [cropQueue, setCropQueue] = useState<File[]>([]);
   const [portadaEditFile, setPortadaEditFile] = useState<File | null>(null);
   const [portadaEditListing, setPortadaEditListing] = useState<ListingRow | null>(null);
+  const [portadaSourceFile, setPortadaSourceFile] = useState<File | null>(null);
+  const [portadaSourceListing, setPortadaSourceListing] = useState<ListingRow | null>(null);
+  const [portadaCropFile, setPortadaCropFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [statusBusyId, setStatusBusyId] = useState<string | null>(null);
   const [ratingInfo, setRatingInfo] = useState<{ promedio: number | null; count: number }>({ promedio: null, count: 0 });
@@ -254,14 +256,10 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
     });
   }
 
-  async function handleCropConfirm(blob: Blob, cardBlob?: Blob) {
+  async function handleCropConfirm(blob: Blob) {
     const resized = await resizeImage(blob);
     const dataUrl = await blobToDataUrl(resized);
     setNewPhotos((prev) => [...prev, dataUrl]);
-    if (cardBlob) {
-      const resizedCard = await resizeImage(cardBlob);
-      setNewFotoPortadaData(await blobToDataUrl(resizedCard));
-    }
     setCropQueue((prev) => prev.slice(1));
   }
 
@@ -269,17 +267,32 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
     setCropQueue((prev) => prev.slice(1));
   }
 
-  async function handleEditarPortada(l: ListingRow) {
+  function removeNewPhoto(index: number) {
+    setNewPhotos((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  async function openPortadaCropFromNewPhoto(index: number) {
+    const blob = await (await fetch(newPhotos[index])).blob();
+    setPortadaCropFile(new File([blob], "portada.jpg", { type: blob.type || "image/jpeg" }));
+  }
+
+  async function handleNewPhotoPortadaCropConfirm(blob: Blob) {
+    setPortadaCropFile(null);
+    const resized = await resizeImage(blob);
+    setNewFotoPortadaData(await blobToDataUrl(resized));
+  }
+
+  async function handleEditarFotoPrincipal(l: ListingRow) {
     if (!l.foto_url) return;
     try {
-      setPortadaEditFile(await urlToFile(l.foto_url, "portada.jpg"));
+      setPortadaEditFile(await urlToFile(l.foto_url, "foto.jpg"));
       setPortadaEditListing(l);
     } catch {
       alert("No se pudo cargar la foto para editar.");
     }
   }
 
-  async function handlePortadaEditConfirm(blob: Blob, cardBlob?: Blob) {
+  async function handlePortadaEditConfirm(blob: Blob) {
     if (!portadaEditListing) return;
     const listing = portadaEditListing;
     setPortadaEditFile(null);
@@ -287,12 +300,10 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
     setSaving(true);
     const supabase = createClient();
     const resized = await resizeImage(blob);
-    const resizedCard = cardBlob ? await resizeImage(cardBlob) : undefined;
     let fotoUrl: string;
     let fotoOgUrl: string | null;
-    let fotoPortadaUrl: string | null;
     try {
-      ({ fotoUrl, fotoOgUrl, fotoPortadaUrl } = await uploadCoverPhoto(supabase, resized, user.id, resizedCard));
+      ({ fotoUrl, fotoOgUrl } = await uploadCoverPhoto(supabase, resized, user.id));
     } catch (err) {
       alert(err instanceof Error ? err.message : "No se pudo subir la foto.");
       setSaving(false);
@@ -302,8 +313,41 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
       p_listing_id: listing.id,
       p_foto_url: fotoUrl,
       ...(fotoOgUrl ? { p_foto_og_url: fotoOgUrl } : {}),
-      ...(fotoPortadaUrl ? { p_foto_portada_url: fotoPortadaUrl } : {}),
     });
+    setSaving(false);
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    await loadListings();
+  }
+
+  async function handleUsePhotoAsPortada(l: ListingRow, url: string) {
+    try {
+      setPortadaSourceFile(await urlToFile(url, "portada.jpg"));
+      setPortadaSourceListing(l);
+    } catch {
+      alert("No se pudo cargar la foto para editar.");
+    }
+  }
+
+  async function handlePortadaSourceCropConfirm(blob: Blob) {
+    if (!portadaSourceListing) return;
+    const listing = portadaSourceListing;
+    setPortadaSourceFile(null);
+    setPortadaSourceListing(null);
+    setSaving(true);
+    const supabase = createClient();
+    const resized = await resizeImage(blob);
+    const path = `${user.id}/${Date.now()}-card.jpg`;
+    const { error: uploadError } = await supabase.storage.from("listing-photos").upload(path, resized, { contentType: "image/jpeg" });
+    if (uploadError) {
+      alert(uploadError.message);
+      setSaving(false);
+      return;
+    }
+    const url = supabase.storage.from("listing-photos").getPublicUrl(path).data.publicUrl;
+    const { error } = await supabase.rpc("mi_update_listing", { p_listing_id: listing.id, p_foto_portada_url: url });
     setSaving(false);
     if (error) {
       alert(error.message);
@@ -342,7 +386,6 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
 
     let fotoUrlParam: string | undefined;
     let fotoOgUrlParam: string | undefined;
-    let fotoPortadaUrlParam: string | undefined;
     let extraToInsert = uploadedUrls;
     if (!l.foto_url && uploadedUrls.length > 0) {
       fotoUrlParam = uploadedUrls[0];
@@ -353,12 +396,17 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
         const { error: ogError } = await supabase.storage.from("listing-photos").upload(ogPath, cropped, { contentType: "image/jpeg" });
         if (!ogError) fotoOgUrlParam = supabase.storage.from("listing-photos").getPublicUrl(ogPath).data.publicUrl;
       }
-      if (newFotoPortadaData) {
-        const cardBlob = await (await fetch(newFotoPortadaData)).blob();
-        const cardPath = `${user.id}/${Date.now()}-card.jpg`;
-        const { error: cardError } = await supabase.storage.from("listing-photos").upload(cardPath, cardBlob, { contentType: "image/jpeg" });
-        if (!cardError) fotoPortadaUrlParam = supabase.storage.from("listing-photos").getPublicUrl(cardPath).data.publicUrl;
-      }
+    }
+
+    // Independiente de si esta foto nueva terminó siendo la principal:
+    // si el usuario eligió portada entre las fotos que está por subir, se
+    // guarda igual.
+    let fotoPortadaUrlParam: string | undefined;
+    if (newFotoPortadaData) {
+      const cardBlob = await (await fetch(newFotoPortadaData)).blob();
+      const cardPath = `${user.id}/${Date.now()}-card.jpg`;
+      const { error: cardError } = await supabase.storage.from("listing-photos").upload(cardPath, cardBlob, { contentType: "image/jpeg" });
+      if (!cardError) fotoPortadaUrlParam = supabase.storage.from("listing-photos").getPublicUrl(cardPath).data.publicUrl;
     }
 
     const { error } = await supabase.rpc("mi_update_listing", {
@@ -736,6 +784,9 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
                           onChange={(e) => setEditForm({ ...editForm, tags: e.target.value })}
                           className="w-full rounded-lg border border-piedra/70 bg-white px-2.5 py-2 text-[13px] text-tinta"
                         />
+                        <p className="mt-1 text-[11px] text-tinta-suave">
+                          El buscador usa el título, la categoría y estas palabras — no busca dentro de la descripción.
+                        </p>
                       </MiniField>
 
                       <label className="mb-2.5 flex items-start gap-2 text-[12px] text-tinta">
@@ -749,19 +800,31 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
                       </label>
 
                       <MiniField label="Fotos">
+                        <p className="mb-1.5 text-[10.5px] text-tinta-suave">
+                          &quot;Principal&quot; es la que se ve primero al abrir la publicación. &quot;Portada&quot; es la miniatura en las
+                          tarjetas — pueden ser fotos distintas.
+                        </p>
                         <div className="grid grid-cols-4 gap-2">
                           {l.foto_url && (
                             <div className="relative h-16 overflow-hidden rounded-md border border-piedra/70">
                               {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img src={l.foto_url} alt="Portada" className="h-full w-full object-cover" />
-                              <span className="absolute bottom-0 left-0 right-0 bg-black/50 text-center text-[9px] text-white">Portada</span>
+                              <img src={l.foto_url} alt="Principal" className="h-full w-full object-cover" />
+                              <span className="absolute bottom-0 left-0 right-0 bg-black/50 text-center text-[9px] text-white">Principal</span>
                               <button
                                 type="button"
-                                onClick={() => handleEditarPortada(l)}
-                                aria-label="Editar recorte de la portada"
+                                onClick={() => handleEditarFotoPrincipal(l)}
+                                aria-label="Editar recorte de la foto principal"
                                 className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-white"
                               >
                                 <i className="ti ti-crop text-[9px]" aria-hidden />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleUsePhotoAsPortada(l, l.foto_url!)}
+                                aria-label="Usar como portada"
+                                className="absolute left-0.5 top-0.5 rounded-full bg-black/60 px-1 py-0.5 text-[8px] font-medium text-white"
+                              >
+                                Portada
                               </button>
                             </div>
                           )}
@@ -777,12 +840,36 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
                               >
                                 <i className="ti ti-x text-[9px]" aria-hidden />
                               </button>
+                              <button
+                                type="button"
+                                onClick={() => handleUsePhotoAsPortada(l, im.url)}
+                                aria-label="Usar como portada"
+                                className="absolute left-0.5 top-0.5 rounded-full bg-black/60 px-1 py-0.5 text-[8px] font-medium text-white"
+                              >
+                                Portada
+                              </button>
                             </div>
                           ))}
                           {newPhotos.map((v, i) => (
                             <div key={`new-${i}`} className="relative h-16 overflow-hidden rounded-md border border-dorado">
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img src={v} alt="Nueva foto" className="h-full w-full object-cover" />
+                              <button
+                                type="button"
+                                onClick={() => removeNewPhoto(i)}
+                                aria-label="Quitar foto"
+                                className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-white"
+                              >
+                                <i className="ti ti-x text-[9px]" aria-hidden />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => openPortadaCropFromNewPhoto(i)}
+                                aria-label="Usar como portada"
+                                className="absolute left-0.5 top-0.5 rounded-full bg-black/60 px-1 py-0.5 text-[8px] font-medium text-white"
+                              >
+                                Portada
+                              </button>
                             </div>
                           ))}
                           <label className="flex h-16 cursor-pointer items-center justify-center rounded-md border-[1.5px] border-dashed border-piedra/70 text-oliva">
@@ -808,29 +895,33 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
           )}
         </div>
       </div>
-      {cropQueue.length > 0 &&
-        (() => {
-          const editingListing = listings.find((x) => x.id === expandedId);
-          const isCover = !editingListing?.foto_url && newPhotos.length === 0;
-          return isCover ? (
-            <DualCropFlow
-              file={cropQueue[0]}
-              onConfirm={({ detailBlob, cardBlob }) => handleCropConfirm(detailBlob, cardBlob)}
-              onCancel={handleCropCancel}
-            />
-          ) : (
-            <PhotoCropModal file={cropQueue[0]} onConfirm={handleCropConfirm} onCancel={handleCropCancel} />
-          );
-        })()}
+      {cropQueue.length > 0 && (
+        <PhotoCropModal file={cropQueue[0]} aspect={4 / 5} onConfirm={handleCropConfirm} onCancel={handleCropCancel} />
+      )}
       {portadaEditFile && (
-        <DualCropFlow
+        <PhotoCropModal
           file={portadaEditFile}
-          onConfirm={({ detailBlob, cardBlob }) => handlePortadaEditConfirm(detailBlob, cardBlob)}
+          aspect={4 / 5}
+          onConfirm={handlePortadaEditConfirm}
           onCancel={() => {
             setPortadaEditFile(null);
             setPortadaEditListing(null);
           }}
         />
+      )}
+      {portadaSourceFile && (
+        <PhotoCropModal
+          file={portadaSourceFile}
+          aspect={4 / 3}
+          onConfirm={handlePortadaSourceCropConfirm}
+          onCancel={() => {
+            setPortadaSourceFile(null);
+            setPortadaSourceListing(null);
+          }}
+        />
+      )}
+      {portadaCropFile && (
+        <PhotoCropModal file={portadaCropFile} aspect={4 / 3} onConfirm={handleNewPhotoPortadaCropConfirm} onCancel={() => setPortadaCropFile(null)} />
       )}
     </div>
   );

@@ -37,8 +37,50 @@ export default function ListingCard({ listing: l, onOpen, isFavorito, onToggleFa
         isDemanda ? "border-golfo/50" : "border-piedra/60"
       }`}
     >
+      {/* Fila propia para el estado/badge y los íconos, arriba de la foto
+          — antes flotaban encima de la imagen y se pisaban entre sí. */}
+      <div className="flex items-center justify-between gap-1 px-2 pt-2">
+        <div>
+          {isDemanda ? (
+            <div className="rounded-full bg-golfo px-2 py-1 text-[9px] font-medium text-hueso">Busco</div>
+          ) : l.sello ? (
+            <Image src="/brand/sello-claro.png" alt="Selección Origen El Doradillo" width={80} height={22} className="h-5 w-auto" />
+          ) : l.emprendimientoDestacado ? (
+            <div className="flex items-center gap-1 rounded-full bg-golfo px-2 py-1 text-[9px] font-medium text-hueso">
+              <i className="ti ti-building-store text-[10px]" aria-hidden /> Emprendimiento destacado
+            </div>
+          ) : null}
+        </div>
+        <div className="flex items-center gap-0.5">
+          {onToggleFavorito && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleFavorito();
+              }}
+              aria-label={isFavorito ? "Sacar de favoritos" : "Guardar en favoritos"}
+              className="flex h-6 w-6 items-center justify-center rounded-full text-[13px] text-tinta-suave"
+            >
+              <i className={`ti ti-heart ${isFavorito ? "text-dorado" : ""}`} aria-hidden />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              share();
+            }}
+            aria-label="Compartir"
+            className="flex h-6 w-6 items-center justify-center rounded-full text-[13px] text-tinta-suave"
+          >
+            <i className="ti ti-share-3" aria-hidden />
+          </button>
+        </div>
+      </div>
+
       <div
-        className="relative aspect-[4/3]"
+        className="relative mt-1 aspect-[4/3]"
         style={{
           backgroundColor: isDemanda
             ? undefined
@@ -63,44 +105,6 @@ export default function ListingCard({ listing: l, onOpen, isFavorito, onToggleFa
             aria-hidden
           />
         )}
-
-        {onToggleFavorito && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleFavorito();
-            }}
-            aria-label={isFavorito ? "Sacar de favoritos" : "Guardar en favoritos"}
-            className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-oliva-dd/50 text-[13px] text-white"
-          >
-            <i className={`ti ti-heart ${isFavorito ? "text-dorado" : ""}`} aria-hidden />
-          </button>
-        )}
-
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            share();
-          }}
-          aria-label="Compartir"
-          className="absolute right-2 top-9 flex h-6 w-6 items-center justify-center rounded-full bg-oliva-dd/50 text-[13px] text-white"
-        >
-          <i className="ti ti-share-3" aria-hidden />
-        </button>
-
-        {isDemanda ? (
-          <div className="absolute left-2 top-2 rounded-full bg-golfo px-2 py-1 text-[9px] font-medium text-hueso">Busco</div>
-        ) : l.sello ? (
-          <Image src="/brand/sello-claro.png" alt="Selección Origen El Doradillo" width={80} height={22} className="absolute left-2 top-2 h-5 w-auto" />
-        ) : l.emprendimientoDestacado ? (
-          <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-golfo px-2 py-1 text-[9px] font-medium text-hueso">
-            <i className="ti ti-building-store text-[10px]" aria-hidden /> Emprendimiento destacado
-          </div>
-        ) : isVecino ? (
-          <div className="absolute left-2 top-2 rounded-full bg-nogal/85 px-2 py-1 text-[9px] font-medium text-hueso">Particular</div>
-        ) : null}
 
         <div
           className="absolute -bottom-3.5 left-2.5 flex h-[30px] w-[30px] items-center justify-center overflow-hidden rounded-full border-2 border-white font-slab text-[10px] font-semibold text-hueso"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import type { User } from "@supabase/supabase-js";
 import { fallbackColorFor } from "@/lib/data";
@@ -45,6 +45,20 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, user, o
   const [editRating, setEditRating] = useState(0);
   const [editComentario, setEditComentario] = useState("");
   const [savingReview, setSavingReview] = useState(false);
+  const touchStartX = useRef<number | null>(null);
+  const SWIPE_THRESHOLD = 50;
+
+  function handleGalleryTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.touches[0].clientX;
+  }
+  function handleGalleryTouchEnd(e: React.TouchEvent) {
+    if (touchStartX.current === null || images.length < 2) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+    touchStartX.current = null;
+    if (Math.abs(deltaX) < SWIPE_THRESHOLD) return;
+    if (deltaX < 0) setImgIndex((i) => (i + 1) % images.length);
+    else setImgIndex((i) => (i - 1 + images.length) % images.length);
+  }
 
   useEffect(() => {
     if (!l) return;
@@ -197,6 +211,8 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, user, o
 
         <div
           className="relative aspect-[4/5] max-h-[70vh]"
+          onTouchStart={handleGalleryTouchStart}
+          onTouchEnd={handleGalleryTouchEnd}
           style={{
             backgroundColor: isDemanda ? undefined : images.length > 0 ? undefined : isVecino ? "#DCD7C9" : fallbackColor,
           }}
