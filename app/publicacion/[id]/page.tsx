@@ -169,6 +169,7 @@ export default async function PublicacionPage({ params }: PageProps) {
               url={shareUrl}
               title={listing.nombre}
               text={listing.descripcion.slice(0, 120)}
+              imageUrl={listing.foto_url || undefined}
               className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-piedra/60 py-2.5 text-[13px] font-semibold text-tinta"
               label="Compartir"
             />

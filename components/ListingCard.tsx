@@ -3,6 +3,8 @@
 import Image from "next/image";
 import { fallbackColorFor } from "@/lib/data";
 import { Listing } from "@/lib/types";
+import { SITE_URL } from "@/lib/seo";
+import { useShare } from "@/lib/useShare";
 import SeBuscaPlaceholder from "./SeBuscaPlaceholder";
 
 interface ListingCardProps {
@@ -17,6 +19,12 @@ export default function ListingCard({ listing: l, onOpen, isFavorito, onToggleFa
   const isVecino = l.tipoPublicador === "vecino";
   const isNegocio = l.tipoPublicador === "negocio";
   const isDemanda = l.intencion === "busco";
+  const { share } = useShare({
+    url: l.shortCode ? `${SITE_URL}/p/${l.shortCode}` : `${SITE_URL}/publicacion/${l.id}`,
+    title: l.nombre,
+    text: l.descripcion.slice(0, 120),
+    imageUrl: l.foto,
+  });
 
   return (
     <div
@@ -65,6 +73,18 @@ export default function ListingCard({ listing: l, onOpen, isFavorito, onToggleFa
             <i className={`ti ti-heart ${isFavorito ? "text-dorado" : ""}`} aria-hidden />
           </button>
         )}
+
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            share();
+          }}
+          aria-label="Compartir"
+          className="absolute right-2 top-9 flex h-6 w-6 items-center justify-center rounded-full bg-oliva-dd/50 text-[13px] text-white"
+        >
+          <i className="ti ti-share-3" aria-hidden />
+        </button>
 
         {isDemanda ? (
           <div className="absolute left-2 top-2 rounded-full bg-golfo px-2 py-1 text-[9px] font-medium text-hueso">Busco</div>

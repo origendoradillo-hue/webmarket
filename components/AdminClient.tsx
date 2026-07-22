@@ -17,13 +17,14 @@ import type {
   ZoneRow,
 } from "@/lib/supabase/types";
 import { REPORT_MOTIVO_LABELS, requiereSuspensionReciproca } from "@/lib/reportMotivos";
-import type { Anuncio, AnuncioLayoutType, ImageOrientation, TipoPublicacion } from "@/lib/types";
+import type { Anuncio, AnuncioLayoutType, ImageOrientation, TipoAnuncio, TipoPublicacion } from "@/lib/types";
 import { TIPO_OPTIONS } from "@/lib/tipos";
 import { SITE_URL } from "@/lib/seo";
 import { resizeImage } from "@/lib/resizeImage";
 import { cropForShare } from "@/lib/cropForShare";
 import { containsPhoneNumber, maskPhoneNumbers } from "@/lib/phoneDetection";
-import AnuncioSlide from "./AnuncioSlide";
+import AnuncioSlide, { TIPO_LABEL } from "./AnuncioSlide";
+import PhotoCropModal from "./PhotoCropModal";
 
 type Tab =
   | "publicaciones"
@@ -1349,6 +1350,8 @@ function AdminListingRow({
   });
 
   const [images, setImages] = useState<{ id: string; url: string }[]>([]);
+  const [fotoCropQueue, setFotoCropQueue] = useState<File[]>([]);
+  const [portadaCropFile, setPortadaCropFile] = useState<File | null>(null);
   const [questions, setQuestions] = useState<{ id: string; pregunta: string; respuesta: string | null; estado: string }[]>([]);
   const [mensajes, setMensajes] = useState<{ id: string; es_staff: boolean; mensaje: string; created_at: string }[]>([]);
   const [nuevoMensaje, setNuevoMensaje] = useState("");
@@ -1432,27 +1435,33 @@ function AdminListingRow({
     }
   }, [expanded, loadHistorial, loadImages, loadQuestions, loadMensajes]);
 
-  async function agregarFotos(e: React.ChangeEvent<HTMLInputElement>) {
+  function agregarFotos(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
     if (files.length === 0) return;
+    setFotoCropQueue((prev) => [...prev, ...files]);
+    e.target.value = "";
+  }
+
+  async function handleFotoCropConfirm(blob: Blob) {
     setSaving(true);
     const supabase = createClient();
-    let orden = images.length;
-    for (const file of files) {
-      const resized = await resizeImage(file);
-      const path = `admin/${l.id}/${Date.now()}-${orden}.jpg`;
-      const { error: uploadError } = await supabase.storage.from("listing-photos").upload(path, resized, { contentType: "image/jpeg" });
-      if (uploadError) {
-        alert(uploadError.message);
-        continue;
-      }
+    const resized = await resizeImage(blob);
+    const orden = images.length;
+    const path = `admin/${l.id}/${Date.now()}-${orden}.jpg`;
+    const { error: uploadError } = await supabase.storage.from("listing-photos").upload(path, resized, { contentType: "image/jpeg" });
+    if (uploadError) {
+      alert(uploadError.message);
+    } else {
       const url = supabase.storage.from("listing-photos").getPublicUrl(path).data.publicUrl;
       await supabase.from("listing_images").insert({ listing_id: l.id, url, orden });
-      orden += 1;
     }
-    e.target.value = "";
     setSaving(false);
+    setFotoCropQueue((prev) => prev.slice(1));
     loadImages();
+  }
+
+  function handleFotoCropCancel() {
+    setFotoCropQueue((prev) => prev.slice(1));
   }
 
   async function quitarFoto(imageId: string) {
@@ -1577,12 +1586,18 @@ function AdminListingRow({
     }
   }
 
-  async function subirFoto(e: React.ChangeEvent<HTMLInputElement>) {
+  function subirFoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    setPortadaCropFile(file);
+    e.target.value = "";
+  }
+
+  async function handlePortadaCropConfirm(blob: Blob) {
+    setPortadaCropFile(null);
     setSaving(true);
     const supabase = createClient();
-    const resized = await resizeImage(file);
+    const resized = await resizeImage(blob);
     const path = `admin/${l.id}/${Date.now()}.jpg`;
     const { error: uploadError } = await supabase.storage.from("listing-photos").upload(path, resized, { contentType: "image/jpeg" });
     if (uploadError) {
@@ -1940,6 +1955,8 @@ function AdminListingRow({
           </div>
         </div>
       )}
+      {fotoCropQueue.length > 0 && <PhotoCropModal file={fotoCropQueue[0]} onConfirm={handleFotoCropConfirm} onCancel={handleFotoCropCancel} />}
+      {portadaCropFile && <PhotoCropModal file={portadaCropFile} onConfirm={handlePortadaCropConfirm} onCancel={() => setPortadaCropFile(null)} />}
     </div>
   );
 }
@@ -1962,9 +1979,11 @@ function AdminAnuncioRow({
   const [saving, setSaving] = useState(false);
   const [uploadingImagen, setUploadingImagen] = useState(false);
   const [uploadingFondo, setUploadingFondo] = useState(false);
+  const [imagenCropFile, setImagenCropFile] = useState<File | null>(null);
   const [nota, setNota] = useState("");
   const [historial, setHistorial] = useState<ModeracionLogRow[]>([]);
   const [form, setForm] = useState({
+    tipo: a.tipo,
     titulo: a.titulo,
     descripcion: a.descripcion,
     lugar: a.lugar || "",
@@ -1997,6 +2016,7 @@ function AdminAnuncioRow({
     const supabase = createClient();
     const { error } = await supabase.rpc("admin_process_anuncio", {
       p_anuncio_id: a.id,
+      p_tipo: form.tipo,
       p_titulo: form.titulo,
       p_descripcion: form.descripcion,
       p_lugar: form.lugar || null,
@@ -2016,19 +2036,25 @@ function AdminAnuncioRow({
     }
   }
 
-  async function handleUploadImagen(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleUploadImagen(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    setImagenCropFile(file);
+    e.target.value = "";
+  }
+
+  async function handleImagenCropConfirm(blob: Blob) {
+    setImagenCropFile(null);
     setUploadingImagen(true);
-    const orientation = await detectImageOrientation(file);
-    const resized = await resizeImage(file);
+    const croppedFile = new File([blob], "flyer.jpg", { type: "image/jpeg" });
+    const orientation = await detectImageOrientation(croppedFile);
+    const resized = await resizeImage(croppedFile);
     const supabase = createClient();
     const path = `anuncios/${a.id}/${Date.now()}-flyer.jpg`;
     const { error: uploadError } = await supabase.storage.from("listing-photos").upload(path, resized, { contentType: "image/jpeg" });
     if (uploadError) {
       alert(uploadError.message);
       setUploadingImagen(false);
-      e.target.value = "";
       return;
     }
     const url = supabase.storage.from("listing-photos").getPublicUrl(path).data.publicUrl;
@@ -2038,7 +2064,6 @@ function AdminAnuncioRow({
       p_image_orientation: orientation,
     });
     setUploadingImagen(false);
-    e.target.value = "";
     if (error) {
       alert(error.message);
       return;
@@ -2106,7 +2131,7 @@ function AdminAnuncioRow({
 
   const previewAnuncio: Anuncio = {
     id: a.id,
-    tipo: a.tipo,
+    tipo: form.tipo,
     titulo: form.titulo,
     descripcion: form.descripcion,
     imagen: a.imagen_url || undefined,
@@ -2168,6 +2193,20 @@ function AdminAnuncioRow({
             </button>
           )}
 
+          <div>
+            <label className="mb-1 block text-[11px] font-medium text-tinta">Tipo</label>
+            <select
+              value={form.tipo}
+              onChange={(e) => setForm({ ...form, tipo: e.target.value as TipoAnuncio })}
+              className="w-full rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
+            >
+              {(Object.keys(TIPO_LABEL) as TipoAnuncio[]).map((t) => (
+                <option key={t} value={t}>
+                  {TIPO_LABEL[t]}
+                </option>
+              ))}
+            </select>
+          </div>
           <LabeledInput label="Título" value={form.titulo} onChange={(v) => setForm({ ...form, titulo: v })} />
           <div>
             <label className="mb-1 block text-[11px] font-medium text-tinta">Descripción</label>
@@ -2308,6 +2347,7 @@ function AdminAnuncioRow({
           </div>
         </div>
       )}
+      {imagenCropFile && <PhotoCropModal file={imagenCropFile} onConfirm={handleImagenCropConfirm} onCancel={() => setImagenCropFile(null)} />}
     </div>
   );
 }

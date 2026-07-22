@@ -14,6 +14,7 @@ import Header from "./Header";
 import Hero from "./Hero";
 import CategoryFilters from "./CategoryFilters";
 import LocationFilters from "./LocationFilters";
+import FilterDropdown from "./FilterDropdown";
 import HomeEntryButtons from "./HomeEntryButtons";
 import AnuncioCarousel from "./AnuncioCarousel";
 import AnuncioTicker from "./AnuncioTicker";
@@ -55,14 +56,12 @@ function dismissReviewReminder(listingId: string) {
   }
 }
 
-// Hash estable de (id, semilla) para "alternar" el orden de listados sin que
-// salte en cada render — misma semilla durante toda la sesión de pestaña.
-function shuffleScore(id: number | string, seed: number): number {
-  const s = `${id}-${seed}`;
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
-  return h;
-}
+const SORT_OPTIONS = [
+  { value: "relevancia", label: "Relevancia" },
+  { value: "reciente", label: "Más reciente" },
+  { value: "precio_asc", label: "Precio: menor a mayor" },
+  { value: "precio_desc", label: "Precio: mayor a menor" },
+] as const;
 
 type Screen = "home" | "explorar" | "resultados";
 
@@ -451,10 +450,6 @@ export default function HomeClient() {
     [realAnuncios]
   );
 
-  // Semilla fija por sesión de pestaña: "alternar" el orden de la lista sin
-  // que salte en cada render, pero que sí varíe entre visitas.
-  const shuffleSeed = useMemo(() => Math.random(), []);
-
   // Fuera del inicio, la cinta de anuncios no debe estar siempre — aparece
   // "cada tanto": se decide una vez por visita a la pantalla, no en cada
   // click de filtro dentro de la misma pantalla.
@@ -476,13 +471,12 @@ export default function HomeClient() {
       return true;
     });
     // Siempre primero Selección Origen, después emprendimiento destacado,
-    // después destacada — dentro de un mismo nivel, orden mezclado (no
-    // separado por categoría/tipo).
+    // después destacada — dentro de un mismo nivel, la más reciente primero.
     const priority = (l: Listing) => (l.sello ? 3 : 0) + (l.emprendimientoDestacado ? 2 : 0) + (l.destacada ? 1 : 0);
     const relevanciaCompare = (a: Listing, b: Listing) => {
       const diff = priority(b) - priority(a);
       if (diff !== 0) return diff;
-      return shuffleScore(a.id, shuffleSeed) - shuffleScore(b.id, shuffleSeed);
+      return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
     };
     if (sortMode === "relevancia") {
       result.sort(relevanciaCompare);
@@ -503,7 +497,7 @@ export default function HomeClient() {
       });
     }
     return result;
-  }, [allListings, cat, sub, query, intencionFilter, tipoFilter, zonaFilter, cuadranteFilter, categories, shuffleSeed, sortMode]);
+  }, [allListings, cat, sub, query, intencionFilter, tipoFilter, zonaFilter, cuadranteFilter, categories, sortMode]);
 
   const seleccionOrigen = useMemo(() => allListings.filter((l) => l.sello), [allListings]);
   const destacados = useMemo(() => allListings.filter((l) => l.destacada), [allListings]);
@@ -668,61 +662,67 @@ export default function HomeClient() {
               </div>
             )}
             <>
-              <div className="mb-2.5 flex flex-wrap gap-1.5">
-                <button
-                  onClick={() => handleSelectTipo("all")}
-                  className={`flex-shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-[11.5px] ${
-                    tipoFilter === "all" ? "border-oliva bg-oliva text-hueso" : "border-piedra/60 bg-white text-tinta"
-                  }`}
+              <div className="mb-3 flex gap-2 overflow-x-auto px-4 pb-1 sm:px-7">
+                <FilterDropdown label="Tipo" activeLabel={tipoFilter !== "all" ? TIPO_LABELS[tipoFilter] : undefined}>
+                  <div className="flex flex-wrap gap-1.5">
+                    <button
+                      onClick={() => handleSelectTipo("all")}
+                      className={`flex-shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-[11.5px] ${
+                        tipoFilter === "all" ? "border-oliva bg-oliva text-hueso" : "border-piedra/60 bg-white text-tinta"
+                      }`}
+                    >
+                      Todos los tipos
+                    </button>
+                    {(Object.keys(TIPO_LABELS) as TipoPublicacion[]).map((t) => (
+                      <button
+                        key={t}
+                        onClick={() => handleSelectTipo(t)}
+                        className={`flex-shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-[11.5px] ${
+                          tipoFilter === t ? "border-oliva bg-oliva text-hueso" : "border-piedra/60 bg-white text-tinta"
+                        }`}
+                      >
+                        {TIPO_LABELS[t]}
+                      </button>
+                    ))}
+                  </div>
+                </FilterDropdown>
+                <FilterDropdown label="Categoría" activeLabel={cat !== "all" ? categories[cat]?.label : undefined}>
+                  <CategoryFilters
+                    cat={cat}
+                    sub={sub}
+                    onSelectCat={handleSelectCat}
+                    onSelectSub={setSub}
+                    tipoFilter={tipoFilter}
+                    isSubscribed={cat !== "all" && alertCategorias.has(cat)}
+                    onToggleSubscribe={cat !== "all" ? () => toggleAlertCategoria(cat) : undefined}
+                  />
+                </FilterDropdown>
+                <FilterDropdown
+                  label="Ubicación"
+                  activeLabel={zonaFilter !== "all" ? `${zonaFilter}${cuadranteFilter !== "all" ? ` ${cuadranteFilter}` : ""}` : undefined}
                 >
-                  Todos los tipos
-                </button>
-                {(Object.keys(TIPO_LABELS) as TipoPublicacion[]).map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => handleSelectTipo(t)}
-                    className={`flex-shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-[11.5px] ${
-                      tipoFilter === t ? "border-oliva bg-oliva text-hueso" : "border-piedra/60 bg-white text-tinta"
-                    }`}
-                  >
-                    {TIPO_LABELS[t]}
-                  </button>
-                ))}
-              </div>
-              <CategoryFilters
-                cat={cat}
-                sub={sub}
-                onSelectCat={handleSelectCat}
-                onSelectSub={setSub}
-                tipoFilter={tipoFilter}
-                isSubscribed={cat !== "all" && alertCategorias.has(cat)}
-                onToggleSubscribe={cat !== "all" ? () => toggleAlertCategoria(cat) : undefined}
-              />
-              <LocationFilters
-                zona={zonaFilter}
-                cuadrante={cuadranteFilter}
-                onSelectZona={handleSelectZona}
-                onSelectCuadrante={setCuadranteFilter}
-              />
-              <div className="mb-2.5 flex flex-wrap gap-1.5">
-                {(
-                  [
-                    { value: "relevancia", label: "Relevancia" },
-                    { value: "reciente", label: "Más reciente" },
-                    { value: "precio_asc", label: "Precio: menor a mayor" },
-                    { value: "precio_desc", label: "Precio: mayor a menor" },
-                  ] as const
-                ).map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => setSortMode(opt.value)}
-                    className={`flex-shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-[11.5px] ${
-                      sortMode === opt.value ? "border-oliva bg-oliva text-hueso" : "border-piedra/60 bg-white text-tinta"
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
+                  <LocationFilters
+                    zona={zonaFilter}
+                    cuadrante={cuadranteFilter}
+                    onSelectZona={handleSelectZona}
+                    onSelectCuadrante={setCuadranteFilter}
+                  />
+                </FilterDropdown>
+                <FilterDropdown label="Orden" activeLabel={SORT_OPTIONS.find((o) => o.value === sortMode)?.label}>
+                  <div className="flex flex-wrap gap-1.5">
+                    {SORT_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => setSortMode(opt.value)}
+                        className={`flex-shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-[11.5px] ${
+                          sortMode === opt.value ? "border-oliva bg-oliva text-hueso" : "border-piedra/60 bg-white text-tinta"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </FilterDropdown>
               </div>
               <ListingGrid
                 listings={filtered}

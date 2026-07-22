@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Anuncio } from "@/lib/types";
 import AnuncioSlide from "./AnuncioSlide";
 
@@ -8,9 +8,12 @@ interface AnuncioCarouselProps {
   anuncios: Anuncio[];
 }
 
+const SWIPE_THRESHOLD = 50;
+
 export default function AnuncioCarousel({ anuncios }: AnuncioCarouselProps) {
   const [index, setIndex] = useState(0);
   const [detailOpen, setDetailOpen] = useState(false);
+  const touchStartX = useRef<number | null>(null);
 
   useEffect(() => {
     if (index >= anuncios.length) setIndex(0);
@@ -35,6 +38,18 @@ export default function AnuncioCarousel({ anuncios }: AnuncioCarouselProps) {
     setIndex((i) => (i + 1) % anuncios.length);
   }
 
+  function handleTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.touches[0].clientX;
+  }
+  function handleTouchEnd(e: React.TouchEvent) {
+    if (touchStartX.current === null || anuncios.length < 2) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+    touchStartX.current = null;
+    if (Math.abs(deltaX) < SWIPE_THRESHOLD) return;
+    if (deltaX < 0) next();
+    else prev();
+  }
+
   return (
     <div className="w-full overflow-hidden rounded-2xl bg-oliva-dd shadow-sm ring-1 ring-dorado/40">
       <p className="flex items-center gap-1.5 bg-oliva-d px-4 py-1.5 text-[10.5px] font-semibold uppercase tracking-wide text-dorado sm:px-8">
@@ -42,7 +57,7 @@ export default function AnuncioCarousel({ anuncios }: AnuncioCarouselProps) {
         Anuncios y novedades de la comunidad
       </p>
 
-      <div className="relative">
+      <div className="relative" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
         <AnuncioSlide anuncio={a} priority={index === 0} onDetailOpenChange={setDetailOpen} />
 
         {anuncios.length > 1 && (

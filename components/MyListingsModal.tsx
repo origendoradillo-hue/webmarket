@@ -10,6 +10,7 @@ import { resizeImage } from "@/lib/resizeImage";
 import { cropForShare } from "@/lib/cropForShare";
 import { containsPhoneNumber, maskPhoneNumbers } from "@/lib/phoneDetection";
 import ShareButton from "./ShareButton";
+import PhotoCropModal from "./PhotoCropModal";
 
 interface ListingReport {
   id: string;
@@ -86,6 +87,7 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
   const [editForm, setEditForm] = useState<EditForm | null>(null);
   const [images, setImages] = useState<{ id: string; url: string }[]>([]);
   const [newPhotos, setNewPhotos] = useState<string[]>([]);
+  const [cropQueue, setCropQueue] = useState<File[]>([]);
   const [saving, setSaving] = useState(false);
   const [statusBusyId, setStatusBusyId] = useState<string | null>(null);
   const [ratingInfo, setRatingInfo] = useState<{ promedio: number | null; count: number }>({ promedio: null, count: 0 });
@@ -233,13 +235,20 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
 
   function handleNewPhotos(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
-    files.forEach(async (file) => {
-      const resized = await resizeImage(file);
-      const reader = new FileReader();
-      reader.onload = (ev) => setNewPhotos((prev) => [...prev, ev.target?.result as string]);
-      reader.readAsDataURL(resized);
-    });
+    setCropQueue((prev) => [...prev, ...files]);
     e.target.value = "";
+  }
+
+  async function handleCropConfirm(blob: Blob) {
+    const resized = await resizeImage(blob);
+    const reader = new FileReader();
+    reader.onload = (ev) => setNewPhotos((prev) => [...prev, ev.target?.result as string]);
+    reader.readAsDataURL(resized);
+    setCropQueue((prev) => prev.slice(1));
+  }
+
+  function handleCropCancel() {
+    setCropQueue((prev) => prev.slice(1));
   }
 
   async function removeExistingImage(imageId: string) {
@@ -445,6 +454,7 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
                             url={l.short_code ? `${SITE_URL}/p/${l.short_code}` : `${SITE_URL}/publicacion/${l.id}`}
                             title={l.nombre}
                             text={l.descripcion.slice(0, 120)}
+                            imageUrl={l.foto_url || undefined}
                             className="flex items-center gap-1.5 rounded-lg border border-piedra/70 bg-white px-3 py-1.5 text-[12px] font-medium text-tinta"
                             label="Compartir"
                           />
@@ -721,6 +731,7 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
           )}
         </div>
       </div>
+      {cropQueue.length > 0 && <PhotoCropModal file={cropQueue[0]} onConfirm={handleCropConfirm} onCancel={handleCropCancel} />}
     </div>
   );
 }

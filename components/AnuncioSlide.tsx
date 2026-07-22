@@ -6,7 +6,7 @@ import { Anuncio, AnuncioLayoutType, TipoAnuncio } from "@/lib/types";
 import { SITE_URL } from "@/lib/seo";
 import ShareButton from "./ShareButton";
 
-const TIPO_LABEL: Record<TipoAnuncio, string> = {
+export const TIPO_LABEL: Record<TipoAnuncio, string> = {
   evento: "Evento",
   aviso_barrial: "Aviso barrial",
   sponsor: "Sponsor",
@@ -221,6 +221,7 @@ function AnuncioDetailModal({ a, onClose }: { a: Anuncio; onClose: () => void })
               url={a.shortCode ? `${SITE_URL}/p/${a.shortCode}` : `${SITE_URL}/anuncio/${a.id}`}
               title={a.titulo}
               text={a.descripcion.slice(0, 120)}
+              imageUrl={a.imagen || a.backgroundImagen}
               className="mt-1 flex w-fit items-center gap-1.5 rounded-lg border border-piedra/60 px-4 py-2 text-[12.5px] font-semibold text-tinta"
               label="Compartir"
             />
@@ -359,6 +360,9 @@ function FullBannerSlide({ a, priority, onDetailOpenChange }: SlideProps) {
         onError={() => setImgFailed(true)}
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />
+      {/* Blur solo detrás de la franja de texto (no de toda la imagen) para
+          que no se mezclen imagen y letras sin perder nitidez arriba. */}
+      <div className="absolute inset-x-0 bottom-0 h-1/2 backdrop-blur-sm" />
       <div className="absolute left-3 top-3">
         <TipoBadge tipo={a.tipo} variant="solid" />
       </div>
@@ -412,7 +416,7 @@ function BackgroundImageSlide({ a, priority, onDetailOpenChange }: SlideProps) {
         onError={() => setImgFailed(true)}
       />
       <div className="absolute inset-0 bg-oliva-dd/20" />
-      <div className="absolute inset-x-3 bottom-3 max-w-[420px] rounded-xl bg-oliva-dd/92 p-4 shadow-lg sm:inset-x-auto sm:bottom-6 sm:left-6">
+      <div className="absolute inset-x-3 bottom-3 max-w-[420px] rounded-xl bg-oliva-dd/92 p-4 shadow-lg backdrop-blur-sm sm:inset-x-auto sm:bottom-6 sm:left-6">
         <TipoBadge tipo={a.tipo} variant="solid" />
         <h3 className="mt-1.5 font-slab text-base font-semibold leading-tight text-white sm:text-lg">{a.titulo}</h3>
         <p className="mt-1 line-clamp-2 text-[12px] text-white/85 sm:text-[13px]">{a.descripcion}</p>

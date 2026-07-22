@@ -1,34 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useShare } from "@/lib/useShare";
 
 interface ShareButtonProps {
   url: string;
   title: string;
   text?: string;
+  imageUrl?: string;
   className?: string;
   label?: string;
 }
 
-export default function ShareButton({ url, title, text, className, label }: ShareButtonProps) {
-  const [copied, setCopied] = useState(false);
-
-  async function handleShare() {
-    if (typeof navigator !== "undefined" && navigator.share) {
-      try {
-        await navigator.share({ title, text, url });
-      } catch {
-        // el usuario canceló el share nativo — no hacemos nada
-      }
-      return;
-    }
-    await navigator.clipboard.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
+export default function ShareButton({ url, title, text, imageUrl, className, label }: ShareButtonProps) {
+  const { share, copied } = useShare({ url, title, text, imageUrl });
 
   return (
-    <button type="button" onClick={handleShare} aria-label="Compartir" className={`relative ${className || ""}`}>
+    <button type="button" onClick={share} aria-label="Compartir" className={`relative ${className || ""}`}>
       <i className={`ti ti-share-3 ${label ? "text-base" : "text-lg"} text-tinta`} aria-hidden />
       {label && <span className="ml-1.5">{label}</span>}
       {copied && (

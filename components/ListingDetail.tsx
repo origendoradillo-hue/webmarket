@@ -187,6 +187,7 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, user, o
               url={listing.shortCode ? `${SITE_URL}/p/${listing.shortCode}` : `${SITE_URL}/publicacion/${listing.id}`}
               title={listing.nombre}
               text={listing.descripcion.slice(0, 120)}
+              imageUrl={listing.foto}
             />
             <button onClick={onClose} aria-label="Cerrar">
               <i className="ti ti-x text-lg text-tinta" aria-hidden />

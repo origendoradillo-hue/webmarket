@@ -11,6 +11,7 @@ import { resizeImage } from "@/lib/resizeImage";
 import { cropForShare } from "@/lib/cropForShare";
 import { containsPhoneNumber, maskPhoneNumbers } from "@/lib/phoneDetection";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import PhotoCropModal from "./PhotoCropModal";
 
 type Intencion = "ofrezco" | "busco";
 
@@ -140,6 +141,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [nickname, setNickname] = useState("");
+  const [cropQueue, setCropQueue] = useState<File[]>([]);
 
   useEffect(() => {
     if (open) {
@@ -192,16 +194,23 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
   function handleFoto(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
     if (files.length === 0) return;
-    files.forEach(async (file) => {
-      const resized = await resizeImage(file);
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        const dataUrl = ev.target?.result as string;
-        setData((prev) => ({ ...prev, fotosData: [...prev.fotosData, dataUrl] }));
-      };
-      reader.readAsDataURL(resized);
-    });
+    setCropQueue((prev) => [...prev, ...files]);
     e.target.value = "";
+  }
+
+  async function handleCropConfirm(blob: Blob) {
+    const resized = await resizeImage(blob);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      setData((prev) => ({ ...prev, fotosData: [...prev.fotosData, dataUrl] }));
+    };
+    reader.readAsDataURL(resized);
+    setCropQueue((prev) => prev.slice(1));
+  }
+
+  function handleCropCancel() {
+    setCropQueue((prev) => prev.slice(1));
   }
 
   function removeFoto(index: number) {
@@ -963,6 +972,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
           </>
         )}
       </div>
+      {cropQueue.length > 0 && <PhotoCropModal file={cropQueue[0]} onConfirm={handleCropConfirm} onCancel={handleCropCancel} />}
     </div>
   );
 }

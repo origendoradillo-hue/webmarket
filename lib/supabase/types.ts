@@ -677,6 +677,7 @@ export interface Database {
           p_cta_label?: string | null;
           p_cta_url?: string | null;
           p_whatsapp_numero?: string | null;
+          p_tipo?: string | null;
         };
         Returns: undefined;
       };
