@@ -1,0 +1,15 @@
+-- Ejecutar en el SQL Editor de Supabase después de migration_v41_mensajeria_alertas.sql.
+-- Bug: "permission denied for table profiles" al guardar el perfil.
+--
+-- migration_v11_perfil.sql restringió el update de "profiles" a columnas
+-- puntuales por seguridad (revoke update + grant column-level), y cada
+-- migración que sumó un campo autoeditable nuevo tuvo que sumar su propio
+-- "grant update (columna)" — migration_v14_nickname.sql lo hizo bien para
+-- "nickname", pero migration_v26_redes_sociales.sql agregó
+-- instagram_url/facebook_url sin el grant correspondiente (asumió que la
+-- policy de RLS alcanzaba, pero el permiso por columna es una capa aparte
+-- y más estricta). Como ProfileModal.tsx guarda todos los campos del
+-- formulario en un solo update, con una sola columna sin permiso el
+-- update entero falla — de ahí el error que vieron los vecinos al tocar
+-- "Guardar cambios".
+grant update (instagram_url, facebook_url) on public.profiles to authenticated;
