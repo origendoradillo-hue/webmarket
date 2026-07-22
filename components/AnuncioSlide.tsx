@@ -240,17 +240,17 @@ const FONDO_ESTEPA = "/brand/anuncio-fondo-estepa.png";
 const FONDO_INSTITUCIONAL = "/brand/anuncio-fondo-institucional.png";
 const CARTEL_COLGANTE = "/brand/cartel-colgante.png";
 
-// Rectángulo exacto (medido en la imagen fuente, 1122x1402px, con un
-// flood-fill desde el centro del recorte de croma) donde el cartel tiene
-// el hueco para insertar el flyer del usuario — el resto del PNG (postes,
-// travesaño, marco) es transparente alrededor y opaco en el marco/estructura.
-const CARTEL_FLYER_RECT = { left: "14.71%", top: "18.19%", width: "68%", height: "70.26%" };
+// Rectángulo (medido en la imagen fuente, 1122x1402px, con un flood-fill
+// desde el centro del recorte de croma, más 20px de margen hacia adentro
+// en cada lado) donde va el flyer del usuario — el margen es a propósito
+// para que el flyer nunca llegue a pisar el marco de madera del cartel,
+// aunque la foto no calce perfecto con el hueco medido.
+const CARTEL_FLYER_RECT = { left: "16.49%", top: "19.61%", width: "64.44%", height: "67.40%" };
 
-// Ancho/alto reales del panel en px (mismo relevamiento que el rect de
-// arriba: 927-165+1 x 1239-255+1 sobre la imagen fuente de 1122x1402) —
-// se usa para forzar el recorte del flyer a esta proporción exacta antes
-// de subirlo, así encaja justo en el panel sin franjas vacías arriba/abajo.
-export const CARTEL_FLYER_ASPECT = 763 / 985;
+// Proporción real del rect de arriba — se usa para forzar el recorte del
+// flyer a esta relación de aspecto antes de subirlo, así encaja justo en
+// el panel sin franjas vacías arriba/abajo.
+export const CARTEL_FLYER_ASPECT = 723 / 945;
 
 // Los 4 formatos de anuncio comparten esta altura para que el carrusel no
 // salte de tamaño al rotar entre uno y otro mientras se está mirando.
