@@ -21,10 +21,12 @@ import type { Anuncio, AnuncioLayoutType, ImageOrientation, TipoAnuncio, TipoPub
 import { TIPO_OPTIONS } from "@/lib/tipos";
 import { SITE_URL } from "@/lib/seo";
 import { resizeImage } from "@/lib/resizeImage";
-import { cropForShare } from "@/lib/cropForShare";
+import { uploadCoverPhoto } from "@/lib/uploadCoverPhoto";
 import { containsPhoneNumber, maskPhoneNumbers } from "@/lib/phoneDetection";
 import AnuncioSlide, { TIPO_LABEL, CARTEL_FLYER_ASPECT } from "./AnuncioSlide";
 import PhotoCropModal from "./PhotoCropModal";
+import { LISTING_COVER_PREVIEW_PANELS } from "./listingCoverPreviewPanels";
+import { urlToFile } from "@/lib/urlToFile";
 
 type Tab =
   | "publicaciones"
@@ -1598,21 +1600,14 @@ function AdminListingRow({
     setSaving(true);
     const supabase = createClient();
     const resized = await resizeImage(blob);
-    const path = `admin/${l.id}/${Date.now()}.jpg`;
-    const { error: uploadError } = await supabase.storage.from("listing-photos").upload(path, resized, { contentType: "image/jpeg" });
-    if (uploadError) {
-      alert(uploadError.message);
+    let fotoUrl: string;
+    let fotoOgUrl: string | null;
+    try {
+      ({ fotoUrl, fotoOgUrl } = await uploadCoverPhoto(supabase, resized, `admin/${l.id}`));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "No se pudo subir la foto.");
       setSaving(false);
       return;
-    }
-    const fotoUrl = supabase.storage.from("listing-photos").getPublicUrl(path).data.publicUrl;
-
-    let fotoOgUrl: string | undefined;
-    const cropped = await cropForShare(resized);
-    if (cropped) {
-      const ogPath = `admin/${l.id}/${Date.now()}-og.jpg`;
-      const { error: ogError } = await supabase.storage.from("listing-photos").upload(ogPath, cropped, { contentType: "image/jpeg" });
-      if (!ogError) fotoOgUrl = supabase.storage.from("listing-photos").getPublicUrl(ogPath).data.publicUrl;
     }
 
     const { error } = await supabase.rpc("admin_update_listing", {
@@ -1790,6 +1785,20 @@ function AdminListingRow({
                 >
                   <i className="ti ti-download text-[9px]" aria-hidden />
                 </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      setPortadaCropFile(await urlToFile(l.foto_url!, "portada.jpg"));
+                    } catch {
+                      alert("No se pudo cargar la foto para editar.");
+                    }
+                  }}
+                  aria-label="Editar recorte de la foto de portada"
+                  className="absolute bottom-0.5 right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-white"
+                >
+                  <i className="ti ti-crop text-[9px]" aria-hidden />
+                </button>
               </div>
             )}
             <input type="file" accept="image/*" onChange={subirFoto} className="text-xs" />
@@ -1956,7 +1965,15 @@ function AdminListingRow({
         </div>
       )}
       {fotoCropQueue.length > 0 && <PhotoCropModal file={fotoCropQueue[0]} onConfirm={handleFotoCropConfirm} onCancel={handleFotoCropCancel} />}
-      {portadaCropFile && <PhotoCropModal file={portadaCropFile} onConfirm={handlePortadaCropConfirm} onCancel={() => setPortadaCropFile(null)} />}
+      {portadaCropFile && (
+        <PhotoCropModal
+          file={portadaCropFile}
+          aspect={4 / 5}
+          previewPanels={LISTING_COVER_PREVIEW_PANELS}
+          onConfirm={handlePortadaCropConfirm}
+          onCancel={() => setPortadaCropFile(null)}
+        />
+      )}
     </div>
   );
 }
@@ -2270,7 +2287,26 @@ function AdminAnuncioRow({
               <label className="mb-1 block text-[11px] font-medium text-tinta">
                 Flyer / imagen principal {uploadingImagen && "(subiendo...)"}
               </label>
-              {a.imagen_url && <img src={a.imagen_url} alt="" className="mb-1.5 h-16 w-16 rounded object-cover" />}
+              {a.imagen_url && (
+                <div className="relative mb-1.5 h-16 w-16">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={a.imagen_url} alt="" className="h-full w-full rounded object-cover" />
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        setImagenCropFile(await urlToFile(a.imagen_url!, "flyer.jpg"));
+                      } catch {
+                        alert("No se pudo cargar la imagen para editar.");
+                      }
+                    }}
+                    aria-label="Editar recorte del flyer"
+                    className="absolute bottom-0.5 right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-white"
+                  >
+                    <i className="ti ti-crop text-[9px]" aria-hidden />
+                  </button>
+                </div>
+              )}
               <input
                 type="file"
                 accept="image/*"
@@ -2312,14 +2348,16 @@ function AdminAnuncioRow({
           </button>
 
           <div>
-            <p className="mb-1.5 text-[11px] font-medium text-tinta">Vista previa</p>
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <div className="w-full max-w-[560px] overflow-hidden rounded-xl border border-piedra/50">
-                <AnuncioSlide anuncio={previewAnuncio} priority={false} />
-              </div>
-              <div className="w-full max-w-[320px] overflow-hidden rounded-xl border border-piedra/50">
-                <AnuncioSlide anuncio={previewAnuncio} priority={false} />
-              </div>
+            <p className="mb-1.5 text-[11px] font-medium text-tinta">Vista previa en los 4 formatos</p>
+            <div className="flex flex-wrap gap-3">
+              {ANUNCIO_LAYOUT_OPTIONS.map((t) => (
+                <div key={t} className="w-[220px]">
+                  <p className="mb-1 text-[10.5px] text-tinta-suave">{ANUNCIO_LAYOUT_LABELS[t]}</p>
+                  <div className="overflow-hidden rounded-xl border border-piedra/50">
+                    <AnuncioSlide anuncio={{ ...previewAnuncio, layoutType: t as AnuncioLayoutType }} priority={false} />
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -2354,6 +2392,16 @@ function AdminAnuncioRow({
         <PhotoCropModal
           file={imagenCropFile}
           aspect={form.layoutType === "flyer_on_sign" ? CARTEL_FLYER_ASPECT : undefined}
+          previewPanels={[
+            {
+              label: "Así se ve",
+              render: (url) => (
+                <div className="w-[220px]">
+                  <AnuncioSlide anuncio={{ ...previewAnuncio, imagen: url }} priority={false} />
+                </div>
+              ),
+            },
+          ]}
           onConfirm={handleImagenCropConfirm}
           onCancel={() => setImagenCropFile(null)}
         />

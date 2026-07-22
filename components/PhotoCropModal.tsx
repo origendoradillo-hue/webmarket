@@ -1,12 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Cropper, { Area } from "react-easy-crop";
 import { cropToBlob } from "@/lib/cropToBlob";
+
+interface PreviewPanel {
+  label: string;
+  render: (previewUrl: string) => React.ReactNode;
+}
 
 interface PhotoCropModalProps {
   file: File;
   aspect?: number;
+  previewPanels?: PreviewPanel[];
   onConfirm: (blob: Blob) => void;
   onCancel: () => void;
 }
@@ -14,18 +20,45 @@ interface PhotoCropModalProps {
 // Editor de recorte/zoom antes de subir una foto — se intercala entre
 // "elegir archivo" y el resize/compresión que ya existía (lib/resizeImage.ts),
 // que sigue aplicándose después sobre el blob recortado.
-export default function PhotoCropModal({ file, aspect, onConfirm, onCancel }: PhotoCropModalProps) {
+export default function PhotoCropModal({ file, aspect, previewPanels, onConfirm, onCancel }: PhotoCropModalProps) {
   const [imageSrc] = useState(() => URL.createObjectURL(file));
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [working, setWorking] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const previewUrlRef = useRef<string | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => () => URL.revokeObjectURL(imageSrc), [imageSrc]);
+  useEffect(
+    () => () => {
+      if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    },
+    []
+  );
 
-  const onCropComplete = useCallback((_croppedArea: Area, pixels: Area) => {
-    setCroppedAreaPixels(pixels);
-  }, []);
+  // Además de guardar el recorte, si hay paneles de vista previa se
+  // regenera (con un debounce chico para no recalcular en cada frame de
+  // un arrastre) un blob recortado "en vivo" para mostrar cómo va a
+  // quedar antes de confirmar.
+  const onCropComplete = useCallback(
+    (_croppedArea: Area, pixels: Area) => {
+      setCroppedAreaPixels(pixels);
+      if (!previewPanels || previewPanels.length === 0) return;
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(async () => {
+        const blob = await cropToBlob(imageSrc, pixels);
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+        previewUrlRef.current = url;
+        setPreviewUrl(url);
+      }, 200);
+    },
+    [imageSrc, previewPanels]
+  );
 
   async function handleConfirm() {
     if (!croppedAreaPixels) return;
@@ -49,6 +82,22 @@ export default function PhotoCropModal({ file, aspect, onConfirm, onCancel }: Ph
           onCropComplete={onCropComplete}
         />
       </div>
+      {previewPanels && previewPanels.length > 0 && (
+        <div className="flex max-h-[38vh] flex-shrink-0 gap-4 overflow-auto bg-oliva-dd/70 px-4 py-3">
+          {previewPanels.map((panel, i) => (
+            <div key={i} className="flex flex-shrink-0 flex-col items-center gap-1.5">
+              <span className="text-[10.5px] text-white/80">{panel.label}</span>
+              {previewUrl ? (
+                panel.render(previewUrl)
+              ) : (
+                <div className="flex h-16 w-16 items-center justify-center rounded border border-white/20 text-[10px] text-white/50">
+                  ...
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
       <div className="flex flex-col gap-3 bg-oliva-dd px-5 py-4">
         <div className="flex items-center gap-2.5">
           <i className="ti ti-zoom-out text-sm text-white/70" aria-hidden />

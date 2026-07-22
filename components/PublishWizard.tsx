@@ -12,6 +12,7 @@ import { cropForShare } from "@/lib/cropForShare";
 import { containsPhoneNumber, maskPhoneNumbers } from "@/lib/phoneDetection";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import PhotoCropModal from "./PhotoCropModal";
+import { LISTING_COVER_PREVIEW_PANELS } from "./listingCoverPreviewPanels";
 
 type Intencion = "ofrezco" | "busco";
 
@@ -142,6 +143,8 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [nickname, setNickname] = useState("");
   const [cropQueue, setCropQueue] = useState<File[]>([]);
+  const [editingPhotoIndex, setEditingPhotoIndex] = useState<number | null>(null);
+  const [editingPhotoFile, setEditingPhotoFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -211,6 +214,30 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
 
   function handleCropCancel() {
     setCropQueue((prev) => prev.slice(1));
+  }
+
+  async function editFoto(index: number) {
+    const blob = await (await fetch(data.fotosData[index])).blob();
+    setEditingPhotoFile(new File([blob], "foto.jpg", { type: blob.type || "image/jpeg" }));
+    setEditingPhotoIndex(index);
+  }
+
+  async function handleEditPhotoConfirm(blob: Blob) {
+    const index = editingPhotoIndex;
+    setEditingPhotoFile(null);
+    setEditingPhotoIndex(null);
+    if (index === null) return;
+    const resized = await resizeImage(blob);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      setData((prev) => {
+        const fotos = [...prev.fotosData];
+        fotos[index] = dataUrl;
+        return { ...prev, fotosData: fotos };
+      });
+    };
+    reader.readAsDataURL(resized);
   }
 
   function removeFoto(index: number) {
@@ -579,6 +606,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
                         onChange={handleFoto}
                         onRemove={removeFoto}
                         onMakePortada={makeFotoPortada}
+                        onEdit={editFoto}
                       />
                     </Field>
                   )}
@@ -972,7 +1000,27 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
           </>
         )}
       </div>
-      {cropQueue.length > 0 && <PhotoCropModal file={cropQueue[0]} onConfirm={handleCropConfirm} onCancel={handleCropCancel} />}
+      {cropQueue.length > 0 && (
+        <PhotoCropModal
+          file={cropQueue[0]}
+          aspect={data.fotosData.length === 0 ? 4 / 5 : undefined}
+          previewPanels={data.fotosData.length === 0 ? LISTING_COVER_PREVIEW_PANELS : undefined}
+          onConfirm={handleCropConfirm}
+          onCancel={handleCropCancel}
+        />
+      )}
+      {editingPhotoFile && (
+        <PhotoCropModal
+          file={editingPhotoFile}
+          aspect={editingPhotoIndex === 0 ? 4 / 5 : undefined}
+          previewPanels={editingPhotoIndex === 0 ? LISTING_COVER_PREVIEW_PANELS : undefined}
+          onConfirm={handleEditPhotoConfirm}
+          onCancel={() => {
+            setEditingPhotoFile(null);
+            setEditingPhotoIndex(null);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -1019,12 +1067,14 @@ function PhotoDropzone({
   onChange,
   onRemove,
   onMakePortada,
+  onEdit,
 }: {
   label: string;
   values: string[];
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onRemove: (index: number) => void;
   onMakePortada?: (index: number) => void;
+  onEdit?: (index: number) => void;
 }) {
   return (
     <div>
@@ -1066,6 +1116,16 @@ function PhotoDropzone({
                 >
                   <i className="ti ti-x text-xs" aria-hidden />
                 </button>
+                {onEdit && (
+                  <button
+                    type="button"
+                    onClick={() => onEdit(i)}
+                    aria-label="Editar recorte"
+                    className="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white"
+                  >
+                    <i className="ti ti-crop text-xs" aria-hidden />
+                  </button>
+                )}
               </div>
             ))}
           </div>

@@ -11,6 +11,9 @@ import { cropForShare } from "@/lib/cropForShare";
 import { containsPhoneNumber, maskPhoneNumbers } from "@/lib/phoneDetection";
 import ShareButton from "./ShareButton";
 import PhotoCropModal from "./PhotoCropModal";
+import { LISTING_COVER_PREVIEW_PANELS } from "./listingCoverPreviewPanels";
+import { urlToFile } from "@/lib/urlToFile";
+import { uploadCoverPhoto } from "@/lib/uploadCoverPhoto";
 
 interface ListingReport {
   id: string;
@@ -88,6 +91,8 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
   const [images, setImages] = useState<{ id: string; url: string }[]>([]);
   const [newPhotos, setNewPhotos] = useState<string[]>([]);
   const [cropQueue, setCropQueue] = useState<File[]>([]);
+  const [portadaEditFile, setPortadaEditFile] = useState<File | null>(null);
+  const [portadaEditListing, setPortadaEditListing] = useState<ListingRow | null>(null);
   const [saving, setSaving] = useState(false);
   const [statusBusyId, setStatusBusyId] = useState<string | null>(null);
   const [ratingInfo, setRatingInfo] = useState<{ promedio: number | null; count: number }>({ promedio: null, count: 0 });
@@ -249,6 +254,46 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
 
   function handleCropCancel() {
     setCropQueue((prev) => prev.slice(1));
+  }
+
+  async function handleEditarPortada(l: ListingRow) {
+    if (!l.foto_url) return;
+    try {
+      setPortadaEditFile(await urlToFile(l.foto_url, "portada.jpg"));
+      setPortadaEditListing(l);
+    } catch {
+      alert("No se pudo cargar la foto para editar.");
+    }
+  }
+
+  async function handlePortadaEditConfirm(blob: Blob) {
+    if (!portadaEditListing) return;
+    const listing = portadaEditListing;
+    setPortadaEditFile(null);
+    setPortadaEditListing(null);
+    setSaving(true);
+    const supabase = createClient();
+    const resized = await resizeImage(blob);
+    let fotoUrl: string;
+    let fotoOgUrl: string | null;
+    try {
+      ({ fotoUrl, fotoOgUrl } = await uploadCoverPhoto(supabase, resized, user.id));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "No se pudo subir la foto.");
+      setSaving(false);
+      return;
+    }
+    const { error } = await supabase.rpc("mi_update_listing", {
+      p_listing_id: listing.id,
+      p_foto_url: fotoUrl,
+      ...(fotoOgUrl ? { p_foto_og_url: fotoOgUrl } : {}),
+    });
+    setSaving(false);
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    await loadListings();
   }
 
   async function removeExistingImage(imageId: string) {
@@ -686,6 +731,14 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img src={l.foto_url} alt="Portada" className="h-full w-full object-cover" />
                               <span className="absolute bottom-0 left-0 right-0 bg-black/50 text-center text-[9px] text-white">Portada</span>
+                              <button
+                                type="button"
+                                onClick={() => handleEditarPortada(l)}
+                                aria-label="Editar recorte de la portada"
+                                className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-white"
+                              >
+                                <i className="ti ti-crop text-[9px]" aria-hidden />
+                              </button>
                             </div>
                           )}
                           {images.map((im) => (
@@ -731,7 +784,32 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
           )}
         </div>
       </div>
-      {cropQueue.length > 0 && <PhotoCropModal file={cropQueue[0]} onConfirm={handleCropConfirm} onCancel={handleCropCancel} />}
+      {cropQueue.length > 0 &&
+        (() => {
+          const editingListing = listings.find((x) => x.id === expandedId);
+          const isCover = !editingListing?.foto_url && newPhotos.length === 0;
+          return (
+            <PhotoCropModal
+              file={cropQueue[0]}
+              aspect={isCover ? 4 / 5 : undefined}
+              previewPanels={isCover ? LISTING_COVER_PREVIEW_PANELS : undefined}
+              onConfirm={handleCropConfirm}
+              onCancel={handleCropCancel}
+            />
+          );
+        })()}
+      {portadaEditFile && (
+        <PhotoCropModal
+          file={portadaEditFile}
+          aspect={4 / 5}
+          previewPanels={LISTING_COVER_PREVIEW_PANELS}
+          onConfirm={handlePortadaEditConfirm}
+          onCancel={() => {
+            setPortadaEditFile(null);
+            setPortadaEditListing(null);
+          }}
+        />
+      )}
     </div>
   );
 }
