@@ -246,6 +246,12 @@ const CARTEL_COLGANTE = "/brand/cartel-colgante.png";
 // travesaño, marco) es transparente alrededor y opaco en el marco/estructura.
 const CARTEL_FLYER_RECT = { left: "14.71%", top: "18.19%", width: "68%", height: "70.26%" };
 
+// Ancho/alto reales del panel en px (mismo relevamiento que el rect de
+// arriba: 927-165+1 x 1239-255+1 sobre la imagen fuente de 1122x1402) —
+// se usa para forzar el recorte del flyer a esta proporción exacta antes
+// de subirlo, así encaja justo en el panel sin franjas vacías arriba/abajo.
+export const CARTEL_FLYER_ASPECT = 763 / 985;
+
 // Los 4 formatos de anuncio comparten esta altura para que el carrusel no
 // salte de tamaño al rotar entre uno y otro mientras se está mirando.
 const SLIDE_HEIGHT = "min-h-[300px] sm:min-h-[380px]";

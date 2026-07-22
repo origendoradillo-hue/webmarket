@@ -23,7 +23,7 @@ import { SITE_URL } from "@/lib/seo";
 import { resizeImage } from "@/lib/resizeImage";
 import { cropForShare } from "@/lib/cropForShare";
 import { containsPhoneNumber, maskPhoneNumbers } from "@/lib/phoneDetection";
-import AnuncioSlide, { TIPO_LABEL } from "./AnuncioSlide";
+import AnuncioSlide, { TIPO_LABEL, CARTEL_FLYER_ASPECT } from "./AnuncioSlide";
 import PhotoCropModal from "./PhotoCropModal";
 
 type Tab =
@@ -2278,6 +2278,9 @@ function AdminAnuncioRow({
                 onChange={handleUploadImagen}
                 className="w-full text-[11px] text-tinta"
               />
+              {form.layoutType === "flyer_on_sign" && (
+                <p className="mt-1 text-[10.5px] text-tinta-suave">El recorte se ajusta a la proporción del panel del cartel.</p>
+              )}
             </div>
             <div>
               <label className="mb-1 block text-[11px] font-medium text-tinta">
@@ -2347,7 +2350,14 @@ function AdminAnuncioRow({
           </div>
         </div>
       )}
-      {imagenCropFile && <PhotoCropModal file={imagenCropFile} onConfirm={handleImagenCropConfirm} onCancel={() => setImagenCropFile(null)} />}
+      {imagenCropFile && (
+        <PhotoCropModal
+          file={imagenCropFile}
+          aspect={form.layoutType === "flyer_on_sign" ? CARTEL_FLYER_ASPECT : undefined}
+          onConfirm={handleImagenCropConfirm}
+          onCancel={() => setImagenCropFile(null)}
+        />
+      )}
     </div>
   );
 }
