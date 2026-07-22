@@ -299,7 +299,7 @@ function FlyerOnSignSlide({ a, priority, onDetailOpenChange }: SlideProps) {
         <div className="relative h-[300px] sm:h-[380px]" style={{ aspectRatio: "1122 / 1402" }}>
           <Image src={CARTEL_COLGANTE} alt="" aria-hidden fill className="object-contain" sizes="380px" />
           <div
-            className="absolute overflow-hidden rounded-sm bg-hueso-2"
+            className="absolute overflow-hidden rounded-sm bg-black"
             style={CARTEL_FLYER_RECT}
           >
             {a.imagen && !imgFailed ? (
