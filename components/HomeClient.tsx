@@ -662,7 +662,7 @@ export default function HomeClient() {
               </div>
             )}
             <>
-              <div className="mb-3 flex gap-2 overflow-x-auto px-4 pb-1 sm:px-7">
+              <div className="mb-3 flex gap-2 overflow-x-auto px-4 pb-1 sm:px-7 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 <FilterDropdown label="Tipo" activeLabel={tipoFilter !== "all" ? TIPO_LABELS[tipoFilter] : undefined}>
                   <div className="flex flex-wrap gap-1.5">
                     <button
