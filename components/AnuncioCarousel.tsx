@@ -18,9 +18,11 @@ export default function AnuncioCarousel({ anuncios }: AnuncioCarouselProps) {
 
   useEffect(() => {
     if (anuncios.length < 2 || detailOpen) return;
+    // Depende de "index" para que un clic manual en las flechitas reinicie
+    // la cuenta de 9s en vez de sumarse al ciclo automático ya en curso.
     const timer = setInterval(() => setIndex((i) => (i + 1) % anuncios.length), 9000);
     return () => clearInterval(timer);
-  }, [anuncios.length, detailOpen]);
+  }, [anuncios.length, detailOpen, index]);
 
   if (anuncios.length === 0) return null;
 

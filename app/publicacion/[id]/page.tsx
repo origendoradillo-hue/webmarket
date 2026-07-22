@@ -42,9 +42,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const description = listing.descripcion.slice(0, 155);
   const url = `${SITE_URL}/publicacion/${id}`;
-  // Si la publicación no tiene foto propia, igual mostramos algo al
-  // compartir el link (el logo) en vez de dejar la tarjeta sin imagen.
-  const imageUrl = listing.foto_url || `${SITE_URL}/brand/logo-completo.png`;
+  // foto_og_url es un recorte 1.91:1 pensado para la vista previa (las
+  // fotos de celular suelen ser muy verticales y WhatsApp no las muestra).
+  // Si la publicación es de antes de ese cambio y no tiene recorte, mejor
+  // mostrar el logo de marca que arriesgarse a la foto sin recortar.
+  const imageUrl = listing.foto_og_url || listing.foto_url || `${SITE_URL}/brand/og-fallback.png`;
 
   return {
     title: listing.nombre,
@@ -58,7 +60,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       images: [{ url: imageUrl }],
     },
     twitter: {
-      card: listing.foto_url ? "summary_large_image" : "summary",
+      card: "summary_large_image",
       title: listing.nombre,
       description,
       images: [imageUrl],

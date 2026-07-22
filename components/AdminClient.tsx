@@ -21,6 +21,7 @@ import type { Anuncio, AnuncioLayoutType, ImageOrientation, TipoPublicacion } fr
 import { TIPO_OPTIONS } from "@/lib/tipos";
 import { SITE_URL } from "@/lib/seo";
 import { resizeImage } from "@/lib/resizeImage";
+import { cropForShare } from "@/lib/cropForShare";
 import { containsPhoneNumber, maskPhoneNumbers } from "@/lib/phoneDetection";
 import AnuncioSlide from "./AnuncioSlide";
 
@@ -1590,7 +1591,20 @@ function AdminListingRow({
       return;
     }
     const fotoUrl = supabase.storage.from("listing-photos").getPublicUrl(path).data.publicUrl;
-    const { error } = await supabase.rpc("admin_update_listing", { p_listing_id: l.id, p_foto_url: fotoUrl });
+
+    let fotoOgUrl: string | undefined;
+    const cropped = await cropForShare(resized);
+    if (cropped) {
+      const ogPath = `admin/${l.id}/${Date.now()}-og.jpg`;
+      const { error: ogError } = await supabase.storage.from("listing-photos").upload(ogPath, cropped, { contentType: "image/jpeg" });
+      if (!ogError) fotoOgUrl = supabase.storage.from("listing-photos").getPublicUrl(ogPath).data.publicUrl;
+    }
+
+    const { error } = await supabase.rpc("admin_update_listing", {
+      p_listing_id: l.id,
+      p_foto_url: fotoUrl,
+      ...(fotoOgUrl ? { p_foto_og_url: fotoOgUrl } : {}),
+    });
     setSaving(false);
     if (error) alert(error.message);
     else onSaved();
@@ -1960,6 +1974,7 @@ function AdminAnuncioRow({
     imageOrientation: a.image_orientation || "",
     ctaLabel: a.cta_label || "",
     ctaUrl: a.cta_url || "",
+    whatsappNumero: a.whatsapp_numero || "",
   });
 
   const loadHistorial = useCallback(async () => {
@@ -1991,6 +2006,7 @@ function AdminAnuncioRow({
       p_image_orientation: form.imageOrientation || null,
       p_cta_label: form.ctaLabel || null,
       p_cta_url: form.ctaUrl || null,
+      p_whatsapp_numero: form.whatsappNumero || null,
     });
     setSaving(false);
     if (error) alert(error.message);
@@ -2103,6 +2119,7 @@ function AdminAnuncioRow({
     backgroundImagen: a.background_image_url || undefined,
     ctaLabel: form.ctaLabel || undefined,
     ctaUrl: form.ctaUrl || undefined,
+    whatsappNumero: form.whatsappNumero || undefined,
   };
 
   return (
@@ -2240,8 +2257,13 @@ function AdminAnuncioRow({
 
           <div className="grid grid-cols-2 gap-2">
             <LabeledInput label="Texto del botón (CTA)" value={form.ctaLabel} onChange={(v) => setForm({ ...form, ctaLabel: v })} />
-            <LabeledInput label="Link del botón (o WhatsApp)" value={form.ctaUrl} onChange={(v) => setForm({ ...form, ctaUrl: v })} />
+            <LabeledInput label="Link del botón" value={form.ctaUrl} onChange={(v) => setForm({ ...form, ctaUrl: v })} />
           </div>
+          <LabeledInput
+            label="WhatsApp de contacto (opcional, solo números con código de área)"
+            value={form.whatsappNumero}
+            onChange={(v) => setForm({ ...form, whatsappNumero: v })}
+          />
 
           <button onClick={guardarCambios} disabled={saving} className="w-fit rounded-lg bg-oliva px-4 py-2 text-xs font-semibold text-hueso disabled:bg-piedra">
             {saving ? "Guardando..." : "Guardar cambios"}

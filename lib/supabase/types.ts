@@ -81,6 +81,7 @@ export interface Database {
           subtitulo: string | null;
           descripcion: string;
           foto_url: string | null;
+          foto_og_url: string | null;
           modalidad: string[];
           tags: string[];
           etiquetas: string[];
@@ -113,6 +114,7 @@ export interface Database {
           subtitulo?: string | null;
           descripcion: string;
           foto_url?: string | null;
+          foto_og_url?: string | null;
           modalidad?: string[];
           tags?: string[];
           etiquetas?: string[];
@@ -148,6 +150,7 @@ export interface Database {
           background_image_url: string | null;
           cta_label: string | null;
           cta_url: string | null;
+          whatsapp_numero: string | null;
           short_code: string;
           created_at: string;
           updated_at: string;
@@ -592,6 +595,7 @@ export interface Database {
           p_precio_a_consultar?: boolean | null;
           p_precio_regalo?: boolean | null;
           p_whatsapp_publico?: boolean | null;
+          p_foto_og_url?: string | null;
         };
         Returns: string;
       };
@@ -615,6 +619,7 @@ export interface Database {
           p_cuadrante?: string | null;
           p_direccion?: string | null;
           p_whatsapp_publico?: boolean | null;
+          p_foto_og_url?: string | null;
         };
         Returns: undefined;
       };
@@ -639,6 +644,7 @@ export interface Database {
           p_direccion?: string | null;
           p_nota?: string | null;
           p_whatsapp_publico?: boolean | null;
+          p_foto_og_url?: string | null;
         };
         Returns: undefined;
       };
@@ -670,6 +676,7 @@ export interface Database {
           p_background_image_url?: string | null;
           p_cta_label?: string | null;
           p_cta_url?: string | null;
+          p_whatsapp_numero?: string | null;
         };
         Returns: undefined;
       };

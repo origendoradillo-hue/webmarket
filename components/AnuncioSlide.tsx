@@ -139,9 +139,29 @@ function SlideLink({ onOpen, className, children }: { onOpen: () => void; classN
   );
 }
 
+function ImageZoomOverlay({ src, alt, onClose }: { src: string; alt: string; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90" onClick={onClose}>
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Cerrar imagen"
+        className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-black/50 text-white"
+      >
+        <i className="ti ti-x text-xl" aria-hidden />
+      </button>
+      {/* object-contain a pantalla completa para poder leer flyers con
+          mucho texto — el zoom nativo (pinch/doble tap) del navegador
+          sigue funcionando encima porque el viewport no lo bloquea. */}
+      <img src={src} alt={alt} className="h-full w-full object-contain" />
+    </div>
+  );
+}
+
 function AnuncioDetailModal({ a, onClose }: { a: Anuncio; onClose: () => void }) {
   const cta = buildCta(a);
   const imgSrc = a.imagen || a.backgroundImagen;
+  const [zoomOpen, setZoomOpen] = useState(false);
 
   return (
     <div
@@ -157,9 +177,18 @@ function AnuncioDetailModal({ a, onClose }: { a: Anuncio; onClose: () => void })
         </div>
         <div className="overflow-y-auto">
           {imgSrc && (
-            <div className="relative aspect-[4/3] w-full bg-hueso-2">
+            <button
+              type="button"
+              onClick={() => setZoomOpen(true)}
+              aria-label="Ver imagen más grande"
+              className="relative block aspect-[4/3] w-full bg-hueso-2"
+            >
               <Image src={imgSrc} alt={a.titulo} fill className="object-contain" sizes="480px" />
-            </div>
+              <span className="absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-medium text-white">
+                <i className="ti ti-zoom-in text-sm" aria-hidden />
+                Ampliar
+              </span>
+            </button>
           )}
           <div className="flex flex-col gap-2 px-5 py-4">
             <TipoBadge tipo={a.tipo} />
@@ -177,6 +206,17 @@ function AnuncioDetailModal({ a, onClose }: { a: Anuncio; onClose: () => void })
                 <i className="ti ti-arrow-right text-sm" aria-hidden />
               </a>
             )}
+            {a.whatsappNumero && (
+              <a
+                href={`https://wa.me/${a.whatsappNumero.replace(/\D/g, "")}`}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-1 inline-flex w-fit items-center gap-1.5 rounded-lg bg-[#25D366] px-4 py-2 text-[12.5px] font-semibold text-white transition hover:brightness-95"
+              >
+                <i className="ti ti-brand-whatsapp text-base" aria-hidden />
+                Consultar por WhatsApp
+              </a>
+            )}
             <ShareButton
               url={a.shortCode ? `${SITE_URL}/p/${a.shortCode}` : `${SITE_URL}/anuncio/${a.id}`}
               title={a.titulo}
@@ -187,6 +227,7 @@ function AnuncioDetailModal({ a, onClose }: { a: Anuncio; onClose: () => void })
           </div>
         </div>
       </div>
+      {zoomOpen && imgSrc && <ImageZoomOverlay src={imgSrc} alt={a.titulo} onClose={() => setZoomOpen(false)} />}
     </div>
   );
 }
@@ -203,6 +244,10 @@ const CARTEL_COLGANTE = "/brand/cartel-colgante.png";
 // usuario — el resto del PNG (postes, travesaño, marco) es transparente
 // alrededor y opaco en el marco/estructura.
 const CARTEL_FLYER_RECT = { left: "23.44%", top: "26.19%", width: "53%", height: "58%" };
+
+// Los 4 formatos de anuncio comparten esta altura para que el carrusel no
+// salte de tamaño al rotar entre uno y otro mientras se está mirando.
+const SLIDE_HEIGHT = "min-h-[300px] sm:min-h-[380px]";
 
 function FlyerBadge() {
   return (
@@ -226,9 +271,9 @@ function FlyerOnSignSlide({ a, priority, onDetailOpenChange }: SlideProps) {
         setDetailOpen(true);
         onDetailOpenChange?.(true);
       }}
-      className="grid sm:grid-cols-2"
+      className={`grid sm:grid-cols-2 ${SLIDE_HEIGHT}`}
     >
-      <div className="relative flex min-h-[380px] items-center justify-center overflow-hidden p-6 sm:min-h-[440px]">
+      <div className={`relative flex items-center justify-center overflow-hidden p-6 ${SLIDE_HEIGHT}`}>
         <Image
           src={a.backgroundImagen && !bgFailed ? a.backgroundImagen : FONDO_ESTEPA}
           alt=""
@@ -302,7 +347,7 @@ function FullBannerSlide({ a, priority, onDetailOpenChange }: SlideProps) {
         setDetailOpen(true);
         onDetailOpenChange?.(true);
       }}
-      className="relative block h-44 w-full sm:h-64"
+      className={`relative block w-full ${SLIDE_HEIGHT}`}
     >
       <Image
         src={a.imagen && !imgFailed ? a.imagen : FONDO_ESTEPA}
@@ -354,7 +399,7 @@ function BackgroundImageSlide({ a, priority, onDetailOpenChange }: SlideProps) {
         setDetailOpen(true);
         onDetailOpenChange?.(true);
       }}
-      className="relative block h-52 w-full sm:h-72"
+      className={`relative block w-full ${SLIDE_HEIGHT}`}
     >
       <Image
         src={bg && !imgFailed ? bg : FONDO_ESTEPA}
@@ -403,7 +448,7 @@ function TextOnlySlide({ a, onDetailOpenChange }: SlideProps) {
         setDetailOpen(true);
         onDetailOpenChange?.(true);
       }}
-      className="relative flex min-h-[176px] flex-col items-start justify-center gap-2 overflow-hidden px-5 py-6 sm:min-h-[220px] sm:px-10"
+      className={`relative flex flex-col items-start justify-center gap-2 overflow-hidden px-5 py-6 sm:px-10 ${SLIDE_HEIGHT}`}
     >
       <Image src={FONDO_INSTITUCIONAL} alt="" aria-hidden fill className="object-cover" sizes="100vw" />
       <div className="absolute inset-0 bg-hueso/85" />

@@ -7,6 +7,7 @@ import type { ListingRow } from "@/lib/supabase/types";
 import { REPORT_MOTIVO_LABELS } from "@/lib/reportMotivos";
 import { SITE_URL } from "@/lib/seo";
 import { resizeImage } from "@/lib/resizeImage";
+import { cropForShare } from "@/lib/cropForShare";
 import { containsPhoneNumber, maskPhoneNumbers } from "@/lib/phoneDetection";
 import ShareButton from "./ShareButton";
 
@@ -253,6 +254,7 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
     const supabase = createClient();
 
     const uploadedUrls: string[] = [];
+    const uploadedBlobs: Blob[] = [];
     for (const dataUrl of newPhotos) {
       const blob = await (await fetch(dataUrl)).blob();
       const path = `${user.id}/${Date.now()}-${uploadedUrls.length}.jpg`;
@@ -265,13 +267,21 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
         return;
       }
       uploadedUrls.push(supabase.storage.from("listing-photos").getPublicUrl(path).data.publicUrl);
+      uploadedBlobs.push(blob);
     }
 
     let fotoUrlParam: string | undefined;
+    let fotoOgUrlParam: string | undefined;
     let extraToInsert = uploadedUrls;
     if (!l.foto_url && uploadedUrls.length > 0) {
       fotoUrlParam = uploadedUrls[0];
       extraToInsert = uploadedUrls.slice(1);
+      const cropped = await cropForShare(uploadedBlobs[0]);
+      if (cropped) {
+        const ogPath = `${user.id}/${Date.now()}-og.jpg`;
+        const { error: ogError } = await supabase.storage.from("listing-photos").upload(ogPath, cropped, { contentType: "image/jpeg" });
+        if (!ogError) fotoOgUrlParam = supabase.storage.from("listing-photos").getPublicUrl(ogPath).data.publicUrl;
+      }
     }
 
     const { error } = await supabase.rpc("mi_update_listing", {
@@ -291,6 +301,7 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
         .filter(Boolean),
       p_whatsapp_publico: editForm.whatsappPublico,
       ...(fotoUrlParam ? { p_foto_url: fotoUrlParam } : {}),
+      ...(fotoOgUrlParam ? { p_foto_og_url: fotoOgUrlParam } : {}),
     });
     if (error) {
       alert(error.message);

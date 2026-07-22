@@ -8,7 +8,9 @@ import { TIPO_OPTIONS } from "@/lib/tipos";
 import { createClient } from "@/lib/supabase/client";
 import { trackEvent } from "@/lib/analytics";
 import { resizeImage } from "@/lib/resizeImage";
+import { cropForShare } from "@/lib/cropForShare";
 import { containsPhoneNumber, maskPhoneNumbers } from "@/lib/phoneDetection";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 type Intencion = "ofrezco" | "busco";
 
@@ -216,6 +218,15 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
     });
   }
 
+  async function uploadFotoOg(supabase: SupabaseClient, coverBlob: Blob, userId: string): Promise<string | null> {
+    const cropped = await cropForShare(coverBlob);
+    if (!cropped) return null;
+    const path = `${userId}/${Date.now()}-og.jpg`;
+    const { error } = await supabase.storage.from("listing-photos").upload(path, cropped, { contentType: "image/jpeg" });
+    if (error) return null;
+    return supabase.storage.from("listing-photos").getPublicUrl(path).data.publicUrl;
+  }
+
   async function goNext() {
     if (!step || !isValid(step, data)) return;
     if (stepIndex < steps.length - 1) {
@@ -238,8 +249,10 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
       if (profileError) throw profileError;
 
       const fotoUrls: string[] = [];
+      let coverBlob: Blob | null = null;
       for (const fotoData of data.fotosData) {
         const blob = await (await fetch(fotoData)).blob();
+        if (fotoUrls.length === 0) coverBlob = blob;
         const path = `${user.id}/${Date.now()}-${fotoUrls.length}.jpg`;
         const { error: uploadError } = await supabase.storage.from("listing-photos").upload(path, blob, {
           contentType: blob.type || "image/jpeg",
@@ -248,6 +261,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
         fotoUrls.push(supabase.storage.from("listing-photos").getPublicUrl(path).data.publicUrl);
       }
       const fotoUrl = fotoUrls[0] ?? null;
+      const fotoOgUrl = coverBlob ? await uploadFotoOg(supabase, coverBlob, user.id) : null;
 
       const detalles: Record<string, unknown> = {};
       let cantidad: number | null = null;
@@ -290,6 +304,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
           subtitulo: data.subtitulo || null,
           descripcion: maskPhoneNumbers(data.desc).masked,
           foto_url: fotoUrl,
+          foto_og_url: fotoOgUrl,
           modalidad: data.modalidad,
           tags: data.tags
             .split(",")
@@ -343,8 +358,10 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
     const supabase = createClient();
     try {
       const fotoUrls: string[] = [];
+      let coverBlob: Blob | null = null;
       for (const fotoData of data.fotosData) {
         const blob = await (await fetch(fotoData)).blob();
+        if (fotoUrls.length === 0) coverBlob = blob;
         const path = `${user.id}/${Date.now()}-${fotoUrls.length}.jpg`;
         const { error: uploadError } = await supabase.storage.from("listing-photos").upload(path, blob, {
           contentType: blob.type || "image/jpeg",
@@ -352,6 +369,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
         if (uploadError) throw uploadError;
         fotoUrls.push(supabase.storage.from("listing-photos").getPublicUrl(path).data.publicUrl);
       }
+      const fotoOgUrl = coverBlob ? await uploadFotoOg(supabase, coverBlob, user.id) : null;
 
       const { error } = await supabase.rpc("crear_borrador", {
         p_intencion: data.intencion!,
@@ -365,6 +383,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
         p_subtitulo: data.subtitulo || null,
         p_descripcion: maskPhoneNumbers(data.desc).masked,
         p_foto_url: fotoUrls[0] ?? null,
+        p_foto_og_url: fotoOgUrl,
         p_modalidad: data.modalidad,
         p_tags: data.tags
           .split(",")

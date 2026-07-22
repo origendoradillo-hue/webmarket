@@ -33,13 +33,13 @@ export const metadata: Metadata = {
     siteName: SITE_NAME,
     title: SITE_NAME,
     description: DESCRIPTION,
-    images: [{ url: "/brand/logo-completo.png", width: 360, height: 140, alt: SITE_NAME }],
+    images: [{ url: "/brand/og-fallback.png", width: 1200, height: 630, alt: SITE_NAME }],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: SITE_NAME,
     description: DESCRIPTION,
-    images: ["/brand/logo-completo.png"],
+    images: ["/brand/og-fallback.png"],
   },
 };
 

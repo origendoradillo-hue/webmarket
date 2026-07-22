@@ -37,7 +37,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   // El flyer/imagen propia del anuncio tiene prioridad para que, al
   // compartir el link, se vea eso — el fondo ambiental es solo un marco
   // visual, no el contenido en sí. Si no hay ninguna imagen, el logo.
-  const imageUrl = anuncio.imagen_url || anuncio.background_image_url || `${SITE_URL}/brand/logo-completo.png`;
+  const imageUrl = anuncio.imagen_url || anuncio.background_image_url || `${SITE_URL}/brand/og-fallback.png`;
 
   return {
     title: anuncio.titulo,
@@ -51,7 +51,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       images: [{ url: imageUrl }],
     },
     twitter: {
-      card: anuncio.imagen_url || anuncio.background_image_url ? "summary_large_image" : "summary",
+      card: "summary_large_image",
       title: anuncio.titulo,
       description,
       images: [imageUrl],
@@ -127,6 +127,17 @@ export default async function AnuncioPage({ params }: PageProps) {
               >
                 {anuncio.cta_label?.trim() || "Ver más"}
                 <i className="ti ti-arrow-right text-sm" aria-hidden />
+              </a>
+            )}
+            {anuncio.whatsapp_numero && (
+              <a
+                href={`https://wa.me/${anuncio.whatsapp_numero.replace(/\D/g, "")}`}
+                target="_blank"
+                rel="noreferrer"
+                className="mb-3 flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#25D366] px-4 py-2.5 text-[13px] font-semibold text-white"
+              >
+                <i className="ti ti-brand-whatsapp text-base" aria-hidden />
+                Consultar por WhatsApp
               </a>
             )}
             <ShareButton

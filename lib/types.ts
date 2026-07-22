@@ -93,4 +93,5 @@ export interface Anuncio {
   backgroundImagen?: string;
   ctaLabel?: string;
   ctaUrl?: string;
+  whatsappNumero?: string;
 }

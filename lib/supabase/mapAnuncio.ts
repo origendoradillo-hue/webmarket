@@ -18,5 +18,6 @@ export function mapAnuncioRow(row: AnuncioRow): Anuncio {
     backgroundImagen: row.background_image_url || undefined,
     ctaLabel: row.cta_label || undefined,
     ctaUrl: row.cta_url || undefined,
+    whatsappNumero: row.whatsapp_numero || undefined,
   };
 }
