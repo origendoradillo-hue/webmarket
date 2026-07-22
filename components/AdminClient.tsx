@@ -17,7 +17,7 @@ import type {
   ZoneRow,
 } from "@/lib/supabase/types";
 import { REPORT_MOTIVO_LABELS, requiereSuspensionReciproca } from "@/lib/reportMotivos";
-import type { Anuncio, AnuncioLayoutType, ImageOrientation, TipoAnuncio, TipoPublicacion } from "@/lib/types";
+import type { Anuncio, AnuncioLayoutType, TipoAnuncio, TipoPublicacion } from "@/lib/types";
 import { TIPO_OPTIONS } from "@/lib/tipos";
 import { SITE_URL } from "@/lib/seo";
 import { resizeImage } from "@/lib/resizeImage";
@@ -26,6 +26,7 @@ import { containsPhoneNumber, maskPhoneNumbers } from "@/lib/phoneDetection";
 import AnuncioSlide, { TIPO_LABEL, CARTEL_FLYER_ASPECT } from "./AnuncioSlide";
 import PhotoCropModal from "./PhotoCropModal";
 import DualCropFlow from "./DualCropFlow";
+import ShareButton from "./ShareButton";
 import { urlToFile } from "@/lib/urlToFile";
 
 type Tab =
@@ -95,30 +96,6 @@ const ANUNCIO_LAYOUT_LABELS: Record<string, string> = {
   text_only: "Solo texto (institucional)",
 };
 const ANUNCIO_LAYOUT_OPTIONS = Object.keys(ANUNCIO_LAYOUT_LABELS);
-
-const IMAGE_ORIENTATION_LABELS: Record<string, string> = {
-  vertical: "Vertical (4:5, flyer)",
-  horizontal: "Horizontal",
-  square: "Cuadrada",
-};
-
-function detectImageOrientation(file: File): Promise<"vertical" | "horizontal" | "square"> {
-  return new Promise((resolve) => {
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      if (img.naturalWidth > img.naturalHeight) resolve("horizontal");
-      else if (img.naturalHeight > img.naturalWidth) resolve("vertical");
-      else resolve("square");
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      resolve("horizontal");
-    };
-    img.src = url;
-  });
-}
 
 async function downloadImage(url: string, filename: string) {
   const res = await fetch(url);
@@ -1650,6 +1627,27 @@ function AdminListingRow({
 
       {expanded && (
         <div className="mt-3 flex flex-col gap-3 border-t border-piedra/40 pt-3">
+          {l.status === "activa" && (
+            <div className="flex flex-wrap gap-2">
+              <a
+                href={`/publicacion/${l.id}`}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1.5 rounded-lg border border-piedra/70 bg-white px-3 py-1.5 text-[12px] font-medium text-tinta"
+              >
+                <i className="ti ti-external-link text-sm" aria-hidden />
+                Ver publicación
+              </a>
+              <ShareButton
+                url={l.short_code ? `${SITE_URL}/p/${l.short_code}` : `${SITE_URL}/publicacion/${l.id}`}
+                title={l.nombre}
+                text={l.descripcion.slice(0, 120)}
+                imageUrl={l.foto_url || undefined}
+                className="flex items-center gap-1.5 rounded-lg border border-piedra/70 bg-white px-3 py-1.5 text-[12px] font-medium text-tinta"
+                label="Compartir"
+              />
+            </div>
+          )}
           <div className="flex flex-wrap gap-2">
             {LISTING_STATUS_OPTIONS.map((s) => (
               <button
@@ -1998,6 +1996,7 @@ function AdminAnuncioRow({
   const [uploadingImagen, setUploadingImagen] = useState(false);
   const [uploadingFondo, setUploadingFondo] = useState(false);
   const [imagenCropFile, setImagenCropFile] = useState<File | null>(null);
+  const [fondoCropFile, setFondoCropFile] = useState<File | null>(null);
   const [nota, setNota] = useState("");
   const [historial, setHistorial] = useState<ModeracionLogRow[]>([]);
   const [form, setForm] = useState({
@@ -2008,10 +2007,10 @@ function AdminAnuncioRow({
     orden: String(a.orden),
     ubicacion: a.ubicacion,
     layoutType: a.layout_type,
-    imageOrientation: a.image_orientation || "",
     ctaLabel: a.cta_label || "",
     ctaUrl: a.cta_url || "",
     whatsappNumero: a.whatsapp_numero || "",
+    redesUrl: a.redes_url || "",
   });
 
   const loadHistorial = useCallback(async () => {
@@ -2041,10 +2040,10 @@ function AdminAnuncioRow({
       p_orden: form.orden ? Number(form.orden) : null,
       p_ubicacion: form.ubicacion,
       p_layout_type: form.layoutType,
-      p_image_orientation: form.imageOrientation || null,
       p_cta_label: form.ctaLabel || null,
       p_cta_url: form.ctaUrl || null,
       p_whatsapp_numero: form.whatsappNumero || null,
+      p_redes_url: form.redesUrl || null,
     });
     setSaving(false);
     if (error) alert(error.message);
@@ -2065,7 +2064,6 @@ function AdminAnuncioRow({
     setImagenCropFile(null);
     setUploadingImagen(true);
     const croppedFile = new File([blob], "flyer.jpg", { type: "image/jpeg" });
-    const orientation = await detectImageOrientation(croppedFile);
     const resized = await resizeImage(croppedFile);
     const supabase = createClient();
     const path = `anuncios/${a.id}/${Date.now()}-flyer.jpg`;
@@ -2076,40 +2074,43 @@ function AdminAnuncioRow({
       return;
     }
     const url = supabase.storage.from("listing-photos").getPublicUrl(path).data.publicUrl;
-    const { error } = await supabase.rpc("admin_process_anuncio", {
-      p_anuncio_id: a.id,
-      p_imagen_url: url,
-      p_image_orientation: orientation,
-    });
+    const { error } = await supabase.rpc("admin_process_anuncio", { p_anuncio_id: a.id, p_imagen_url: url });
     setUploadingImagen(false);
     if (error) {
       alert(error.message);
       return;
     }
-    setForm((f) => ({ ...f, imageOrientation: orientation }));
     onSaved();
   }
 
-  async function handleUploadFondo(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleUploadFondo(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    setFondoCropFile(file);
+    e.target.value = "";
+  }
+
+  async function handleFondoCropConfirm(blob: Blob) {
+    setFondoCropFile(null);
     setUploadingFondo(true);
-    const resized = await resizeImage(file);
+    const croppedFile = new File([blob], "fondo.jpg", { type: "image/jpeg" });
+    const resized = await resizeImage(croppedFile);
     const supabase = createClient();
     const path = `anuncios/${a.id}/${Date.now()}-fondo.jpg`;
     const { error: uploadError } = await supabase.storage.from("listing-photos").upload(path, resized, { contentType: "image/jpeg" });
     if (uploadError) {
       alert(uploadError.message);
       setUploadingFondo(false);
-      e.target.value = "";
       return;
     }
     const url = supabase.storage.from("listing-photos").getPublicUrl(path).data.publicUrl;
     const { error } = await supabase.rpc("admin_process_anuncio", { p_anuncio_id: a.id, p_background_image_url: url });
     setUploadingFondo(false);
-    e.target.value = "";
-    if (error) alert(error.message);
-    else onSaved();
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    onSaved();
   }
 
   async function cambiarEstado(status: string) {
@@ -2158,11 +2159,11 @@ function AdminAnuncioRow({
     orden: a.orden,
     ubicacion: form.ubicacion,
     layoutType: form.layoutType as AnuncioLayoutType,
-    imageOrientation: (form.imageOrientation || undefined) as ImageOrientation | undefined,
     backgroundImagen: a.background_image_url || undefined,
     ctaLabel: form.ctaLabel || undefined,
     ctaUrl: form.ctaUrl || undefined,
     whatsappNumero: form.whatsappNumero || undefined,
+    redesUrl: form.redesUrl || undefined,
   };
 
   return (
@@ -2251,36 +2252,19 @@ function AdminAnuncioRow({
             </select>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="mb-1 block text-[11px] font-medium text-tinta">Layout</label>
-              <select
-                value={form.layoutType}
-                onChange={(e) => setForm({ ...form, layoutType: e.target.value as typeof form.layoutType })}
-                className="w-full rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
-              >
-                {ANUNCIO_LAYOUT_OPTIONS.map((l) => (
-                  <option key={l} value={l}>
-                    {ANUNCIO_LAYOUT_LABELS[l]}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="mb-1 block text-[11px] font-medium text-tinta">Orientación de la imagen</label>
-              <select
-                value={form.imageOrientation}
-                onChange={(e) => setForm({ ...form, imageOrientation: e.target.value })}
-                className="w-full rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
-              >
-                <option value="">Sin especificar</option>
-                {Object.entries(IMAGE_ORIENTATION_LABELS).map(([v, label]) => (
-                  <option key={v} value={v}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div>
+            <label className="mb-1 block text-[11px] font-medium text-tinta">Layout</label>
+            <select
+              value={form.layoutType}
+              onChange={(e) => setForm({ ...form, layoutType: e.target.value as typeof form.layoutType })}
+              className="w-full rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
+            >
+              {ANUNCIO_LAYOUT_OPTIONS.map((l) => (
+                <option key={l} value={l}>
+                  {ANUNCIO_LAYOUT_LABELS[l]}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
@@ -2323,7 +2307,26 @@ function AdminAnuncioRow({
               <label className="mb-1 block text-[11px] font-medium text-tinta">
                 Imagen de fondo (opcional) {uploadingFondo && "(subiendo...)"}
               </label>
-              {a.background_image_url && <img src={a.background_image_url} alt="" className="mb-1.5 h-16 w-16 rounded object-cover" />}
+              {a.background_image_url && (
+                <div className="relative mb-1.5 h-16 w-16">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={a.background_image_url} alt="" className="h-full w-full rounded object-cover" />
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        setFondoCropFile(await urlToFile(a.background_image_url!, "fondo.jpg"));
+                      } catch {
+                        alert("No se pudo cargar la imagen para editar.");
+                      }
+                    }}
+                    aria-label="Editar recorte del fondo"
+                    className="absolute bottom-0.5 right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-white"
+                  >
+                    <i className="ti ti-crop text-[9px]" aria-hidden />
+                  </button>
+                </div>
+              )}
               <input
                 type="file"
                 accept="image/*"
@@ -2342,6 +2345,11 @@ function AdminAnuncioRow({
             label="WhatsApp de contacto (opcional, solo números con código de área)"
             value={form.whatsappNumero}
             onChange={(v) => setForm({ ...form, whatsappNumero: v })}
+          />
+          <LabeledInput
+            label="Link de redes (Instagram, Facebook, etc. — opcional)"
+            value={form.redesUrl}
+            onChange={(v) => setForm({ ...form, redesUrl: v })}
           />
 
           <button onClick={guardarCambios} disabled={saving} className="w-fit rounded-lg bg-oliva px-4 py-2 text-xs font-semibold text-hueso disabled:bg-piedra">
@@ -2405,6 +2413,23 @@ function AdminAnuncioRow({
           ]}
           onConfirm={handleImagenCropConfirm}
           onCancel={() => setImagenCropFile(null)}
+        />
+      )}
+      {fondoCropFile && (
+        <PhotoCropModal
+          file={fondoCropFile}
+          previewPanels={[
+            {
+              label: "Así se ve",
+              render: (url) => (
+                <div className="w-[220px]">
+                  <AnuncioSlide anuncio={{ ...previewAnuncio, backgroundImagen: url }} priority={false} />
+                </div>
+              ),
+            },
+          ]}
+          onConfirm={handleFondoCropConfirm}
+          onCancel={() => setFondoCropFile(null)}
         />
       )}
     </div>

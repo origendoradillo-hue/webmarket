@@ -62,6 +62,7 @@ const SORT_OPTIONS = [
   { value: "reciente", label: "Más reciente" },
   { value: "precio_asc", label: "Precio: menor a mayor" },
   { value: "precio_desc", label: "Precio: mayor a menor" },
+  { value: "valoracion", label: "Valoración: mayor a menor" },
 ] as const;
 
 type Screen = "home" | "explorar" | "resultados";
@@ -80,7 +81,7 @@ export default function HomeClient() {
   const [query, setQuery] = useState("");
   const [intencionFilter, setIntencionFilter] = useState<"all" | "ofrezco" | "busco">("all");
   const [tipoFilter, setTipoFilter] = useState<"all" | TipoPublicacion>("all");
-  const [sortMode, setSortMode] = useState<"relevancia" | "precio_asc" | "precio_desc" | "reciente">("relevancia");
+  const [sortMode, setSortMode] = useState<"relevancia" | "precio_asc" | "precio_desc" | "reciente" | "valoracion">("relevancia");
   const [zonaFilter, setZonaFilter] = useState<string | "all">("all");
   const [cuadranteFilter, setCuadranteFilter] = useState<Cuadrante | "all">("all");
   const [activeListing, setActiveListing] = useState<Listing | null>(null);
@@ -483,6 +484,9 @@ export default function HomeClient() {
       result.sort(relevanciaCompare);
     } else if (sortMode === "reciente") {
       result.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+    } else if (sortMode === "valoracion") {
+      // Empate en valoración (incluido 0, sin reseñas todavía) se ordena por relevancia entre sí.
+      result.sort((a, b) => b.rating - a.rating || relevanciaCompare(a, b));
     } else {
       // Sin precio utilizable (a consultar, se regala, o directamente sin
       // precio cargado) siempre queda al final, ordenado por relevancia

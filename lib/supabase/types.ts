@@ -148,11 +148,11 @@ export interface Database {
           notas_internas: string | null;
           ubicacion: "home" | "categoria" | "ambas";
           layout_type: "flyer_on_sign" | "full_banner" | "text_only" | "background_image";
-          image_orientation: "vertical" | "horizontal" | "square" | null;
           background_image_url: string | null;
           cta_label: string | null;
           cta_url: string | null;
           whatsapp_numero: string | null;
+          redes_url: string | null;
           short_code: string;
           created_at: string;
           updated_at: string;
@@ -677,12 +677,12 @@ export interface Database {
           p_nota?: string | null;
           p_ubicacion?: string | null;
           p_layout_type?: string | null;
-          p_image_orientation?: string | null;
           p_background_image_url?: string | null;
           p_cta_label?: string | null;
           p_cta_url?: string | null;
           p_whatsapp_numero?: string | null;
           p_tipo?: string | null;
+          p_redes_url?: string | null;
         };
         Returns: undefined;
       };

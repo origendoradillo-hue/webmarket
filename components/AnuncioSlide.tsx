@@ -217,6 +217,17 @@ function AnuncioDetailModal({ a, onClose }: { a: Anuncio; onClose: () => void })
                 Consultar por WhatsApp
               </a>
             )}
+            {a.redesUrl && (
+              <a
+                href={a.redesUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-1 inline-flex w-fit items-center gap-1.5 rounded-lg border border-piedra/60 px-4 py-2 text-[12.5px] font-semibold text-tinta transition hover:bg-hueso-2"
+              >
+                <i className="ti ti-world text-base" aria-hidden />
+                Ver en redes
+              </a>
+            )}
             <ShareButton
               url={a.shortCode ? `${SITE_URL}/p/${a.shortCode}` : `${SITE_URL}/anuncio/${a.id}`}
               title={a.titulo}
@@ -252,9 +263,12 @@ const CARTEL_FLYER_RECT = { left: "16.49%", top: "19.61%", width: "64.44%", heig
 // el panel sin franjas vacías arriba/abajo.
 export const CARTEL_FLYER_ASPECT = 723 / 945;
 
-// Los 4 formatos de anuncio comparten esta altura para que el carrusel no
-// salte de tamaño al rotar entre uno y otro mientras se está mirando.
-const SLIDE_HEIGHT = "min-h-[300px] sm:min-h-[380px]";
+// El alto real lo fija el contenedor del carrusel (AnuncioCarousel.tsx,
+// alto fijo, no min-h). Cada formato solo tiene que llenarlo del todo
+// (h-full) y recortar/scrollear lo que no entre — así los 4 formatos
+// quedan siempre exactamente iguales de tamaño, sin depender de cuánto
+// contenido tenga cada anuncio puntual.
+const SLIDE_HEIGHT = "h-full";
 
 function FlyerBadge() {
   return (
@@ -278,9 +292,9 @@ function FlyerOnSignSlide({ a, priority, onDetailOpenChange }: SlideProps) {
         setDetailOpen(true);
         onDetailOpenChange?.(true);
       }}
-      className={`grid sm:grid-cols-2 ${SLIDE_HEIGHT}`}
+      className={`flex flex-col overflow-hidden sm:grid sm:grid-cols-2 ${SLIDE_HEIGHT}`}
     >
-      <div className={`relative flex items-center justify-center overflow-hidden p-6 ${SLIDE_HEIGHT}`}>
+      <div className="relative flex h-[170px] shrink-0 items-center justify-center overflow-hidden p-4 sm:h-full sm:p-6">
         <Image
           src={a.backgroundImagen && !bgFailed ? a.backgroundImagen : FONDO_ESTEPA}
           alt=""
@@ -295,8 +309,10 @@ function FlyerOnSignSlide({ a, priority, onDetailOpenChange }: SlideProps) {
 
         {/* Cartel real (postes, travesaño, ganchos, marco) — el flyer del
             usuario se compone sobre el hueco del PNG, en el rectángulo
-            exacto medido en CARTEL_FLYER_RECT. */}
-        <div className="relative h-[300px] sm:h-[380px]" style={{ aspectRatio: "1122 / 1402" }}>
+            exacto medido en CARTEL_FLYER_RECT. Alto 100% del bloque de
+            imagen (no un px fijo), así nunca empuja el slide entero a ser
+            más alto que los otros 3 formatos. */}
+        <div className="relative h-full" style={{ aspectRatio: "1122 / 1402" }}>
           <Image src={CARTEL_COLGANTE} alt="" aria-hidden fill className="object-contain" sizes="380px" />
           <div
             className="absolute overflow-hidden rounded-sm bg-black"
@@ -321,10 +337,10 @@ function FlyerOnSignSlide({ a, priority, onDetailOpenChange }: SlideProps) {
         </div>
       </div>
 
-      <div className="flex flex-col justify-center gap-2 bg-hueso-2 px-5 py-5 sm:px-8 sm:py-7">
+      <div className="flex flex-1 flex-col justify-center gap-1.5 overflow-y-auto bg-hueso-2 px-5 py-4 sm:px-8 sm:py-7">
         <FlyerBadge />
         <h3 className="font-slab text-lg font-semibold leading-tight text-tinta sm:text-xl">{a.titulo}</h3>
-        <p className="text-[13px] leading-relaxed text-tinta-suave sm:text-[13.5px]">{a.descripcion}</p>
+        <p className="text-[12.5px] leading-relaxed text-tinta-suave sm:text-[13.5px]">{a.descripcion}</p>
         <FechaLugar a={a} />
         {cta && <CtaButton cta={cta} />}
       </div>
@@ -468,7 +484,7 @@ function TextOnlySlide({ a, onDetailOpenChange }: SlideProps) {
       <div className="relative flex flex-col gap-2">
         <TipoBadge tipo={a.tipo} />
         <h3 className="font-slab text-lg font-semibold leading-tight text-tinta sm:text-xl">{a.titulo}</h3>
-        <p className="max-w-[560px] text-[13px] leading-relaxed text-tinta-suave sm:text-[13.5px]">{a.descripcion}</p>
+        <p className="line-clamp-3 max-w-[560px] text-[13px] leading-relaxed text-tinta-suave sm:text-[13.5px]">{a.descripcion}</p>
         <FechaLugar a={a} />
         {cta && <CtaButton cta={cta} />}
       </div>

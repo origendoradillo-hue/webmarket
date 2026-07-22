@@ -76,7 +76,6 @@ export type TipoAnuncio = "evento" | "aviso_barrial" | "sponsor" | "promocion" |
 // text_only: sin imagen, para avisos institucionales.
 // background_image: imagen de fondo ambiental + placa de texto.
 export type AnuncioLayoutType = "flyer_on_sign" | "full_banner" | "text_only" | "background_image";
-export type ImageOrientation = "vertical" | "horizontal" | "square";
 
 export interface Anuncio {
   id: string;
@@ -90,9 +89,9 @@ export interface Anuncio {
   orden: number;
   ubicacion: "home" | "categoria" | "ambas";
   layoutType: AnuncioLayoutType;
-  imageOrientation?: ImageOrientation;
   backgroundImagen?: string;
   ctaLabel?: string;
   ctaUrl?: string;
   whatsappNumero?: string;
+  redesUrl?: string;
 }

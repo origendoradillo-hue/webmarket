@@ -14,10 +14,10 @@ export function mapAnuncioRow(row: AnuncioRow): Anuncio {
     orden: row.orden,
     ubicacion: row.ubicacion,
     layoutType: row.layout_type,
-    imageOrientation: row.image_orientation || undefined,
     backgroundImagen: row.background_image_url || undefined,
     ctaLabel: row.cta_label || undefined,
     ctaUrl: row.cta_url || undefined,
     whatsappNumero: row.whatsapp_numero || undefined,
+    redesUrl: row.redes_url || undefined,
   };
 }

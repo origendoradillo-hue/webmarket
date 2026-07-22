@@ -57,7 +57,10 @@ export default function AnuncioCarousel({ anuncios }: AnuncioCarouselProps) {
         Anuncios y novedades de la comunidad
       </p>
 
-      <div className="relative" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+      {/* Alto fijo (no min-h): así el carrusel nunca cambia de tamaño al
+          rotar entre formatos distintos y las flechitas, centradas contra
+          este contenedor, no se mueven de lugar. */}
+      <div className="relative h-[360px] overflow-hidden sm:h-[420px]" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
         <AnuncioSlide anuncio={a} priority={index === 0} onDetailOpenChange={setDetailOpen} />
 
         {anuncios.length > 1 && (
