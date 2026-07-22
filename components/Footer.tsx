@@ -95,11 +95,13 @@ export default function Footer() {
                 />
                 <input
                   required
+                  type="tel"
                   value={contacto}
                   onChange={(e) => setContacto(e.target.value)}
-                  placeholder="WhatsApp o email"
+                  placeholder="Tu WhatsApp"
                   className="rounded-md border border-white/25 bg-white/10 px-2.5 py-2 text-[12.5px] text-hueso placeholder:text-hueso/50"
                 />
+                <p className="-mt-1 text-[11px] text-hueso/60">Dejá tu WhatsApp para que te podamos responder más rápido.</p>
                 <textarea
                   required
                   value={mensaje}
