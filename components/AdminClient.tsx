@@ -172,7 +172,9 @@ const ICON_SUGGESTIONS = [
 
 type ListingWithPublisher = ListingRow & { profiles: { full_name: string | null; email: string | null; whatsapp_number: string | null } | null };
 type AnuncioWithSolicitante = AnuncioRow & { profiles: { full_name: string | null; email: string | null; whatsapp_number: string | null } | null };
-type SupportRequestWithUser = SupportRequestRow & { profiles: { full_name: string | null; email: string | null } | null };
+type SupportRequestWithUser = SupportRequestRow & {
+  profiles: { full_name: string | null; email: string | null; whatsapp_number: string | null } | null;
+};
 type ReportWithDetails = ListingReportRow & {
   profiles: { full_name: string | null; email: string | null } | null;
   listings: { nombre: string; publisher_id: string } | null;
@@ -273,7 +275,7 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
     const supabase = createClient();
     const { data } = await supabase
       .from("support_requests")
-      .select("*, profiles!support_requests_user_id_fkey(full_name, email)")
+      .select("*, profiles!support_requests_user_id_fkey(full_name, email, whatsapp_number)")
       .order("created_at", { ascending: false });
     setSupportRequests((data as never as SupportRequestWithUser[]) || []);
   }, []);
@@ -908,6 +910,19 @@ function contactUrl(whatsapp: string | null | undefined, email: string | null | 
   if (whatsapp) return `https://wa.me/${whatsapp.replace(/\D/g, "")}`;
   if (email) return `mailto:${email}`;
   return null;
+}
+
+// El campo "contacto" del formulario de soporte es texto libre ("WhatsApp
+// o email") — se prioriza el WhatsApp del perfil registrado si lo hay
+// (más confiable), y si no se interpreta el texto libre: si tiene "@" es
+// email, si no se toma como teléfono.
+function supportContactUrl(s: SupportRequestWithUser): string | null {
+  if (s.profiles?.whatsapp_number) return contactUrl(s.profiles.whatsapp_number, null);
+  const contacto = s.contacto.trim();
+  if (!contacto) return null;
+  if (contacto.includes("@")) return `mailto:${contacto}`;
+  const digits = contacto.replace(/\D/g, "");
+  return digits.length >= 6 ? `https://wa.me/${digits}` : null;
 }
 
 // ---------- Categorías / zonas (solo superadmin) ----------
@@ -2645,17 +2660,31 @@ function AdminSupportRequestRow({
       {expanded && (
         <div className="mt-3 flex flex-col gap-3 border-t border-piedra/40 pt-3">
           <p className="whitespace-pre-line text-xs text-tinta">{s.mensaje}</p>
-          {s.estado === "pendiente" ? (
-            <button
-              disabled={saving}
-              onClick={marcarResuelta}
-              className="w-fit rounded-lg border border-piedra/70 px-2.5 py-1.5 text-xs text-tinta disabled:opacity-60"
-            >
-              Marcar como resuelta
-            </button>
-          ) : (
-            <p className="text-xs text-tinta-suave">Resuelta el {s.resuelto_en ? new Date(s.resuelto_en).toLocaleString("es-AR") : "—"}</p>
-          )}
+          <div className="flex flex-wrap gap-2">
+            {supportContactUrl(s) ? (
+              <a
+                href={supportContactUrl(s)!}
+                target="_blank"
+                rel="noreferrer"
+                className="w-fit rounded-lg border border-golfo px-2.5 py-1.5 text-xs text-golfo"
+              >
+                <i className="ti ti-brand-whatsapp" aria-hidden /> Contactar
+              </a>
+            ) : (
+              <p className="text-xs text-red-700">No se pudo interpretar un contacto válido ("{s.contacto}")</p>
+            )}
+            {s.estado === "pendiente" ? (
+              <button
+                disabled={saving}
+                onClick={marcarResuelta}
+                className="w-fit rounded-lg border border-piedra/70 px-2.5 py-1.5 text-xs text-tinta disabled:opacity-60"
+              >
+                Marcar como resuelta
+              </button>
+            ) : (
+              <p className="text-xs text-tinta-suave">Resuelta el {s.resuelto_en ? new Date(s.resuelto_en).toLocaleString("es-AR") : "—"}</p>
+            )}
+          </div>
         </div>
       )}
     </div>
