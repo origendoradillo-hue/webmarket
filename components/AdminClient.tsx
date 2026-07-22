@@ -173,7 +173,13 @@ const ICON_SUGGESTIONS = [
 type ListingWithPublisher = ListingRow & { profiles: { full_name: string | null; email: string | null; whatsapp_number: string | null } | null };
 type AnuncioWithSolicitante = AnuncioRow & { profiles: { full_name: string | null; email: string | null; whatsapp_number: string | null } | null };
 type SupportRequestWithUser = SupportRequestRow & {
-  profiles: { full_name: string | null; email: string | null; whatsapp_number: string | null } | null;
+  profiles: {
+    full_name: string | null;
+    email: string | null;
+    whatsapp_number: string | null;
+    instagram_url: string | null;
+    facebook_url: string | null;
+  } | null;
 };
 type ReportWithDetails = ListingReportRow & {
   profiles: { full_name: string | null; email: string | null } | null;
@@ -275,7 +281,7 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
     const supabase = createClient();
     const { data } = await supabase
       .from("support_requests")
-      .select("*, profiles!support_requests_user_id_fkey(full_name, email, whatsapp_number)")
+      .select("*, profiles!support_requests_user_id_fkey(full_name, email, whatsapp_number, instagram_url, facebook_url)")
       .order("created_at", { ascending: false });
     setSupportRequests((data as never as SupportRequestWithUser[]) || []);
   }, []);
@@ -913,16 +919,32 @@ function contactUrl(whatsapp: string | null | undefined, email: string | null | 
 }
 
 // El campo "contacto" del formulario de soporte es texto libre ("WhatsApp
-// o email") — se prioriza el WhatsApp del perfil registrado si lo hay
-// (más confiable), y si no se interpreta el texto libre: si tiene "@" es
-// email, si no se toma como teléfono.
-function supportContactUrl(s: SupportRequestWithUser): string | null {
-  if (s.profiles?.whatsapp_number) return contactUrl(s.profiles.whatsapp_number, null);
+// o email"), y si quien escribió estaba logueado puede tener además
+// WhatsApp/email/redes en su perfil. Se devuelven TODAS las vías
+// posibles (no solo la "mejor") para que si una falta o no sirve, el
+// admin tenga otra a mano — nunca queda sin ninguna opción, porque el
+// texto libre que haya escrito siempre se muestra igual (arriba, en el
+// encabezado de la fila) aunque no se pueda armar un link con él.
+function supportContactOptions(s: SupportRequestWithUser): { label: string; url: string }[] {
+  const opciones: { label: string; url: string }[] = [];
+  if (s.profiles?.whatsapp_number) {
+    opciones.push({ label: "WhatsApp del perfil", url: `https://wa.me/${s.profiles.whatsapp_number.replace(/\D/g, "")}` });
+  }
+  if (s.profiles?.email) {
+    opciones.push({ label: "Email del perfil", url: `mailto:${s.profiles.email}` });
+  }
   const contacto = s.contacto.trim();
-  if (!contacto) return null;
-  if (contacto.includes("@")) return `mailto:${contacto}`;
-  const digits = contacto.replace(/\D/g, "");
-  return digits.length >= 6 ? `https://wa.me/${digits}` : null;
+  if (contacto) {
+    if (contacto.includes("@")) {
+      opciones.push({ label: `Lo que escribió: ${contacto}`, url: `mailto:${contacto}` });
+    } else {
+      const digits = contacto.replace(/\D/g, "");
+      if (digits.length >= 6) opciones.push({ label: `Lo que escribió: ${contacto}`, url: `https://wa.me/${digits}` });
+    }
+  }
+  if (s.profiles?.instagram_url) opciones.push({ label: "Instagram", url: s.profiles.instagram_url });
+  if (s.profiles?.facebook_url) opciones.push({ label: "Facebook", url: s.profiles.facebook_url });
+  return opciones;
 }
 
 // ---------- Categorías / zonas (solo superadmin) ----------
@@ -2661,17 +2683,22 @@ function AdminSupportRequestRow({
         <div className="mt-3 flex flex-col gap-3 border-t border-piedra/40 pt-3">
           <p className="whitespace-pre-line text-xs text-tinta">{s.mensaje}</p>
           <div className="flex flex-wrap gap-2">
-            {supportContactUrl(s) ? (
-              <a
-                href={supportContactUrl(s)!}
-                target="_blank"
-                rel="noreferrer"
-                className="w-fit rounded-lg border border-golfo px-2.5 py-1.5 text-xs text-golfo"
-              >
-                <i className="ti ti-brand-whatsapp" aria-hidden /> Contactar
-              </a>
+            {supportContactOptions(s).length > 0 ? (
+              supportContactOptions(s).map((op) => (
+                <a
+                  key={op.label}
+                  href={op.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-fit rounded-lg border border-golfo px-2.5 py-1.5 text-xs text-golfo"
+                >
+                  <i className="ti ti-external-link" aria-hidden /> {op.label}
+                </a>
+              ))
             ) : (
-              <p className="text-xs text-red-700">No se pudo interpretar un contacto válido ("{s.contacto}")</p>
+              <p className="text-xs text-red-700">
+                No se pudo armar un link de contacto — lo único que dejó fue &quot;{s.contacto}&quot;, copialo a mano.
+              </p>
             )}
             {s.estado === "pendiente" ? (
               <button
