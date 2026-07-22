@@ -11,7 +11,7 @@ import { cropForShare } from "@/lib/cropForShare";
 import { containsPhoneNumber, maskPhoneNumbers } from "@/lib/phoneDetection";
 import ShareButton from "./ShareButton";
 import PhotoCropModal from "./PhotoCropModal";
-import { LISTING_COVER_PREVIEW_PANELS } from "./listingCoverPreviewPanels";
+import DualCropFlow from "./DualCropFlow";
 import { urlToFile } from "@/lib/urlToFile";
 import { uploadCoverPhoto } from "@/lib/uploadCoverPhoto";
 
@@ -90,6 +90,7 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
   const [editForm, setEditForm] = useState<EditForm | null>(null);
   const [images, setImages] = useState<{ id: string; url: string }[]>([]);
   const [newPhotos, setNewPhotos] = useState<string[]>([]);
+  const [newFotoPortadaData, setNewFotoPortadaData] = useState<string | null>(null);
   const [cropQueue, setCropQueue] = useState<File[]>([]);
   const [portadaEditFile, setPortadaEditFile] = useState<File | null>(null);
   const [portadaEditListing, setPortadaEditListing] = useState<ListingRow | null>(null);
@@ -220,6 +221,7 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
     }
     setExpandedId(l.id);
     setNewPhotos([]);
+    setNewFotoPortadaData(null);
     setEditForm({
       nombre: l.nombre,
       subtitulo: l.subtitulo || "",
@@ -244,11 +246,22 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
     e.target.value = "";
   }
 
-  async function handleCropConfirm(blob: Blob) {
-    const resized = await resizeImage(blob);
+  async function blobToDataUrl(blob: Blob): Promise<string> {
     const reader = new FileReader();
-    reader.onload = (ev) => setNewPhotos((prev) => [...prev, ev.target?.result as string]);
-    reader.readAsDataURL(resized);
+    return new Promise((resolve) => {
+      reader.onload = (ev) => resolve(ev.target?.result as string);
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  async function handleCropConfirm(blob: Blob, cardBlob?: Blob) {
+    const resized = await resizeImage(blob);
+    const dataUrl = await blobToDataUrl(resized);
+    setNewPhotos((prev) => [...prev, dataUrl]);
+    if (cardBlob) {
+      const resizedCard = await resizeImage(cardBlob);
+      setNewFotoPortadaData(await blobToDataUrl(resizedCard));
+    }
     setCropQueue((prev) => prev.slice(1));
   }
 
@@ -266,7 +279,7 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
     }
   }
 
-  async function handlePortadaEditConfirm(blob: Blob) {
+  async function handlePortadaEditConfirm(blob: Blob, cardBlob?: Blob) {
     if (!portadaEditListing) return;
     const listing = portadaEditListing;
     setPortadaEditFile(null);
@@ -274,10 +287,12 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
     setSaving(true);
     const supabase = createClient();
     const resized = await resizeImage(blob);
+    const resizedCard = cardBlob ? await resizeImage(cardBlob) : undefined;
     let fotoUrl: string;
     let fotoOgUrl: string | null;
+    let fotoPortadaUrl: string | null;
     try {
-      ({ fotoUrl, fotoOgUrl } = await uploadCoverPhoto(supabase, resized, user.id));
+      ({ fotoUrl, fotoOgUrl, fotoPortadaUrl } = await uploadCoverPhoto(supabase, resized, user.id, resizedCard));
     } catch (err) {
       alert(err instanceof Error ? err.message : "No se pudo subir la foto.");
       setSaving(false);
@@ -287,6 +302,7 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
       p_listing_id: listing.id,
       p_foto_url: fotoUrl,
       ...(fotoOgUrl ? { p_foto_og_url: fotoOgUrl } : {}),
+      ...(fotoPortadaUrl ? { p_foto_portada_url: fotoPortadaUrl } : {}),
     });
     setSaving(false);
     if (error) {
@@ -326,6 +342,7 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
 
     let fotoUrlParam: string | undefined;
     let fotoOgUrlParam: string | undefined;
+    let fotoPortadaUrlParam: string | undefined;
     let extraToInsert = uploadedUrls;
     if (!l.foto_url && uploadedUrls.length > 0) {
       fotoUrlParam = uploadedUrls[0];
@@ -335,6 +352,12 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
         const ogPath = `${user.id}/${Date.now()}-og.jpg`;
         const { error: ogError } = await supabase.storage.from("listing-photos").upload(ogPath, cropped, { contentType: "image/jpeg" });
         if (!ogError) fotoOgUrlParam = supabase.storage.from("listing-photos").getPublicUrl(ogPath).data.publicUrl;
+      }
+      if (newFotoPortadaData) {
+        const cardBlob = await (await fetch(newFotoPortadaData)).blob();
+        const cardPath = `${user.id}/${Date.now()}-card.jpg`;
+        const { error: cardError } = await supabase.storage.from("listing-photos").upload(cardPath, cardBlob, { contentType: "image/jpeg" });
+        if (!cardError) fotoPortadaUrlParam = supabase.storage.from("listing-photos").getPublicUrl(cardPath).data.publicUrl;
       }
     }
 
@@ -356,6 +379,7 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
       p_whatsapp_publico: editForm.whatsappPublico,
       ...(fotoUrlParam ? { p_foto_url: fotoUrlParam } : {}),
       ...(fotoOgUrlParam ? { p_foto_og_url: fotoOgUrlParam } : {}),
+      ...(fotoPortadaUrlParam ? { p_foto_portada_url: fotoPortadaUrlParam } : {}),
     });
     if (error) {
       alert(error.message);
@@ -788,22 +812,20 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
         (() => {
           const editingListing = listings.find((x) => x.id === expandedId);
           const isCover = !editingListing?.foto_url && newPhotos.length === 0;
-          return (
-            <PhotoCropModal
+          return isCover ? (
+            <DualCropFlow
               file={cropQueue[0]}
-              aspect={isCover ? 4 / 5 : undefined}
-              previewPanels={isCover ? LISTING_COVER_PREVIEW_PANELS : undefined}
-              onConfirm={handleCropConfirm}
+              onConfirm={({ detailBlob, cardBlob }) => handleCropConfirm(detailBlob, cardBlob)}
               onCancel={handleCropCancel}
             />
+          ) : (
+            <PhotoCropModal file={cropQueue[0]} onConfirm={handleCropConfirm} onCancel={handleCropCancel} />
           );
         })()}
       {portadaEditFile && (
-        <PhotoCropModal
+        <DualCropFlow
           file={portadaEditFile}
-          aspect={4 / 5}
-          previewPanels={LISTING_COVER_PREVIEW_PANELS}
-          onConfirm={handlePortadaEditConfirm}
+          onConfirm={({ detailBlob, cardBlob }) => handlePortadaEditConfirm(detailBlob, cardBlob)}
           onCancel={() => {
             setPortadaEditFile(null);
             setPortadaEditListing(null);

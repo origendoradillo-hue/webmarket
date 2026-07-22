@@ -25,7 +25,7 @@ import { uploadCoverPhoto } from "@/lib/uploadCoverPhoto";
 import { containsPhoneNumber, maskPhoneNumbers } from "@/lib/phoneDetection";
 import AnuncioSlide, { TIPO_LABEL, CARTEL_FLYER_ASPECT } from "./AnuncioSlide";
 import PhotoCropModal from "./PhotoCropModal";
-import { LISTING_COVER_PREVIEW_PANELS } from "./listingCoverPreviewPanels";
+import DualCropFlow from "./DualCropFlow";
 import { urlToFile } from "@/lib/urlToFile";
 
 type Tab =
@@ -1595,15 +1595,17 @@ function AdminListingRow({
     e.target.value = "";
   }
 
-  async function handlePortadaCropConfirm(blob: Blob) {
+  async function handlePortadaCropConfirm(blob: Blob, cardBlob?: Blob) {
     setPortadaCropFile(null);
     setSaving(true);
     const supabase = createClient();
     const resized = await resizeImage(blob);
+    const resizedCard = cardBlob ? await resizeImage(cardBlob) : undefined;
     let fotoUrl: string;
     let fotoOgUrl: string | null;
+    let fotoPortadaUrl: string | null;
     try {
-      ({ fotoUrl, fotoOgUrl } = await uploadCoverPhoto(supabase, resized, `admin/${l.id}`));
+      ({ fotoUrl, fotoOgUrl, fotoPortadaUrl } = await uploadCoverPhoto(supabase, resized, `admin/${l.id}`, resizedCard));
     } catch (err) {
       alert(err instanceof Error ? err.message : "No se pudo subir la foto.");
       setSaving(false);
@@ -1614,6 +1616,7 @@ function AdminListingRow({
       p_listing_id: l.id,
       p_foto_url: fotoUrl,
       ...(fotoOgUrl ? { p_foto_og_url: fotoOgUrl } : {}),
+      ...(fotoPortadaUrl ? { p_foto_portada_url: fotoPortadaUrl } : {}),
     });
     setSaving(false);
     if (error) alert(error.message);
@@ -1966,11 +1969,9 @@ function AdminListingRow({
       )}
       {fotoCropQueue.length > 0 && <PhotoCropModal file={fotoCropQueue[0]} onConfirm={handleFotoCropConfirm} onCancel={handleFotoCropCancel} />}
       {portadaCropFile && (
-        <PhotoCropModal
+        <DualCropFlow
           file={portadaCropFile}
-          aspect={4 / 5}
-          previewPanels={LISTING_COVER_PREVIEW_PANELS}
-          onConfirm={handlePortadaCropConfirm}
+          onConfirm={({ detailBlob, cardBlob }) => handlePortadaCropConfirm(detailBlob, cardBlob)}
           onCancel={() => setPortadaCropFile(null)}
         />
       )}

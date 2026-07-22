@@ -19,6 +19,10 @@ export default function ListingCard({ listing: l, onOpen, isFavorito, onToggleFa
   const isVecino = l.tipoPublicador === "vecino";
   const isNegocio = l.tipoPublicador === "negocio";
   const isDemanda = l.intencion === "busco";
+  // La tarjeta usa el recorte de portada (4:3) elegido aparte del de
+  // detalle, si existe — si la publicación es de antes de ese cambio,
+  // cae a la foto de siempre.
+  const fotoCard = l.fotoPortada || l.foto;
   const { share } = useShare({
     url: l.shortCode ? `${SITE_URL}/p/${l.shortCode}` : `${SITE_URL}/publicacion/${l.id}`,
     title: l.nombre,
@@ -38,7 +42,7 @@ export default function ListingCard({ listing: l, onOpen, isFavorito, onToggleFa
         style={{
           backgroundColor: isDemanda
             ? undefined
-            : l.foto
+            : fotoCard
               ? undefined
               : isNegocio && l.colorMarca
                 ? l.colorMarca
@@ -49,8 +53,8 @@ export default function ListingCard({ listing: l, onOpen, isFavorito, onToggleFa
       >
         {isDemanda ? (
           <SeBuscaPlaceholder compact />
-        ) : l.foto ? (
-          <Image src={l.foto} alt={l.nombre} fill className="object-cover" sizes="(max-width: 640px) 100vw, 25vw" />
+        ) : fotoCard ? (
+          <Image src={fotoCard} alt={l.nombre} fill className="object-cover" sizes="(max-width: 640px) 100vw, 25vw" />
         ) : (
           <i
             className={`ti ${isVecino ? "ti-photo" : l.icono} absolute inset-0 m-auto flex h-9 w-9 items-center justify-center text-4xl ${

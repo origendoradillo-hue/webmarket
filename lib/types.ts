@@ -51,6 +51,7 @@ export interface Listing {
   descripcion: string;
   iniciales: string;
   foto?: string;
+  fotoPortada?: string;
   tipoPublicador: PublisherType;
   cantidad?: number;
   colorMarca?: string;

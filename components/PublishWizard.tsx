@@ -12,7 +12,7 @@ import { cropForShare } from "@/lib/cropForShare";
 import { containsPhoneNumber, maskPhoneNumbers } from "@/lib/phoneDetection";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import PhotoCropModal from "./PhotoCropModal";
-import { LISTING_COVER_PREVIEW_PANELS } from "./listingCoverPreviewPanels";
+import DualCropFlow from "./DualCropFlow";
 
 type Intencion = "ofrezco" | "busco";
 
@@ -25,6 +25,7 @@ interface PublishData {
   subtitulo: string;
   desc: string;
   fotosData: string[];
+  fotoPortadaData: string | null;
   tags: string;
   precio: string;
   precioConsultar: boolean;
@@ -66,6 +67,7 @@ const DEFAULTS: PublishData = {
   subtitulo: "",
   desc: "",
   fotosData: [],
+  fotoPortadaData: null,
   tags: "",
   precio: "",
   precioConsultar: false,
@@ -201,14 +203,27 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
     e.target.value = "";
   }
 
-  async function handleCropConfirm(blob: Blob) {
-    const resized = await resizeImage(blob);
+  async function blobToDataUrl(blob: Blob): Promise<string> {
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      const dataUrl = ev.target?.result as string;
-      setData((prev) => ({ ...prev, fotosData: [...prev.fotosData, dataUrl] }));
-    };
-    reader.readAsDataURL(resized);
+    return new Promise((resolve) => {
+      reader.onload = (ev) => resolve(ev.target?.result as string);
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  async function handleCropConfirm(blob: Blob, cardBlob?: Blob) {
+    const resized = await resizeImage(blob);
+    const dataUrl = await blobToDataUrl(resized);
+    let cardDataUrl: string | null = null;
+    if (cardBlob) {
+      const resizedCard = await resizeImage(cardBlob);
+      cardDataUrl = await blobToDataUrl(resizedCard);
+    }
+    setData((prev) => ({
+      ...prev,
+      fotosData: [...prev.fotosData, dataUrl],
+      fotoPortadaData: cardDataUrl ?? prev.fotoPortadaData,
+    }));
     setCropQueue((prev) => prev.slice(1));
   }
 
@@ -222,22 +237,23 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
     setEditingPhotoIndex(index);
   }
 
-  async function handleEditPhotoConfirm(blob: Blob) {
+  async function handleEditPhotoConfirm(blob: Blob, cardBlob?: Blob) {
     const index = editingPhotoIndex;
     setEditingPhotoFile(null);
     setEditingPhotoIndex(null);
     if (index === null) return;
     const resized = await resizeImage(blob);
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const dataUrl = ev.target?.result as string;
-      setData((prev) => {
-        const fotos = [...prev.fotosData];
-        fotos[index] = dataUrl;
-        return { ...prev, fotosData: fotos };
-      });
-    };
-    reader.readAsDataURL(resized);
+    const dataUrl = await blobToDataUrl(resized);
+    let cardDataUrl: string | null = null;
+    if (cardBlob) {
+      const resizedCard = await resizeImage(cardBlob);
+      cardDataUrl = await blobToDataUrl(resizedCard);
+    }
+    setData((prev) => {
+      const fotos = [...prev.fotosData];
+      fotos[index] = dataUrl;
+      return { ...prev, fotosData: fotos, fotoPortadaData: cardDataUrl ?? prev.fotoPortadaData };
+    });
   }
 
   function removeFoto(index: number) {
@@ -299,6 +315,16 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
       const fotoUrl = fotoUrls[0] ?? null;
       const fotoOgUrl = coverBlob ? await uploadFotoOg(supabase, coverBlob, user.id) : null;
 
+      let fotoPortadaUrl: string | null = null;
+      if (data.fotoPortadaData) {
+        const cardBlob = await (await fetch(data.fotoPortadaData)).blob();
+        const cardPath = `${user.id}/${Date.now()}-card.jpg`;
+        const { error: cardUploadError } = await supabase.storage.from("listing-photos").upload(cardPath, cardBlob, {
+          contentType: cardBlob.type || "image/jpeg",
+        });
+        if (!cardUploadError) fotoPortadaUrl = supabase.storage.from("listing-photos").getPublicUrl(cardPath).data.publicUrl;
+      }
+
       const detalles: Record<string, unknown> = {};
       let cantidad: number | null = null;
       if (data.intencion === "ofrezco") {
@@ -341,6 +367,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
           descripcion: maskPhoneNumbers(data.desc).masked,
           foto_url: fotoUrl,
           foto_og_url: fotoOgUrl,
+          foto_portada_url: fotoPortadaUrl,
           modalidad: data.modalidad,
           tags: data.tags
             .split(",")
@@ -407,6 +434,16 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
       }
       const fotoOgUrl = coverBlob ? await uploadFotoOg(supabase, coverBlob, user.id) : null;
 
+      let fotoPortadaUrl: string | null = null;
+      if (data.fotoPortadaData) {
+        const cardBlob = await (await fetch(data.fotoPortadaData)).blob();
+        const cardPath = `${user.id}/${Date.now()}-card.jpg`;
+        const { error: cardUploadError } = await supabase.storage.from("listing-photos").upload(cardPath, cardBlob, {
+          contentType: cardBlob.type || "image/jpeg",
+        });
+        if (!cardUploadError) fotoPortadaUrl = supabase.storage.from("listing-photos").getPublicUrl(cardPath).data.publicUrl;
+      }
+
       const { error } = await supabase.rpc("crear_borrador", {
         p_intencion: data.intencion!,
         p_tipo: data.tipo,
@@ -420,6 +457,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
         p_descripcion: maskPhoneNumbers(data.desc).masked,
         p_foto_url: fotoUrls[0] ?? null,
         p_foto_og_url: fotoOgUrl,
+        p_foto_portada_url: fotoPortadaUrl,
         p_modalidad: data.modalidad,
         p_tags: data.tags
           .split(",")
@@ -1000,27 +1038,36 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
           </>
         )}
       </div>
-      {cropQueue.length > 0 && (
-        <PhotoCropModal
-          file={cropQueue[0]}
-          aspect={data.fotosData.length === 0 ? 4 / 5 : undefined}
-          previewPanels={data.fotosData.length === 0 ? LISTING_COVER_PREVIEW_PANELS : undefined}
-          onConfirm={handleCropConfirm}
-          onCancel={handleCropCancel}
-        />
-      )}
-      {editingPhotoFile && (
-        <PhotoCropModal
-          file={editingPhotoFile}
-          aspect={editingPhotoIndex === 0 ? 4 / 5 : undefined}
-          previewPanels={editingPhotoIndex === 0 ? LISTING_COVER_PREVIEW_PANELS : undefined}
-          onConfirm={handleEditPhotoConfirm}
-          onCancel={() => {
-            setEditingPhotoFile(null);
-            setEditingPhotoIndex(null);
-          }}
-        />
-      )}
+      {cropQueue.length > 0 &&
+        (data.fotosData.length === 0 ? (
+          <DualCropFlow
+            file={cropQueue[0]}
+            onConfirm={({ detailBlob, cardBlob }) => handleCropConfirm(detailBlob, cardBlob)}
+            onCancel={handleCropCancel}
+          />
+        ) : (
+          <PhotoCropModal file={cropQueue[0]} onConfirm={handleCropConfirm} onCancel={handleCropCancel} />
+        ))}
+      {editingPhotoFile &&
+        (editingPhotoIndex === 0 ? (
+          <DualCropFlow
+            file={editingPhotoFile}
+            onConfirm={({ detailBlob, cardBlob }) => handleEditPhotoConfirm(detailBlob, cardBlob)}
+            onCancel={() => {
+              setEditingPhotoFile(null);
+              setEditingPhotoIndex(null);
+            }}
+          />
+        ) : (
+          <PhotoCropModal
+            file={editingPhotoFile}
+            onConfirm={handleEditPhotoConfirm}
+            onCancel={() => {
+              setEditingPhotoFile(null);
+              setEditingPhotoIndex(null);
+            }}
+          />
+        ))}
     </div>
   );
 }

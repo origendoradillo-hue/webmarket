@@ -82,6 +82,7 @@ export interface Database {
           descripcion: string;
           foto_url: string | null;
           foto_og_url: string | null;
+          foto_portada_url: string | null;
           modalidad: string[];
           tags: string[];
           etiquetas: string[];
@@ -115,6 +116,7 @@ export interface Database {
           descripcion: string;
           foto_url?: string | null;
           foto_og_url?: string | null;
+          foto_portada_url?: string | null;
           modalidad?: string[];
           tags?: string[];
           etiquetas?: string[];
@@ -596,6 +598,7 @@ export interface Database {
           p_precio_regalo?: boolean | null;
           p_whatsapp_publico?: boolean | null;
           p_foto_og_url?: string | null;
+          p_foto_portada_url?: string | null;
         };
         Returns: string;
       };
@@ -620,6 +623,7 @@ export interface Database {
           p_direccion?: string | null;
           p_whatsapp_publico?: boolean | null;
           p_foto_og_url?: string | null;
+          p_foto_portada_url?: string | null;
         };
         Returns: undefined;
       };
@@ -645,6 +649,7 @@ export interface Database {
           p_nota?: string | null;
           p_whatsapp_publico?: boolean | null;
           p_foto_og_url?: string | null;
+          p_foto_portada_url?: string | null;
         };
         Returns: undefined;
       };

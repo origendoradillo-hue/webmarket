@@ -54,6 +54,7 @@ export function mapListingRow(row: ListingRow, publisher: PublisherInfo | null, 
       .join("")
       .toUpperCase(),
     foto: row.foto_url || undefined,
+    fotoPortada: row.foto_portada_url || undefined,
     tipoPublicador: row.intencion !== "ofrezco" ? "vecino" : row.rol === "negocio" ? "negocio" : "vecino",
     cantidad: row.cantidad || undefined,
     tags: row.tags,
