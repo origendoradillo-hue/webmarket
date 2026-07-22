@@ -427,6 +427,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
                     <OptionCard
                       icon="ti-tag"
                       label="Ofrezco algo"
+                      caption="Se publica al instante, la manejás vos"
                       selected={data.intencion === "ofrezco"}
                       onClick={() => {
                         update("intencion", "ofrezco");
@@ -436,6 +437,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
                     <OptionCard
                       icon="ti-search"
                       label="Busco algo"
+                      caption="Se publica al instante, la manejás vos"
                       selected={data.intencion === "busco"}
                       onClick={() => {
                         update("intencion", "busco");
@@ -444,7 +446,8 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
                     />
                     <OptionCard
                       icon="ti-speakerphone"
-                      label="Publicar un anuncio (evento, aviso, sponsor...)"
+                      label="Publicar un anuncio"
+                      caption="Eventos, avisos o proyectos en la portada — lo coordina el equipo, requiere aprobación (no es instantáneo)"
                       selected={false}
                       className="col-span-2"
                       onClick={onRequestAnuncio}
@@ -945,7 +948,21 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
   );
 }
 
-function OptionCard({ icon, label, selected, onClick, className = "" }: { icon: string; label: string; selected: boolean; onClick: () => void; className?: string }) {
+function OptionCard({
+  icon,
+  label,
+  caption,
+  selected,
+  onClick,
+  className = "",
+}: {
+  icon: string;
+  label: string;
+  caption?: string;
+  selected: boolean;
+  onClick: () => void;
+  className?: string;
+}) {
   return (
     <button
       onClick={onClick}
@@ -953,6 +970,7 @@ function OptionCard({ icon, label, selected, onClick, className = "" }: { icon: 
     >
       <i className={`ti ${icon} mb-2 block text-2xl text-oliva`} aria-hidden />
       <span className="text-[13px] font-medium text-tinta">{label}</span>
+      {caption && <span className="mt-1 block text-[11px] leading-snug text-tinta-suave">{caption}</span>}
     </button>
   );
 }
