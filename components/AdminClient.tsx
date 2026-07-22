@@ -444,7 +444,7 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
         <h1 className="mb-1 font-slab text-2xl font-semibold text-tinta">Panel de administración</h1>
         <p className="mb-6 text-sm text-tinta-suave">Rol actual: {role}</p>
 
-        <div className="mb-5 flex gap-2">
+        <div className="mb-5 flex flex-wrap gap-2">
           <TabButton active={tab === "publicaciones"} onClick={() => setTab("publicaciones")}>
             Publicaciones
           </TabButton>
@@ -909,7 +909,7 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
   return (
     <button
       onClick={onClick}
-      className={`rounded-lg px-4 py-2 text-sm font-medium ${active ? "bg-oliva text-hueso" : "border border-piedra/70 text-tinta"}`}
+      className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium ${active ? "bg-oliva text-hueso" : "border border-piedra/70 text-tinta"}`}
     >
       {children}
     </button>

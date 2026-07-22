@@ -34,7 +34,7 @@ export default function CategoryFilters({
             cat === "all" ? "border-oliva bg-oliva text-hueso" : "border-piedra/70 bg-white text-nogal"
           }`}
         >
-          <i className="ti ti-apps text-[12px]" aria-hidden /> Todas
+          <i className={`ti ${cat === "all" ? "ti-square-check" : "ti-apps"} text-[12px]`} aria-hidden /> Todas
         </button>
         {catEntries.map(([key, c]) => (
           <button
@@ -44,7 +44,7 @@ export default function CategoryFilters({
               cat === key ? "border-oliva bg-oliva text-hueso" : "border-piedra/70 bg-white text-nogal"
             }`}
           >
-            <i className={`ti ${c.icon} text-[12px]`} aria-hidden /> {c.label}
+            <i className={`ti ${cat === key ? "ti-square-check" : c.icon} text-[12px]`} aria-hidden /> {c.label}
           </button>
         ))}
       </div>

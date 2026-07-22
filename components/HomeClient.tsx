@@ -15,6 +15,7 @@ import Hero from "./Hero";
 import CategoryFilters from "./CategoryFilters";
 import LocationFilters from "./LocationFilters";
 import FilterDropdown from "./FilterDropdown";
+import FilterChip from "./FilterChip";
 import HomeEntryButtons from "./HomeEntryButtons";
 import AnuncioCarousel from "./AnuncioCarousel";
 import AnuncioTicker from "./AnuncioTicker";
@@ -662,27 +663,16 @@ export default function HomeClient() {
               </div>
             )}
             <>
-              <div className="mb-3 flex gap-2 overflow-x-auto px-4 pb-1 sm:px-7 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="sticky top-[58px] z-30 mb-3 flex flex-wrap gap-2 bg-hueso px-4 py-2 pb-1 sm:top-[71px] sm:px-7">
                 <FilterDropdown label="Tipo" activeLabel={tipoFilter !== "all" ? TIPO_LABELS[tipoFilter] : undefined}>
                   <div className="flex flex-wrap gap-1.5">
-                    <button
-                      onClick={() => handleSelectTipo("all")}
-                      className={`flex-shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-[11.5px] ${
-                        tipoFilter === "all" ? "border-oliva bg-oliva text-hueso" : "border-piedra/60 bg-white text-tinta"
-                      }`}
-                    >
+                    <FilterChip selected={tipoFilter === "all"} onClick={() => handleSelectTipo("all")}>
                       Todos los tipos
-                    </button>
+                    </FilterChip>
                     {(Object.keys(TIPO_LABELS) as TipoPublicacion[]).map((t) => (
-                      <button
-                        key={t}
-                        onClick={() => handleSelectTipo(t)}
-                        className={`flex-shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-[11.5px] ${
-                          tipoFilter === t ? "border-oliva bg-oliva text-hueso" : "border-piedra/60 bg-white text-tinta"
-                        }`}
-                      >
+                      <FilterChip key={t} selected={tipoFilter === t} onClick={() => handleSelectTipo(t)}>
                         {TIPO_LABELS[t]}
-                      </button>
+                      </FilterChip>
                     ))}
                   </div>
                 </FilterDropdown>
@@ -711,15 +701,9 @@ export default function HomeClient() {
                 <FilterDropdown label="Orden" activeLabel={SORT_OPTIONS.find((o) => o.value === sortMode)?.label}>
                   <div className="flex flex-wrap gap-1.5">
                     {SORT_OPTIONS.map((opt) => (
-                      <button
-                        key={opt.value}
-                        onClick={() => setSortMode(opt.value)}
-                        className={`flex-shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-[11.5px] ${
-                          sortMode === opt.value ? "border-oliva bg-oliva text-hueso" : "border-piedra/60 bg-white text-tinta"
-                        }`}
-                      >
+                      <FilterChip key={opt.value} selected={sortMode === opt.value} onClick={() => setSortMode(opt.value)}>
                         {opt.label}
-                      </button>
+                      </FilterChip>
                     ))}
                   </div>
                 </FilterDropdown>
