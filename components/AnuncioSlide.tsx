@@ -240,11 +240,11 @@ const FONDO_ESTEPA = "/brand/anuncio-fondo-estepa.png";
 const FONDO_INSTITUCIONAL = "/brand/anuncio-fondo-institucional.png";
 const CARTEL_COLGANTE = "/brand/cartel-colgante.png";
 
-// Rectángulo exacto (medido en la imagen fuente, 900x1050px) donde el
-// cartel tiene el recorte en croma verde para insertar el flyer del
-// usuario — el resto del PNG (postes, travesaño, marco) es transparente
-// alrededor y opaco en el marco/estructura.
-const CARTEL_FLYER_RECT = { left: "23.44%", top: "26.19%", width: "53%", height: "58%" };
+// Rectángulo exacto (medido en la imagen fuente, 1122x1402px, con un
+// flood-fill desde el centro del recorte de croma) donde el cartel tiene
+// el hueco para insertar el flyer del usuario — el resto del PNG (postes,
+// travesaño, marco) es transparente alrededor y opaco en el marco/estructura.
+const CARTEL_FLYER_RECT = { left: "14.71%", top: "18.19%", width: "68%", height: "70.26%" };
 
 // Los 4 formatos de anuncio comparten esta altura para que el carrusel no
 // salte de tamaño al rotar entre uno y otro mientras se está mirando.
@@ -288,9 +288,9 @@ function FlyerOnSignSlide({ a, priority, onDetailOpenChange }: SlideProps) {
         <div className="absolute inset-0 bg-gradient-to-r from-oliva-dd/30 to-oliva-dd/5" />
 
         {/* Cartel real (postes, travesaño, ganchos, marco) — el flyer del
-            usuario se compone sobre el recorte de croma verde del PNG,
-            en el rectángulo exacto medido en CARTEL_FLYER_RECT. */}
-        <div className="relative h-[300px] sm:h-[380px]" style={{ aspectRatio: "900 / 1050" }}>
+            usuario se compone sobre el hueco del PNG, en el rectángulo
+            exacto medido en CARTEL_FLYER_RECT. */}
+        <div className="relative h-[300px] sm:h-[380px]" style={{ aspectRatio: "1122 / 1402" }}>
           <Image src={CARTEL_COLGANTE} alt="" aria-hidden fill className="object-contain" sizes="380px" />
           <div
             className="absolute overflow-hidden rounded-sm bg-hueso-2"
