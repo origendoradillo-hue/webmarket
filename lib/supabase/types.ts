@@ -673,6 +673,12 @@ export interface Database {
           p_imagen_url?: string | null;
           p_fecha_evento?: string | null;
           p_lugar?: string | null;
+          p_layout_type?: string | null;
+          p_background_image_url?: string | null;
+          p_cta_label?: string | null;
+          p_cta_url?: string | null;
+          p_whatsapp_numero?: string | null;
+          p_redes_url?: string | null;
         };
         Returns: string;
       };

@@ -46,7 +46,7 @@ export default function Header({
   }, [menuOpen]);
 
   return (
-    <header className="sticky top-0 z-20 flex items-center justify-between gap-2 border-b border-piedra/50 bg-hueso-2 px-4 py-3 sm:px-7 sm:py-4">
+    <header className="sticky top-0 z-40 flex items-center justify-between gap-2 border-b border-piedra/50 bg-hueso-2 px-4 py-3 sm:px-7 sm:py-4">
       <button
         onClick={onLogoClick}
         className="flex items-center gap-2"

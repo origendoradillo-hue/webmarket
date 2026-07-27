@@ -19,6 +19,7 @@ import type {
 import { REPORT_MOTIVO_LABELS, requiereSuspensionReciproca } from "@/lib/reportMotivos";
 import type { Anuncio, AnuncioLayoutType, TipoAnuncio, TipoPublicacion } from "@/lib/types";
 import { TIPO_OPTIONS } from "@/lib/tipos";
+import { ANUNCIO_LAYOUT_LABELS, ANUNCIO_LAYOUT_OPTIONS } from "@/lib/anuncioLayouts";
 import { SITE_URL } from "@/lib/seo";
 import { resizeImage } from "@/lib/resizeImage";
 import { uploadCoverPhoto } from "@/lib/uploadCoverPhoto";
@@ -88,14 +89,6 @@ const ANUNCIO_STATUS_LABELS: Record<string, string> = {
   rechazado: "Rechazado",
 };
 const ANUNCIO_STATUS_OPTIONS = Object.keys(ANUNCIO_STATUS_LABELS);
-
-const ANUNCIO_LAYOUT_LABELS: Record<string, string> = {
-  flyer_on_sign: "Flyer vertical (con cartel)",
-  full_banner: "Banner horizontal completo",
-  background_image: "Imagen de fondo + placa de texto",
-  text_only: "Solo texto (institucional)",
-};
-const ANUNCIO_LAYOUT_OPTIONS = Object.keys(ANUNCIO_LAYOUT_LABELS);
 
 async function downloadImage(url: string, filename: string) {
   const res = await fetch(url);

@@ -1259,13 +1259,18 @@ function PublishTipsModal({ onClose }: { onClose: () => void }) {
             más. Las palabras clave que cargues aparte (paso &quot;Fotos&quot;) son las que realmente usa el buscador — no hace
             falta repetirlas mil veces acá.
           </TipSection>
-          <TipSection icon="ti-photo" title="Foto de portada">
-            Es la miniatura que se ve en las tarjetas y en los resultados de búsqueda. Formato horizontal (4:3), con el
-            producto completo y centrado, buena luz (mejor luz natural que flash), y evitá texto superpuesto si podés.
+          <TipSection icon="ti-photo" title="Portada (4:3) vs. galería (4:5) — no son la misma foto">
+            La portada es la miniatura de las tarjetas y resultados de búsqueda: horizontal (4:3). La galería es lo que
+            se ve al abrir la publicación: vertical (4:5). Son dos recortes independientes — por defecto la portada usa
+            tu primera foto tal cual, pero podés tocar "Portada" en cualquier foto para elegir cuál se recorta para ahí,
+            aparte de cómo quedó en la galería. Por eso conviene sacar las fotos con margen de sobra alrededor del
+            producto (no pegado a los bordes): así después podés recortar cada versión sin cortar nada importante, y
+            renegás menos editando.
           </TipSection>
-          <TipSection icon="ti-photo-plus" title="Resto de las fotos">
-            Formato vertical (4:5). Subí entre 3 y 5 fotos si podés: distintos ángulos, detalles de cerca, el empaque, o el
-            producto/servicio en uso — eso genera mucha más confianza que una sola foto.
+          <TipSection icon="ti-photo-plus" title="Fotos de la galería">
+            Subí entre 3 y 5 si podés: distintos ángulos, detalles de cerca, el empaque, o el producto/servicio en uso —
+            eso genera mucha más confianza que una sola foto. Buena luz (mejor luz natural que flash), y evitá texto
+            superpuesto si podés.
           </TipSection>
           <TipSection icon="ti-ruler-2" title="Tamaño de imagen">
             Con una foto sacada desde el celular normal ya alcanza (mínimo recomendado, apenas 1000px de ancho). Evitá
