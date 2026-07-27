@@ -34,7 +34,7 @@ export default function ListingCard({ listing: l, onOpen, isFavorito, onToggleFa
     <div
       onClick={onOpen}
       className={`flex h-full cursor-pointer flex-col overflow-hidden rounded-xl border bg-white transition-colors hover:border-oliva ${
-        isDemanda ? "border-golfo/50" : "border-piedra/60"
+        isDemanda ? "border-golfo/50" : l.destacada ? "border-dorado" : "border-piedra/60"
       }`}
     >
       {/* Fila propia para el estado/badge y los íconos, arriba de la foto
@@ -48,6 +48,10 @@ export default function ListingCard({ listing: l, onOpen, isFavorito, onToggleFa
           ) : l.emprendimientoDestacado ? (
             <div className="flex items-center gap-1 rounded-full bg-golfo px-2 py-1 text-[9px] font-medium text-hueso">
               <i className="ti ti-building-store text-[10px]" aria-hidden /> Emprendimiento destacado
+            </div>
+          ) : l.destacada ? (
+            <div className="flex items-center gap-1 rounded-full bg-dorado px-2 py-1 text-[9px] font-medium text-oliva-dd">
+              <i className="ti ti-star text-[10px]" aria-hidden /> Destacada
             </div>
           ) : null}
         </div>
@@ -72,9 +76,10 @@ export default function ListingCard({ listing: l, onOpen, isFavorito, onToggleFa
               share();
             }}
             aria-label="Compartir"
-            className="flex h-6 w-6 items-center justify-center rounded-full text-[13px] text-tinta-suave"
+            className="flex h-6 items-center gap-1 rounded-full px-1.5 text-[10px] font-medium text-tinta-suave"
           >
-            <i className="ti ti-share-3" aria-hidden />
+            <i className="ti ti-share-3 text-[13px]" aria-hidden />
+            Compartir
           </button>
         </div>
       </div>
@@ -105,16 +110,9 @@ export default function ListingCard({ listing: l, onOpen, isFavorito, onToggleFa
             aria-hidden
           />
         )}
-
-        <div
-          className="absolute -bottom-3.5 left-2.5 flex h-[30px] w-[30px] items-center justify-center overflow-hidden rounded-full border-2 border-white font-slab text-[10px] font-semibold text-hueso"
-          style={{ backgroundColor: isNegocio && l.colorMarca ? l.colorMarca : "#5C3D2E" }}
-        >
-          {isNegocio ? <i className={`ti ${l.icono} text-sm`} aria-hidden /> : isVecino ? <i className="ti ti-user text-sm" aria-hidden /> : l.iniciales}
-        </div>
       </div>
 
-      <div className="flex flex-col px-3 pb-3 pt-[18px]">
+      <div className="flex flex-col px-3 pb-3 pt-2.5">
         <p className="mb-1 truncate text-[10px] uppercase tracking-wide text-piedra">
           {l.subcategoria || l.categoriaLabel || "Otro"}
         </p>
@@ -124,7 +122,21 @@ export default function ListingCard({ listing: l, onOpen, isFavorito, onToggleFa
           <span className="font-medium">Ubicación:</span> {l.barrio || "El Doradillo"} · {l.zona}
           {l.cuadrante ? ` ${l.cuadrante}` : ""}
         </p>
-        <p className="mb-2 truncate text-[12.5px] font-semibold text-tinta">{l.nombreEmprendimiento || l.publisherName}</p>
+        <p className="mb-2 flex items-center gap-1.5 truncate text-[12.5px] font-semibold text-tinta">
+          <span
+            className="flex h-5 w-5 flex-shrink-0 items-center justify-center overflow-hidden rounded-full text-[9px] font-semibold text-hueso"
+            style={{ backgroundColor: isNegocio && l.colorMarca ? l.colorMarca : "#5C3D2E" }}
+          >
+            {isNegocio ? (
+              <i className={`ti ${l.icono} text-[10px]`} aria-hidden />
+            ) : isVecino ? (
+              <i className="ti ti-user text-[10px]" aria-hidden />
+            ) : (
+              l.iniciales
+            )}
+          </span>
+          <span className="truncate">{l.nombreEmprendimiento || l.publisherName}</span>
+        </p>
         <p className="mb-1.5 flex min-h-[19px] items-baseline gap-1.5 font-slab text-[14px] font-bold text-tinta">
           <span className="text-[10px] font-normal text-piedra">Precio:</span>
           {l.precioRegalo ? (

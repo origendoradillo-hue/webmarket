@@ -57,6 +57,29 @@ function dismissReviewReminder(listingId: string) {
   }
 }
 
+// "Recordar" no descarta el contacto para siempre como "Me arrepentí" — solo
+// pide que no vuelva a preguntar hasta dentro de unos días.
+const REVIEW_REMINDER_SNOOZED_KEY = "origen_review_reminder_snoozed";
+const SNOOZE_DAYS = 3;
+
+function getSnoozedReviewReminders(): Record<string, number> {
+  try {
+    return JSON.parse(localStorage.getItem(REVIEW_REMINDER_SNOOZED_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function snoozeReviewReminder(listingId: string) {
+  try {
+    const current = getSnoozedReviewReminders();
+    current[listingId] = Date.now() + SNOOZE_DAYS * 24 * 60 * 60 * 1000;
+    localStorage.setItem(REVIEW_REMINDER_SNOOZED_KEY, JSON.stringify(current));
+  } catch {
+    // localStorage no disponible en este navegador — el recordatorio puede repetirse antes de tiempo, no es grave.
+  }
+}
+
 const SORT_OPTIONS = [
   { value: "relevancia", label: "Relevancia" },
   { value: "reciente", label: "Más reciente" },
@@ -184,8 +207,14 @@ export default function HomeClient() {
     const { data: myReviews } = await supabase.from("reviews").select("listing_id").eq("reviewer_id", user.id);
     const reviewedIds = new Set((myReviews || []).map((r) => r.listing_id));
     const dismissed = new Set(getDismissedReviewReminders());
+    const snoozed = getSnoozedReviewReminders();
+    const now = Date.now();
     const pending = clickRows.find(
-      (c) => !reviewedIds.has(c.listing_id) && !dismissed.has(c.listing_id) && c.listings?.publisher_id !== user.id
+      (c) =>
+        !reviewedIds.has(c.listing_id) &&
+        !dismissed.has(c.listing_id) &&
+        c.listings?.publisher_id !== user.id &&
+        (!snoozed[c.listing_id] || snoozed[c.listing_id] < now)
     );
     // No siempre — para que no sea cargoso, solo se muestra una parte de las veces.
     if (pending && Math.random() < 0.5) {
@@ -587,16 +616,25 @@ export default function HomeClient() {
               }
               className="rounded-lg bg-dorado px-3 py-1.5 text-[12px] font-semibold text-oliva-dd"
             >
-              Sí, pude
+              Valorar
+            </button>
+            <button
+              onClick={() => {
+                snoozeReviewReminder(reviewReminder.listingId);
+                setReviewReminder(null);
+              }}
+              className="rounded-lg border border-piedra/60 px-3 py-1.5 text-[12px] text-tinta"
+            >
+              Recordar
             </button>
             <button
               onClick={() => {
                 dismissReviewReminder(reviewReminder.listingId);
                 setReviewReminder(null);
               }}
-              className="rounded-lg border border-piedra/60 px-3 py-1.5 text-[12px] text-tinta"
+              className="rounded-lg px-3 py-1.5 text-[12px] text-tinta-suave"
             >
-              No pude
+              Me arrepentí
             </button>
           </div>
         </div>
