@@ -82,7 +82,11 @@ export default async function AnuncioPage({ params }: PageProps) {
           <Link href="/" className="font-slab text-base font-semibold text-tinta">
             Origen El Doradillo
           </Link>
-          <Link href="/" className="text-[13px] font-medium text-golfo">
+          <Link
+            href="/"
+            className="flex items-center gap-1.5 rounded-lg border border-piedra/70 px-3 py-2 text-[13px] font-medium text-tinta"
+          >
+            <i className="ti ti-arrow-left text-base" aria-hidden />
             Ver todas las publicaciones
           </Link>
         </div>

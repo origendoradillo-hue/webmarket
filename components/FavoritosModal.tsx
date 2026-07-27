@@ -33,7 +33,7 @@ export default function FavoritosModal({ open, onClose, favoritoIds, onToggleFav
     const { data } = await supabase
       .from("listings")
       .select(
-        "*, profiles!listings_publisher_id_fkey(full_name, nickname, rating_promedio, resenas_count, instagram_url, facebook_url)"
+        "*, profiles!listings_publisher_id_fkey(full_name, nickname, rating_promedio, resenas_count, instagram_url, facebook_url, avatar_url)"
       )
       .in("id", ids)
       .eq("status", "activa");
@@ -47,6 +47,7 @@ export default function FavoritosModal({ open, onClose, favoritoIds, onToggleFav
             resenas_count: number;
             instagram_url: string | null;
             facebook_url: string | null;
+            avatar_url: string | null;
           } | null;
         }
       >) || [];

@@ -5,7 +5,9 @@ import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { updatePassword } from "@/lib/supabase/auth";
 import { useCategories } from "@/lib/useCategories";
+import { resizeImage } from "@/lib/resizeImage";
 import PasswordInput from "./PasswordInput";
+import PhotoCropModal from "./PhotoCropModal";
 
 interface ProfileModalProps {
   open: boolean;
@@ -42,6 +44,9 @@ export default function ProfileModal({ open, onClose, user }: ProfileModalProps)
   const [zona, setZona] = useState("");
   const [instagram, setInstagram] = useState("");
   const [facebook, setFacebook] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarCropFile, setAvatarCropFile] = useState<File | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const [verificationLevel, setVerificationLevel] = useState(1);
   const [lastRequest, setLastRequest] = useState<LastRequest>(null);
 
@@ -72,7 +77,7 @@ export default function ProfileModal({ open, onClose, user }: ProfileModalProps)
     Promise.all([
       supabase
         .from("profiles")
-        .select("full_name, nickname, whatsapp_number, verification_level, zona, instagram_url, facebook_url")
+        .select("full_name, nickname, whatsapp_number, verification_level, zona, instagram_url, facebook_url, avatar_url")
         .eq("id", user.id)
         .single(),
       supabase
@@ -90,6 +95,7 @@ export default function ProfileModal({ open, onClose, user }: ProfileModalProps)
         setZona(profileRes.data.zona ?? "");
         setInstagram(profileRes.data.instagram_url ?? "");
         setFacebook(profileRes.data.facebook_url ?? "");
+        setAvatarUrl(profileRes.data.avatar_url ?? null);
         setVerificationLevel(profileRes.data.verification_level ?? 1);
       }
       setLastRequest(verifRes.data ?? null);
@@ -100,6 +106,35 @@ export default function ProfileModal({ open, onClose, user }: ProfileModalProps)
   if (!open) return null;
 
   const emailVerified = !!user.email_confirmed_at;
+
+  function handleUploadAvatar(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarCropFile(file);
+    e.target.value = "";
+  }
+
+  async function handleAvatarCropConfirm(blob: Blob) {
+    setAvatarCropFile(null);
+    setAvatarUploading(true);
+    const supabase = createClient();
+    const resized = await resizeImage(blob);
+    const path = `avatars/${user.id}/${Date.now()}.jpg`;
+    const { error: uploadError } = await supabase.storage.from("listing-photos").upload(path, resized, { contentType: "image/jpeg" });
+    if (uploadError) {
+      setAvatarUploading(false);
+      alert(uploadError.message);
+      return;
+    }
+    const url = supabase.storage.from("listing-photos").getPublicUrl(path).data.publicUrl;
+    const { error } = await supabase.from("profiles").update({ avatar_url: url }).eq("id", user.id);
+    setAvatarUploading(false);
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    setAvatarUrl(url);
+  }
 
   async function handleSaveProfile(e: React.FormEvent) {
     e.preventDefault();
@@ -190,6 +225,24 @@ export default function ProfileModal({ open, onClose, user }: ProfileModalProps)
         ) : (
           <div className="overflow-y-auto px-5 py-5 sm:px-6">
             <form onSubmit={handleSaveProfile} className="mb-6">
+              <div className="mb-4 flex items-center gap-3">
+                <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-full border-2 border-piedra/40 bg-hueso-2">
+                  {avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <i className="ti ti-user absolute inset-0 m-auto flex h-6 w-6 items-center justify-center text-2xl text-piedra" aria-hidden />
+                  )}
+                </div>
+                <div>
+                  <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-piedra/70 px-3 py-1.5 text-[12.5px] font-medium text-tinta">
+                    <i className="ti ti-camera text-sm" aria-hidden />
+                    {avatarUploading ? "Subiendo..." : avatarUrl ? "Cambiar foto" : "Agregar foto"}
+                    <input type="file" accept="image/*" disabled={avatarUploading} onChange={handleUploadAvatar} className="hidden" />
+                  </label>
+                  <p className="mt-1 text-[11px] text-tinta-suave">Foto de perfil o logo, opcional.</p>
+                </div>
+              </div>
               <Field label="Nombre">
                 <input
                   type="text"
@@ -373,6 +426,15 @@ export default function ProfileModal({ open, onClose, user }: ProfileModalProps)
           </div>
         )}
       </div>
+      {avatarCropFile && (
+        <PhotoCropModal
+          file={avatarCropFile}
+          aspect={1}
+          title="Foto de perfil — se recorta cuadrada"
+          onConfirm={handleAvatarCropConfirm}
+          onCancel={() => setAvatarCropFile(null)}
+        />
+      )}
     </div>
   );
 }

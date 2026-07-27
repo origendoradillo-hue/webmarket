@@ -14,6 +14,7 @@ import { cropForShare } from "@/lib/cropForShare";
 import { containsPhoneNumber, maskPhoneNumbers } from "@/lib/phoneDetection";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import PhotoCropModal from "./PhotoCropModal";
+import ShareButton from "./ShareButton";
 
 type Intencion = "ofrezco" | "busco";
 
@@ -159,6 +160,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [publishedShareUrl, setPublishedShareUrl] = useState<string | null>(null);
+  const [publishedImageUrl, setPublishedImageUrl] = useState<string | null>(null);
   const [nickname, setNickname] = useState("");
   const [cropQueue, setCropQueue] = useState<File[]>([]);
   const [editingPhotoIndex, setEditingPhotoIndex] = useState<number | null>(null);
@@ -448,6 +450,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
       trackEvent("publish_listing", { intencion: data.intencion, tipo: data.tipo, categoria: data.cat });
       if (inserted) {
         setPublishedShareUrl(inserted.short_code ? `${SITE_URL}/p/${inserted.short_code}` : `${SITE_URL}/publicacion/${inserted.id}`);
+        setPublishedImageUrl(fotoUrl);
       }
       onPublished();
       setStepIndex(-1);
@@ -560,15 +563,20 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
               Ya está activa y visible en el sitio. El equipo puede revisarla, editarla o pausarla más adelante si hace falta.
             </p>
             {publishedShareUrl && (
-              <a
-                href={`https://wa.me/?text=${encodeURIComponent(`Mirá mi publicación en Origen El Doradillo: ${publishedShareUrl}`)}`}
-                target="_blank"
-                rel="noreferrer"
+              // Antes era un link directo a wa.me?text=... — un link de texto
+              // JAMÁS puede llevar foto (la app de WhatsApp la busca sola
+              // recién cuando cae el link, y si no llega a tiempo o falla,
+              // se manda sin imagen, que fue justo lo que pasó). ShareButton
+              // adjunta la foto como archivo real cuando el navegador lo
+              // permite, mismo mecanismo que ya usa el resto de la app.
+              <ShareButton
+                url={publishedShareUrl}
+                title={data.nombre || "Mi publicación"}
+                text="Mirá mi publicación en Origen El Doradillo"
+                imageUrl={publishedImageUrl || undefined}
+                label="Compartir por WhatsApp"
                 className="mx-auto mt-5 flex w-fit items-center gap-2 rounded-lg bg-[#25D366] px-5 py-2.5 text-[13.5px] font-semibold text-white"
-              >
-                <i className="ti ti-brand-whatsapp text-lg" aria-hidden />
-                Compartir por WhatsApp
-              </a>
+              />
             )}
             <button onClick={onClose} className="mx-auto mt-3 rounded-lg border border-piedra/70 px-6 py-2.5 text-[13.5px] font-semibold text-tinta">
               Listo

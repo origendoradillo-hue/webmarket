@@ -290,6 +290,16 @@ export default function AnuncioRequestForm({ open, onClose, user }: AnuncioReque
               </select>
             </Field>
 
+            <div className="mb-3.5">
+              <p className="mb-1.5 text-[11px] font-medium text-tinta">Así se ve</p>
+              {/* AnuncioSlide asume un alto fijo del contenedor (h-full por
+                  dentro, igual que en el carrusel real) — sin esto, algunos
+                  formatos colapsaban a alto 0 y se veían rotos. */}
+              <div className="h-[220px] w-full overflow-hidden rounded-xl border border-piedra/50">
+                <AnuncioSlide anuncio={previewAnuncio} priority={false} />
+              </div>
+            </div>
+
             {layoutType === "flyer_on_sign" && (
               <div className="mb-3.5 flex flex-col gap-3">
                 <ImageField
@@ -347,16 +357,6 @@ export default function AnuncioRequestForm({ open, onClose, user }: AnuncioReque
                 className="min-h-[52px] w-full resize-y rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta"
               />
             </Field>
-
-            <div className="mb-3.5 mt-1">
-              <p className="mb-1.5 text-[11px] font-medium text-tinta">Así se ve</p>
-              {/* AnuncioSlide asume un alto fijo del contenedor (h-full por
-                  dentro, igual que en el carrusel real) — sin esto, algunos
-                  formatos colapsaban a alto 0 y se veían rotos. */}
-              <div className="h-[220px] w-full overflow-hidden rounded-xl border border-piedra/50">
-                <AnuncioSlide anuncio={previewAnuncio} priority={false} />
-              </div>
-            </div>
 
             {error && <p className="mb-3 text-[12px] text-red-700">{error}</p>}
 

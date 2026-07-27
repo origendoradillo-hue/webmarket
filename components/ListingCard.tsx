@@ -122,21 +122,30 @@ export default function ListingCard({ listing: l, onOpen, isFavorito, onToggleFa
           <span className="font-medium">Ubicación:</span> {l.barrio || "El Doradillo"} · {l.zona}
           {l.cuadrante ? ` ${l.cuadrante}` : ""}
         </p>
-        <p className="mb-2 flex items-center gap-1.5 truncate text-[12.5px] font-semibold text-tinta">
-          <span
-            className="flex h-5 w-5 flex-shrink-0 items-center justify-center overflow-hidden rounded-full text-[9px] font-semibold text-hueso"
-            style={{ backgroundColor: isNegocio && l.colorMarca ? l.colorMarca : "#5C3D2E" }}
-          >
-            {isNegocio ? (
-              <i className={`ti ${l.icono} text-[10px]`} aria-hidden />
-            ) : isVecino ? (
-              <i className="ti ti-user text-[10px]" aria-hidden />
-            ) : (
-              l.iniciales
-            )}
-          </span>
-          <span className="truncate">{l.nombreEmprendimiento || l.publisherName}</span>
-        </p>
+        <div className="mb-2 flex items-center gap-1.5">
+          {l.publisherAvatarUrl ? (
+            <span className="relative h-5 w-5 flex-shrink-0 overflow-hidden rounded-full">
+              <Image src={l.publisherAvatarUrl} alt="" fill className="object-cover" sizes="20px" />
+            </span>
+          ) : (
+            <span
+              className="flex h-5 w-5 flex-shrink-0 items-center justify-center overflow-hidden rounded-full text-[9px] font-semibold text-hueso"
+              style={{ backgroundColor: isNegocio && l.colorMarca ? l.colorMarca : "#5C3D2E" }}
+            >
+              {isNegocio ? (
+                <i className={`ti ${l.icono} text-[10px]`} aria-hidden />
+              ) : isVecino ? (
+                <i className="ti ti-user text-[10px]" aria-hidden />
+              ) : (
+                l.iniciales
+              )}
+            </span>
+          )}
+          <div className="min-w-0 flex-1 leading-tight">
+            <p className="truncate text-[12.5px] font-semibold text-tinta">{l.nombreEmprendimiento || l.publisherName}</p>
+            {l.nombreEmprendimiento && <p className="truncate text-[10px] text-tinta-suave">de: {l.publisherName}</p>}
+          </div>
+        </div>
         <p className="mb-1.5 flex min-h-[19px] items-baseline gap-1.5 font-slab text-[14px] font-bold text-tinta">
           <span className="text-[10px] font-normal text-piedra">Precio:</span>
           {l.precioRegalo ? (

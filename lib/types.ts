@@ -68,6 +68,7 @@ export interface Listing {
   whatsappPublico?: boolean;
   publisherId?: string;
   publisherName?: string;
+  publisherAvatarUrl?: string;
   publisherInstagram?: string;
   publisherFacebook?: string;
 }

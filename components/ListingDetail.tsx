@@ -279,11 +279,21 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, user, o
 
           <h2 className="mb-1 font-slab text-xl font-semibold text-tinta sm:text-[22px]">{l.nombre}</h2>
           {l.subtitulo && <p className="mb-1 text-[14px] text-tinta-suave">{l.subtitulo}</p>}
-          {(l.nombreEmprendimiento || l.publisherName) && (
-            <p className="mb-1 flex items-center gap-1 text-[13px] text-tinta-suave">
-              <i className="ti ti-user text-xs" aria-hidden />
-              {l.nombreEmprendimiento || l.publisherName}
-            </p>
+          {l.nombreEmprendimiento ? (
+            <div className="mb-1">
+              <p className="flex items-center gap-1 text-[14px] font-semibold text-tinta">
+                <i className="ti ti-building-store text-xs" aria-hidden />
+                {l.nombreEmprendimiento}
+              </p>
+              <p className="text-[12px] text-tinta-suave">de: {l.publisherName}</p>
+            </div>
+          ) : (
+            l.publisherName && (
+              <p className="mb-1 flex items-center gap-1 text-[13px] text-tinta-suave">
+                <i className="ti ti-user text-xs" aria-hidden />
+                {l.publisherName}
+              </p>
+            )
           )}
           <p className="mb-1 text-[13px] text-tinta-suave">
             {l.categoria && categories[l.categoria] ? `${categories[l.categoria].label}${l.subcategoria ? ` · ${l.subcategoria}` : ""}` : "Otro"}
@@ -369,12 +379,18 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, user, o
               isNegocio ? "rounded-b-lg border-t-0" : "rounded-lg"
             }`}
           >
-            <div
-              className={`flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white font-slab text-xs font-semibold text-hueso ${isNegocio ? "-mt-6" : ""}`}
-              style={{ backgroundColor: isNegocio && l.colorMarca ? l.colorMarca : "#5C3D2E" }}
-            >
-              {isNegocio ? <i className={`ti ${l.icono}`} aria-hidden /> : isVecino ? <i className="ti ti-user" aria-hidden /> : l.iniciales}
-            </div>
+            {l.publisherAvatarUrl ? (
+              <div className={`relative h-[38px] w-[38px] flex-shrink-0 overflow-hidden rounded-full border-2 border-white ${isNegocio ? "-mt-6" : ""}`}>
+                <Image src={l.publisherAvatarUrl} alt="" fill className="object-cover" sizes="38px" />
+              </div>
+            ) : (
+              <div
+                className={`flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white font-slab text-xs font-semibold text-hueso ${isNegocio ? "-mt-6" : ""}`}
+                style={{ backgroundColor: isNegocio && l.colorMarca ? l.colorMarca : "#5C3D2E" }}
+              >
+                {isNegocio ? <i className={`ti ${l.icono}`} aria-hidden /> : isVecino ? <i className="ti ti-user" aria-hidden /> : l.iniciales}
+              </div>
+            )}
             <div>
               <div className="text-sm font-semibold text-tinta">{l.publisherName}</div>
               <div className="text-xs text-tinta-suave">

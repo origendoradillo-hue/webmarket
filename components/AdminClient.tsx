@@ -1311,9 +1311,15 @@ function AdminListingRow({
     descripcion: l.descripcion,
     categoria: l.categoria || "",
     subcategoria: l.subcategoria || "",
-    precio: l.precio ? String(l.precio) : "",
+    // Si ya tiene descuento cargado, "Precio" muestra el original (tachado)
+    // y el campo nuevo el precio con descuento — mismo criterio que en el
+    // editor del vecino.
+    precio: l.precio_anterior != null ? String(l.precio_anterior) : l.precio ? String(l.precio) : "",
     precioConsultar: l.precio_a_consultar,
     precioRegalo: l.precio_regalo,
+    tieneDescuento: l.precio_anterior != null,
+    precioDescuento: l.precio_anterior != null && l.precio != null ? String(l.precio) : "",
+    nombreEmprendimiento: l.nombre_emprendimiento || "",
     zona: l.zona,
     cuadrante: l.cuadrante || "",
     direccion: l.direccion || "",
@@ -1458,6 +1464,8 @@ function AdminListingRow({
   async function guardarCambios() {
     setSaving(true);
     const supabase = createClient();
+    const precioBase = form.precio ? Number(form.precio) : null;
+    const hayDescuentoValido = form.tieneDescuento && form.precioDescuento.trim() !== "" && precioBase !== null;
     const { error } = await supabase.rpc("admin_update_listing", {
       p_listing_id: l.id,
       p_nombre: form.nombre,
@@ -1465,9 +1473,12 @@ function AdminListingRow({
       p_descripcion: maskPhoneNumbers(form.descripcion).masked,
       p_categoria: form.categoria || null,
       p_subcategoria: form.subcategoria || null,
-      p_precio: form.precio ? Number(form.precio) : null,
+      p_precio: hayDescuentoValido ? Number(form.precioDescuento) : precioBase,
       p_precio_a_consultar: form.precioConsultar,
       p_precio_regalo: form.precioRegalo,
+      p_precio_anterior: hayDescuentoValido ? precioBase : null,
+      p_quitar_precio_anterior: !hayDescuentoValido,
+      p_nombre_emprendimiento: form.nombreEmprendimiento.trim() || null,
       p_zona: form.zona,
       p_cuadrante: form.cuadrante || null,
       p_direccion: form.direccion || null,
@@ -1701,7 +1712,7 @@ function AdminListingRow({
             </div>
             <LabeledInput label="Subcategoría" value={form.subcategoria} onChange={(v) => setForm({ ...form, subcategoria: v })} />
             <div>
-              <label className="mb-1 block text-[11px] font-medium text-tinta">Precio</label>
+              <label className="mb-1 block text-[11px] font-medium text-tinta">{form.tieneDescuento ? "Precio original" : "Precio"}</label>
               <input
                 type="number"
                 disabled={form.precioConsultar || form.precioRegalo}
@@ -1739,6 +1750,32 @@ function AdminListingRow({
                 Se regala
               </label>
             </div>
+            {!form.precioConsultar && !form.precioRegalo && (
+              <div className="flex flex-col gap-1.5 sm:col-span-2">
+                <label className="flex items-center gap-1.5 text-[11px] text-tinta">
+                  <input
+                    type="checkbox"
+                    checked={form.tieneDescuento}
+                    onChange={(e) => setForm({ ...form, tieneDescuento: e.target.checked })}
+                  />
+                  Tiene descuento (el precio de arriba queda tachado como precio original)
+                </label>
+                {form.tieneDescuento && (
+                  <input
+                    type="number"
+                    placeholder="Precio con descuento (el nuevo precio)"
+                    value={form.precioDescuento}
+                    onChange={(e) => setForm({ ...form, precioDescuento: e.target.value })}
+                    className="w-full rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
+                  />
+                )}
+              </div>
+            )}
+            <LabeledInput
+              label="Nombre del emprendimiento"
+              value={form.nombreEmprendimiento}
+              onChange={(v) => setForm({ ...form, nombreEmprendimiento: v })}
+            />
             <LabeledInput label="Dirección" value={form.direccion} onChange={(v) => setForm({ ...form, direccion: v })} />
           </div>
           <div>
@@ -2139,6 +2176,21 @@ function AdminAnuncioRow({
     }
   }
 
+  async function convertirEnPublicacion() {
+    if (
+      !confirm(
+        `¿Crear una publicación ("se ofrece") a partir de "${a.titulo}"? Se copia título, descripción y foto como borrador — el usuario o vos tienen que completar zona, categoría y el resto antes de publicarla. El anuncio en sí queda como está, no se borra ni se cambia de estado.`
+      )
+    )
+      return;
+    setSaving(true);
+    const supabase = createClient();
+    const { error } = await supabase.rpc("admin_convertir_anuncio_en_listing", { p_anuncio_id: a.id });
+    setSaving(false);
+    if (error) alert(error.message);
+    else alert('Publicación creada como borrador. Buscala en la pestaña Publicaciones para completarla.');
+  }
+
   const link = contactUrl(a.profiles?.whatsapp_number, a.profiles?.email);
 
   const previewAnuncio: Anuncio = {
@@ -2192,6 +2244,15 @@ function AdminAnuncioRow({
               <a href={link} target="_blank" rel="noreferrer" className="rounded-lg border border-golfo px-2.5 py-1.5 text-xs text-golfo">
                 <i className="ti ti-brand-whatsapp" aria-hidden /> Contactar solicitante
               </a>
+            )}
+            {a.solicitante_id && (
+              <button
+                disabled={saving}
+                onClick={convertirEnPublicacion}
+                className="rounded-lg border border-oliva px-2.5 py-1.5 text-xs text-oliva"
+              >
+                <i className="ti ti-arrows-shuffle" aria-hidden /> Convertir en publicación
+              </button>
             )}
           </div>
 
@@ -2362,7 +2423,13 @@ function AdminAnuncioRow({
               {ANUNCIO_LAYOUT_OPTIONS.map((t) => (
                 <div key={t} className="w-[220px]">
                   <p className="mb-1 text-[10.5px] text-tinta-suave">{ANUNCIO_LAYOUT_LABELS[t]}</p>
-                  <div className="overflow-hidden rounded-xl border border-piedra/50">
+                  {/* AnuncioSlide necesita un alto fijo del contenedor (h-full
+                      por dentro). Sin esto, "Banner horizontal" e "Imagen de
+                      fondo + placa" quedaban en blanco: su contenido es 100%
+                      absolute (la imagen fill), así que sin nada en el flujo
+                      normal el alto calculado da 0 — cambiar el layout no
+                      hacía nada porque nunca hubo dónde mostrarlo. */}
+                  <div className="h-[220px] overflow-hidden rounded-xl border border-piedra/50">
                     <AnuncioSlide anuncio={{ ...previewAnuncio, layoutType: t as AnuncioLayoutType }} priority={false} />
                   </div>
                 </div>
@@ -2405,7 +2472,7 @@ function AdminAnuncioRow({
             {
               label: "Así se ve",
               render: (url) => (
-                <div className="w-[220px]">
+                <div className="h-[220px] w-[220px] overflow-hidden">
                   <AnuncioSlide anuncio={{ ...previewAnuncio, imagen: url }} priority={false} />
                 </div>
               ),
@@ -2422,7 +2489,7 @@ function AdminAnuncioRow({
             {
               label: "Así se ve",
               render: (url) => (
-                <div className="w-[220px]">
+                <div className="h-[220px] w-[220px] overflow-hidden">
                   <AnuncioSlide anuncio={{ ...previewAnuncio, backgroundImagen: url }} priority={false} />
                 </div>
               ),
