@@ -2195,6 +2195,13 @@ function AdminAnuncioRow({
             )}
           </div>
 
+          {a.mensaje_solicitante && (
+            <div className="rounded-lg border border-dorado/50 bg-dorado/10 px-3 py-2.5">
+              <p className="mb-0.5 text-[11px] font-semibold text-tinta">Mensaje del solicitante</p>
+              <p className="whitespace-pre-line text-[12.5px] text-tinta-suave">{a.mensaje_solicitante}</p>
+            </div>
+          )}
+
           {isSuperadmin && (
             <button
               onClick={eliminarPermanente}

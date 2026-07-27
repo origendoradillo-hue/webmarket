@@ -150,6 +150,7 @@ export interface Database {
           status: "solicitado" | "en_conversacion" | "aprobado" | "programado" | "publicado" | "pausado" | "vencido" | "rechazado";
           orden: number;
           notas_internas: string | null;
+          mensaje_solicitante: string | null;
           ubicacion: "home" | "categoria" | "ambas";
           layout_type: "flyer_on_sign" | "full_banner" | "text_only" | "background_image";
           background_image_url: string | null;
@@ -679,6 +680,7 @@ export interface Database {
           p_cta_url?: string | null;
           p_whatsapp_numero?: string | null;
           p_redes_url?: string | null;
+          p_mensaje_solicitante?: string | null;
         };
         Returns: string;
       };

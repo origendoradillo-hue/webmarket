@@ -46,6 +46,7 @@ export default function AnuncioRequestForm({ open, onClose, user }: AnuncioReque
   const [ctaUrl, setCtaUrl] = useState("");
   const [whatsappNumero, setWhatsappNumero] = useState("");
   const [redesUrl, setRedesUrl] = useState("");
+  const [mensajeSolicitante, setMensajeSolicitante] = useState("");
   const [imagenCropFile, setImagenCropFile] = useState<File | null>(null);
   const [fondoCropFile, setFondoCropFile] = useState<File | null>(null);
   const [tipsOpen, setTipsOpen] = useState(false);
@@ -68,6 +69,7 @@ export default function AnuncioRequestForm({ open, onClose, user }: AnuncioReque
     setCtaUrl("");
     setWhatsappNumero("");
     setRedesUrl("");
+    setMensajeSolicitante("");
     setSent(false);
     setError(null);
   }
@@ -145,6 +147,7 @@ export default function AnuncioRequestForm({ open, onClose, user }: AnuncioReque
       p_cta_url: ctaUrl || null,
       p_whatsapp_numero: whatsappNumero || null,
       p_redes_url: redesUrl || null,
+      p_mensaje_solicitante: mensajeSolicitante || null,
     });
     setSubmitting(false);
     if (rpcError) {
@@ -287,26 +290,40 @@ export default function AnuncioRequestForm({ open, onClose, user }: AnuncioReque
               </select>
             </Field>
 
-            {layoutType !== "text_only" && (
-              <div className="mb-3.5 grid grid-cols-2 gap-2">
-                <div>
-                  <label className="mb-1.5 block text-[12.5px] font-medium text-tinta">
-                    {layoutType === "flyer_on_sign" ? "Flyer (opcional)" : "Imagen principal (opcional)"}
-                  </label>
-                  {imagenData && (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img src={imagenData} alt="" className="mb-1.5 h-16 w-16 rounded object-cover" />
-                  )}
-                  <input type="file" accept="image/*" onChange={handleUploadImagen} className="w-full text-[11px] text-tinta" />
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-[12.5px] font-medium text-tinta">Imagen de fondo (opcional)</label>
-                  {backgroundData && (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img src={backgroundData} alt="" className="mb-1.5 h-16 w-16 rounded object-cover" />
-                  )}
-                  <input type="file" accept="image/*" onChange={handleUploadFondo} className="w-full text-[11px] text-tinta" />
-                </div>
+            {layoutType === "flyer_on_sign" && (
+              <div className="mb-3.5 flex flex-col gap-3">
+                <ImageField
+                  label="Flyer (va colgado del cartel)"
+                  hint="Vertical, proporción parecida a 4:5 — ideal 1080×1350px"
+                  data={imagenData}
+                  onUpload={handleUploadImagen}
+                />
+                <ImageField
+                  label="Imagen de fondo (paisaje detrás del cartel)"
+                  hint="Horizontal ancha — ideal 1600×900px"
+                  data={backgroundData}
+                  onUpload={handleUploadFondo}
+                />
+              </div>
+            )}
+            {layoutType === "full_banner" && (
+              <div className="mb-3.5">
+                <ImageField
+                  label="Imagen principal (ocupa toda la pantalla)"
+                  hint="Horizontal ancha — ideal 1600×900px o más panorámica"
+                  data={imagenData}
+                  onUpload={handleUploadImagen}
+                />
+              </div>
+            )}
+            {layoutType === "background_image" && (
+              <div className="mb-3.5">
+                <ImageField
+                  label="Imagen de fondo (ocupa toda la pantalla)"
+                  hint="Horizontal ancha — ideal 1600×900px"
+                  data={backgroundData}
+                  onUpload={handleUploadFondo}
+                />
               </div>
             )}
 
@@ -322,9 +339,21 @@ export default function AnuncioRequestForm({ open, onClose, user }: AnuncioReque
             />
             <LabeledInput label="Link de redes (opcional)" value={redesUrl} onChange={setRedesUrl} placeholder="Instagram, Facebook, etc." />
 
+            <Field label="Mensaje para el equipo (opcional)">
+              <textarea
+                placeholder="Aclaraciones, pedidos especiales, algo que debamos saber antes de publicarlo — esto no se muestra en el anuncio, es solo para nosotros."
+                value={mensajeSolicitante}
+                onChange={(e) => setMensajeSolicitante(e.target.value)}
+                className="min-h-[52px] w-full resize-y rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta"
+              />
+            </Field>
+
             <div className="mb-3.5 mt-1">
               <p className="mb-1.5 text-[11px] font-medium text-tinta">Así se ve</p>
-              <div className="w-[170px] overflow-hidden rounded-xl border border-piedra/50">
+              {/* AnuncioSlide asume un alto fijo del contenedor (h-full por
+                  dentro, igual que en el carrusel real) — sin esto, algunos
+                  formatos colapsaban a alto 0 y se veían rotos. */}
+              <div className="h-[220px] w-full overflow-hidden rounded-xl border border-piedra/50">
                 <AnuncioSlide anuncio={previewAnuncio} priority={false} />
               </div>
             </div>
@@ -368,6 +397,30 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     <div className="mb-3.5">
       <label className="mb-1.5 block text-[12.5px] font-medium text-tinta">{label}</label>
       {children}
+    </div>
+  );
+}
+
+function ImageField({
+  label,
+  hint,
+  data,
+  onUpload,
+}: {
+  label: string;
+  hint: string;
+  data: string | null;
+  onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}) {
+  return (
+    <div>
+      <label className="mb-0.5 block text-[12.5px] font-medium text-tinta">{label} (opcional)</label>
+      <p className="mb-1.5 text-[10.5px] text-tinta-suave">{hint}</p>
+      {data && (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img src={data} alt="" className="mb-1.5 h-16 w-16 rounded object-cover" />
+      )}
+      <input type="file" accept="image/*" onChange={onUpload} className="w-full text-[11px] text-tinta" />
     </div>
   );
 }
