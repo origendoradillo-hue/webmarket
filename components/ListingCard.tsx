@@ -117,7 +117,7 @@ export default function ListingCard({ listing: l, onOpen, isFavorito, onToggleFa
           {l.subcategoria || l.categoriaLabel || "Otro"}
         </p>
         <h3 className="line-clamp-2 min-h-[2.4em] font-slab text-sm font-semibold leading-tight text-tinta">{l.nombre}</h3>
-        {l.subtitulo && <p className="mt-0.5 mb-1.5 truncate text-[12px] text-tinta-suave">{l.subtitulo}</p>}
+        <p className="mt-0.5 mb-1.5 min-h-[15px] truncate text-[12px] text-tinta-suave">{l.subtitulo || " "}</p>
         <p className="mb-0.5 truncate text-[10px] text-piedra">
           <span className="font-medium">Ubicación:</span> {l.barrio || "El Doradillo"} · {l.zona}
           {l.cuadrante ? ` ${l.cuadrante}` : ""}
@@ -143,7 +143,7 @@ export default function ListingCard({ listing: l, onOpen, isFavorito, onToggleFa
           )}
           <div className="min-w-0 flex-1 leading-tight">
             <p className="truncate text-[12.5px] font-semibold text-tinta">{l.nombreEmprendimiento || l.publisherName}</p>
-            {l.nombreEmprendimiento && <p className="truncate text-[10px] text-tinta-suave">de: {l.publisherName}</p>}
+            <p className="min-h-[13px] truncate text-[10px] text-tinta-suave">{l.nombreEmprendimiento ? `de: ${l.publisherName}` : " "}</p>
           </div>
         </div>
         <p className="mb-1.5 flex min-h-[19px] items-baseline gap-1.5 font-slab text-[14px] font-bold text-tinta">
