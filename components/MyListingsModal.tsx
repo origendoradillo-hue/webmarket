@@ -76,7 +76,7 @@ interface EditForm {
   precioConsultar: boolean;
   precioRegalo: boolean;
   tieneDescuento: boolean;
-  precioAnterior: string;
+  precioDescuento: string;
   nombreEmprendimiento: string;
   zona: string;
   cuadrante: string;
@@ -231,11 +231,14 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
       nombre: l.nombre,
       subtitulo: l.subtitulo || "",
       descripcion: l.descripcion,
-      precio: l.precio != null ? String(l.precio) : "",
+      // Si ya tiene descuento cargado, el campo "Precio" muestra el
+      // original (tachado) y el nuevo campo el precio con descuento —
+      // mismo orden que ve el usuario al cargarlo por primera vez.
+      precio: l.precio_anterior != null ? String(l.precio_anterior) : l.precio != null ? String(l.precio) : "",
       precioConsultar: l.precio_a_consultar,
       precioRegalo: l.precio_regalo,
       tieneDescuento: l.precio_anterior != null,
-      precioAnterior: l.precio_anterior != null ? String(l.precio_anterior) : "",
+      precioDescuento: l.precio_anterior != null && l.precio != null ? String(l.precio) : "",
       nombreEmprendimiento: l.nombre_emprendimiento || "",
       zona: l.zona,
       cuadrante: l.cuadrante || "",
@@ -415,16 +418,22 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
       if (!cardError) fotoPortadaUrlParam = supabase.storage.from("listing-photos").getPublicUrl(cardPath).data.publicUrl;
     }
 
+    // El precio que estaba en el campo "Precio" queda fijo como precio
+    // original (tachado) si hay descuento — el campo nuevo es el precio
+    // con descuento, que pasa a ser el precio real de la publicación.
+    const precioBase = editForm.precio.trim() === "" ? null : Number(editForm.precio);
+    const hayDescuentoValido = editForm.tieneDescuento && editForm.precioDescuento.trim() !== "" && precioBase !== null;
+
     const { error } = await supabase.rpc("mi_update_listing", {
       p_listing_id: l.id,
       p_nombre: editForm.nombre,
       p_subtitulo: editForm.subtitulo || null,
       p_descripcion: maskPhoneNumbers(editForm.descripcion).masked,
-      p_precio: editForm.precio.trim() === "" ? null : Number(editForm.precio),
+      p_precio: hayDescuentoValido ? Number(editForm.precioDescuento) : precioBase,
       p_precio_a_consultar: editForm.precioConsultar,
       p_precio_regalo: editForm.precioRegalo,
-      p_precio_anterior: editForm.tieneDescuento && editForm.precioAnterior.trim() !== "" ? Number(editForm.precioAnterior) : null,
-      p_quitar_precio_anterior: !editForm.tieneDescuento,
+      p_precio_anterior: hayDescuentoValido ? precioBase : null,
+      p_quitar_precio_anterior: !hayDescuentoValido,
       p_nombre_emprendimiento: editForm.nombreEmprendimiento.trim() || null,
       p_zona: editForm.zona,
       p_cuadrante: editForm.cuadrante || null,
@@ -774,7 +783,7 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
                         </div>
                         <input
                           type="number"
-                          placeholder="Precio"
+                          placeholder={editForm.tieneDescuento ? "Precio original" : "Precio"}
                           disabled={editForm.precioConsultar || editForm.precioRegalo}
                           value={editForm.precio}
                           onChange={(e) => setEditForm({ ...editForm, precio: e.target.value })}
@@ -788,14 +797,14 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
                                 checked={editForm.tieneDescuento}
                                 onChange={(e) => setEditForm({ ...editForm, tieneDescuento: e.target.checked })}
                               />
-                              Tiene descuento (mostrar precio anterior tachado)
+                              Tiene descuento (el precio de arriba queda tachado como precio original)
                             </label>
                             {editForm.tieneDescuento && (
                               <input
                                 type="number"
-                                placeholder="Precio anterior, sin el descuento"
-                                value={editForm.precioAnterior}
-                                onChange={(e) => setEditForm({ ...editForm, precioAnterior: e.target.value })}
+                                placeholder="Precio con descuento (el nuevo precio)"
+                                value={editForm.precioDescuento}
+                                onChange={(e) => setEditForm({ ...editForm, precioDescuento: e.target.value })}
                                 className="w-full rounded-lg border border-piedra/70 bg-white px-2.5 py-2 text-[13px] text-tinta"
                               />
                             )}

@@ -36,7 +36,10 @@ interface PublishData {
   precioConsultar: boolean;
   precioRegalo: boolean;
   tieneDescuento: boolean;
-  precioAnterior: string;
+  // El precio "de siempre" queda fijo en `precio` — este es el nuevo
+  // precio con descuento que se muestra en la tarjeta (y precio pasa a
+  // mostrarse tachado al lado).
+  precioDescuento: string;
   nombreEmprendimiento: string;
   modalidad: string[];
   etiquetas: Etiqueta[];
@@ -82,7 +85,7 @@ const DEFAULTS: PublishData = {
   precioConsultar: false,
   precioRegalo: false,
   tieneDescuento: false,
-  precioAnterior: "",
+  precioDescuento: "",
   nombreEmprendimiento: "",
   modalidad: [],
   etiquetas: [],
@@ -391,7 +394,13 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
         detalles.urgencia = true;
       }
 
-      const precioNum = data.intencion === "busco" || data.precio.trim() === "" ? null : Number(data.precio);
+      // El precio que ya estaba escrito en el campo "Precio" queda fijo como
+      // precio original (tachado) si hay descuento — lo que se escribe en el
+      // campo nuevo es el precio con descuento, que pasa a ser el precio real.
+      const precioBase = data.intencion === "busco" || data.precio.trim() === "" ? null : Number(data.precio);
+      const hayDescuentoValido = data.tieneDescuento && data.precioDescuento.trim() !== "" && precioBase !== null;
+      const precioNum = hayDescuentoValido ? Number(data.precioDescuento) : precioBase;
+      const precioAnteriorNum = hayDescuentoValido ? precioBase : null;
 
       const { data: inserted, error: insertError } = await supabase
         .from("listings")
@@ -418,7 +427,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
           etiquetas: data.etiquetas,
           cantidad,
           precio: precioNum,
-          precio_anterior: data.tieneDescuento && data.precioAnterior.trim() !== "" ? Number(data.precioAnterior) : null,
+          precio_anterior: precioAnteriorNum,
           precio_a_consultar: data.intencion === "busco" ? false : data.precioConsultar,
           precio_regalo: data.intencion === "busco" ? false : data.precioRegalo,
           whatsapp_publico: data.whatsappPublico,
@@ -491,6 +500,9 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
         if (!cardUploadError) fotoPortadaUrl = supabase.storage.from("listing-photos").getPublicUrl(cardPath).data.publicUrl;
       }
 
+      const borradorPrecioBase = data.precio.trim() === "" ? null : Number(data.precio);
+      const borradorHayDescuentoValido = data.tieneDescuento && data.precioDescuento.trim() !== "" && borradorPrecioBase !== null;
+
       const { error } = await supabase.rpc("crear_borrador", {
         p_intencion: data.intencion!,
         p_tipo: data.tipo,
@@ -511,8 +523,8 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
           .map((t) => t.trim())
           .filter(Boolean),
         p_etiquetas: data.etiquetas,
-        p_precio: data.precio.trim() === "" ? null : Number(data.precio),
-        p_precio_anterior: data.tieneDescuento && data.precioAnterior.trim() !== "" ? Number(data.precioAnterior) : null,
+        p_precio: borradorHayDescuentoValido ? Number(data.precioDescuento) : borradorPrecioBase,
+        p_precio_anterior: borradorHayDescuentoValido ? borradorPrecioBase : null,
         p_precio_a_consultar: data.precioConsultar,
         p_precio_regalo: data.precioRegalo,
         p_whatsapp_publico: data.whatsappPublico,
@@ -768,7 +780,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
                     )}
                   </Field>
                   {data.intencion === "ofrezco" && (
-                    <Field label="Precio">
+                    <Field label={data.tieneDescuento ? "Precio original" : "Precio"}>
                       <div className="flex flex-col gap-2">
                         <div className="flex flex-wrap gap-3 text-[12px] text-tinta">
                           <label className="flex items-center gap-1.5">
@@ -826,15 +838,15 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
                                 checked={data.tieneDescuento}
                                 onChange={(e) => update("tieneDescuento", e.target.checked)}
                               />
-                              Tiene descuento (mostrar precio anterior tachado)
+                              Tiene descuento (el precio de arriba queda tachado como precio original)
                             </label>
                             {data.tieneDescuento && (
                               <input
                                 type="number"
                                 min={0}
-                                placeholder="Precio anterior, sin el descuento"
-                                value={data.precioAnterior}
-                                onChange={(e) => update("precioAnterior", e.target.value)}
+                                placeholder="Precio con descuento (el nuevo precio)"
+                                value={data.precioDescuento}
+                                onChange={(e) => update("precioDescuento", e.target.value)}
                                 className="w-full rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta"
                               />
                             )}

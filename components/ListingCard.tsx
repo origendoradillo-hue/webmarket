@@ -118,13 +118,15 @@ export default function ListingCard({ listing: l, onOpen, isFavorito, onToggleFa
         <p className="mb-1 truncate text-[10px] uppercase tracking-wide text-piedra">
           {l.subcategoria || l.categoriaLabel || "Otro"}
         </p>
-        <h3 className="mb-0.5 line-clamp-2 min-h-[2.4em] font-slab text-sm font-semibold leading-tight text-tinta">{l.nombre}</h3>
-        {l.subtitulo && <p className="mb-0.5 truncate text-[11.5px] text-tinta-suave">{l.subtitulo}</p>}
-        <p className="mb-2 truncate text-[11.5px] text-piedra">
-          {l.nombreEmprendimiento || l.publisherName} · {l.barrio || "El Doradillo"} · {l.zona}
+        <h3 className="line-clamp-2 min-h-[2.4em] font-slab text-sm font-semibold leading-tight text-tinta">{l.nombre}</h3>
+        {l.subtitulo && <p className="mt-0.5 mb-1.5 truncate text-[12px] text-tinta-suave">{l.subtitulo}</p>}
+        <p className="mb-0.5 truncate text-[10px] text-piedra">
+          <span className="font-medium">Ubicación:</span> {l.barrio || "El Doradillo"} · {l.zona}
           {l.cuadrante ? ` ${l.cuadrante}` : ""}
         </p>
-        <p className="mb-1.5 flex min-h-[17px] items-baseline gap-1.5 font-slab text-[13px] font-semibold text-tinta">
+        <p className="mb-2 truncate text-[12.5px] font-semibold text-tinta">{l.nombreEmprendimiento || l.publisherName}</p>
+        <p className="mb-1.5 flex min-h-[19px] items-baseline gap-1.5 font-slab text-[14px] font-bold text-tinta">
+          <span className="text-[10px] font-normal text-piedra">Precio:</span>
           {l.precioRegalo ? (
             "Se regala"
           ) : l.precioConsultar ? (
