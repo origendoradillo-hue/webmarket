@@ -20,7 +20,7 @@ export type Intencion = "ofrezco" | "busco";
 
 // Gobierna foto/precio/dirección/campos extra del formulario. Ahora aplica a
 // "ofrezco" y "busco" por igual (ambos se navegan por esta categoría).
-export type TipoPublicacion = "producto" | "servicio" | "experiencia" | "inmueble" | "usado" | "emprendimiento" | "otro";
+export type TipoPublicacion = "producto" | "servicio" | "experiencia" | "inmueble" | "automotor" | "usado" | "emprendimiento" | "otro";
 
 // Etiquetas transversales, combinables con cualquier tipo/rubro.
 export type Etiqueta = "turismo" | "alquileres_temporarios";
@@ -57,8 +57,13 @@ export interface Listing {
   colorMarca?: string;
   tags?: string[];
   precio?: number;
+  precioAnterior?: number;
   precioConsultar?: boolean;
   precioRegalo?: boolean;
+  // Si se carga, se muestra en vez del nombre del publicador — un mismo
+  // usuario puede publicar a veces a su nombre y a veces bajo un
+  // emprendimiento, sin tener una cuenta aparte para eso.
+  nombreEmprendimiento?: string;
   detalles?: Record<string, unknown>;
   whatsappPublico?: boolean;
   publisherId?: string;

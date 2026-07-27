@@ -7,7 +7,9 @@ import { CategoryKey, Etiqueta, TipoPublicacion } from "@/lib/types";
 import { TIPO_OPTIONS } from "@/lib/tipos";
 import { createClient } from "@/lib/supabase/client";
 import { trackEvent } from "@/lib/analytics";
+import { SITE_URL } from "@/lib/seo";
 import { resizeImage } from "@/lib/resizeImage";
+import { generateMosaic } from "@/lib/generateMosaic";
 import { cropForShare } from "@/lib/cropForShare";
 import { containsPhoneNumber, maskPhoneNumbers } from "@/lib/phoneDetection";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -33,6 +35,9 @@ interface PublishData {
   precio: string;
   precioConsultar: boolean;
   precioRegalo: boolean;
+  tieneDescuento: boolean;
+  precioAnterior: string;
+  nombreEmprendimiento: string;
   modalidad: string[];
   etiquetas: Etiqueta[];
   // Producto
@@ -76,6 +81,9 @@ const DEFAULTS: PublishData = {
   precio: "",
   precioConsultar: false,
   precioRegalo: false,
+  tieneDescuento: false,
+  precioAnterior: "",
+  nombreEmprendimiento: "",
   modalidad: [],
   etiquetas: [],
   disponibilidad: "recurrente",
@@ -99,7 +107,7 @@ const DEFAULTS: PublishData = {
 
 function fotoRequerida(d: PublishData): boolean {
   if (d.intencion !== "ofrezco" || !d.tipo) return false;
-  return ["producto", "experiencia", "inmueble", "usado", "emprendimiento"].includes(d.tipo);
+  return ["producto", "experiencia", "inmueble", "automotor", "usado", "emprendimiento"].includes(d.tipo);
 }
 
 function stepsFor(d: PublishData): string[] {
@@ -147,12 +155,37 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
   const [data, setData] = useState<PublishData>(DEFAULTS);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [publishedShareUrl, setPublishedShareUrl] = useState<string | null>(null);
   const [nickname, setNickname] = useState("");
   const [cropQueue, setCropQueue] = useState<File[]>([]);
   const [editingPhotoIndex, setEditingPhotoIndex] = useState<number | null>(null);
   const [editingPhotoFile, setEditingPhotoFile] = useState<File | null>(null);
   const [portadaCropIndex, setPortadaCropIndex] = useState<number | null>(null);
   const [portadaCropFile, setPortadaCropFile] = useState<File | null>(null);
+  const [tipsOpen, setTipsOpen] = useState(false);
+  const [mosaicActive, setMosaicActive] = useState(false);
+  const [mosaicGenerating, setMosaicGenerating] = useState(false);
+
+  useEffect(() => {
+    if (!mosaicActive) return;
+    if (data.fotosData.length < 3) {
+      setMosaicActive(false);
+      return;
+    }
+    let cancelled = false;
+    setMosaicGenerating(true);
+    generateMosaic(data.fotosData).then(async (blob) => {
+      if (cancelled) return;
+      setMosaicGenerating(false);
+      if (!blob) return;
+      const dataUrl = await blobToDataUrl(blob);
+      if (!cancelled) setData((prev) => ({ ...prev, fotoPortadaData: dataUrl, portadaSourceUrl: null }));
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mosaicActive, data.fotosData]);
 
   useEffect(() => {
     if (open) {
@@ -263,6 +296,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
   }
 
   async function openPortadaCrop(index: number) {
+    setMosaicActive(false);
     const blob = await (await fetch(data.fotosData[index])).blob();
     setPortadaCropFile(new File([blob], "portada.jpg", { type: blob.type || "image/jpeg" }));
     setPortadaCropIndex(index);
@@ -349,7 +383,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
         } else if (data.tipo === "inmueble") {
           if (data.superficie) detalles.superficie = data.superficie;
           if (data.mejoras) detalles.mejoras = data.mejoras;
-        } else if (data.tipo === "usado") {
+        } else if (data.tipo === "usado" || data.tipo === "automotor") {
           if (data.estadoArticulo) detalles.estado = data.estadoArticulo;
           if (data.qty) cantidad = Number(data.qty);
         }
@@ -384,12 +418,14 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
           etiquetas: data.etiquetas,
           cantidad,
           precio: precioNum,
+          precio_anterior: data.tieneDescuento && data.precioAnterior.trim() !== "" ? Number(data.precioAnterior) : null,
           precio_a_consultar: data.intencion === "busco" ? false : data.precioConsultar,
           precio_regalo: data.intencion === "busco" ? false : data.precioRegalo,
           whatsapp_publico: data.whatsappPublico,
+          nombre_emprendimiento: data.nombreEmprendimiento.trim() || null,
           detalles,
         })
-        .select("id")
+        .select("id, short_code")
         .single();
       if (insertError) throw insertError;
 
@@ -401,6 +437,9 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
       }
 
       trackEvent("publish_listing", { intencion: data.intencion, tipo: data.tipo, categoria: data.cat });
+      if (inserted) {
+        setPublishedShareUrl(inserted.short_code ? `${SITE_URL}/p/${inserted.short_code}` : `${SITE_URL}/publicacion/${inserted.id}`);
+      }
       onPublished();
       setStepIndex(-1);
     } catch (err) {
@@ -473,9 +512,11 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
           .filter(Boolean),
         p_etiquetas: data.etiquetas,
         p_precio: data.precio.trim() === "" ? null : Number(data.precio),
+        p_precio_anterior: data.tieneDescuento && data.precioAnterior.trim() !== "" ? Number(data.precioAnterior) : null,
         p_precio_a_consultar: data.precioConsultar,
         p_precio_regalo: data.precioRegalo,
         p_whatsapp_publico: data.whatsappPublico,
+        p_nombre_emprendimiento: data.nombreEmprendimiento.trim() || null,
       });
       if (error) throw error;
 
@@ -490,7 +531,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
 
   const isFirst = stepIndex === 0;
   const isLast = stepIndex === steps.length - 1;
-  const direccionRequiereRetiro = data.tipo === "producto" || data.tipo === "usado" || data.tipo === "emprendimiento";
+  const direccionRequiereRetiro = data.tipo === "producto" || data.tipo === "usado" || data.tipo === "automotor" || data.tipo === "emprendimiento";
   const direccionAplica = !direccionRequiereRetiro || data.modalidad.includes("Retiro");
 
   return (
@@ -506,7 +547,18 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
             <p className="mt-1.5 text-[13px] leading-relaxed text-tinta-suave">
               Ya está activa y visible en el sitio. El equipo puede revisarla, editarla o pausarla más adelante si hace falta.
             </p>
-            <button onClick={onClose} className="mx-auto mt-6 rounded-lg bg-oliva px-6 py-2.5 text-[13.5px] font-semibold text-hueso">
+            {publishedShareUrl && (
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(`Mirá mi publicación en Origen El Doradillo: ${publishedShareUrl}`)}`}
+                target="_blank"
+                rel="noreferrer"
+                className="mx-auto mt-5 flex w-fit items-center gap-2 rounded-lg bg-[#25D366] px-5 py-2.5 text-[13.5px] font-semibold text-white"
+              >
+                <i className="ti ti-brand-whatsapp text-lg" aria-hidden />
+                Compartir por WhatsApp
+              </a>
+            )}
+            <button onClick={onClose} className="mx-auto mt-3 rounded-lg border border-piedra/70 px-6 py-2.5 text-[13.5px] font-semibold text-tinta">
               Listo
             </button>
           </div>
@@ -516,9 +568,19 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
               <div className="mb-1.5 h-1 overflow-hidden rounded-full bg-hueso">
                 <div className="h-full rounded-full bg-oliva transition-all" style={{ width: `${pct}%` }} />
               </div>
-              <p className="mb-4 text-[11px] text-tinta-suave">
-                Paso {stepIndex + 1} de {steps.length}
-              </p>
+              <div className="mb-4 flex items-center justify-between gap-2">
+                <p className="text-[11px] text-tinta-suave">
+                  Paso {stepIndex + 1} de {steps.length}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setTipsOpen(true)}
+                  className="flex items-center gap-1 rounded-full border border-dorado/60 px-2.5 py-1 text-[11px] font-medium text-dorado"
+                >
+                  <i className="ti ti-bulb text-xs" aria-hidden />
+                  Consejos para publicar mejor
+                </button>
+              </div>
 
               {step === "intencion" && (
                 <>
@@ -644,6 +706,21 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
                       className="w-full rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta"
                     />
                   </Field>
+                  {data.intencion === "ofrezco" && (
+                    <Field label="Nombre del emprendimiento (opcional)">
+                      <input
+                        type="text"
+                        placeholder="Ej: Cuchillos del Sur"
+                        value={data.nombreEmprendimiento}
+                        onChange={(e) => update("nombreEmprendimiento", e.target.value)}
+                        className="w-full rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta"
+                      />
+                      <p className="mt-1 text-[11px] text-tinta-suave">
+                        Si vendés esto bajo un nombre distinto al tuyo, se muestra ese nombre en la tarjeta en vez de tu nombre de
+                        usuario.
+                      </p>
+                    </Field>
+                  )}
                   {(data.intencion === "busco" || fotoRequerida(data) || data.tipo === "servicio" || data.tipo === "otro") && (
                     <Field label={fotoRequerida(data) ? "Fotos" : "Fotos (opcional)"}>
                       <PhotoDropzone
@@ -660,6 +737,21 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
                         portadaSourceUrl={data.portadaSourceUrl}
                         onPickPortada={openPortadaCrop}
                       />
+                      {data.fotosData.length >= 3 && (
+                        <label className="mt-2 flex items-center gap-1.5 text-[12px] text-tinta">
+                          <input
+                            type="checkbox"
+                            checked={mosaicActive}
+                            disabled={mosaicGenerating}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              setMosaicActive(checked);
+                              if (!checked) setData((prev) => ({ ...prev, fotoPortadaData: null, portadaSourceUrl: null }));
+                            }}
+                          />
+                          Armar una portada tipo mosaico con estas fotos {mosaicGenerating && "(generando...)"}
+                        </label>
+                      )}
                     </Field>
                   )}
                   <Field label="Descripción">
@@ -726,6 +818,28 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
                           onChange={(e) => update("precio", e.target.value)}
                           className="w-full rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta disabled:bg-hueso-2"
                         />
+                        {!data.precioConsultar && !data.precioRegalo && (
+                          <>
+                            <label className="flex items-center gap-1.5 text-[12px] text-tinta">
+                              <input
+                                type="checkbox"
+                                checked={data.tieneDescuento}
+                                onChange={(e) => update("tieneDescuento", e.target.checked)}
+                              />
+                              Tiene descuento (mostrar precio anterior tachado)
+                            </label>
+                            {data.tieneDescuento && (
+                              <input
+                                type="number"
+                                min={0}
+                                placeholder="Precio anterior, sin el descuento"
+                                value={data.precioAnterior}
+                                onChange={(e) => update("precioAnterior", e.target.value)}
+                                className="w-full rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta"
+                              />
+                            )}
+                          </>
+                        )}
                       </div>
                     </Field>
                   )}
@@ -910,7 +1024,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
                     </>
                   )}
 
-                  {data.tipo === "usado" && (
+                  {(data.tipo === "usado" || data.tipo === "automotor") && (
                     <>
                       <Field label="Estado del artículo">
                         <select
@@ -1056,12 +1170,19 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
         )}
       </div>
       {cropQueue.length > 0 && (
-        <PhotoCropModal file={cropQueue[0]} aspect={4 / 5} onConfirm={handleCropConfirm} onCancel={handleCropCancel} />
+        <PhotoCropModal
+          file={cropQueue[0]}
+          aspect={4 / 5}
+          title="Foto para la galería — así se ve al abrir tu publicación"
+          onConfirm={handleCropConfirm}
+          onCancel={handleCropCancel}
+        />
       )}
       {editingPhotoFile && (
         <PhotoCropModal
           file={editingPhotoFile}
           aspect={4 / 5}
+          title="Editando esta foto de la galería"
           onConfirm={handleEditPhotoConfirm}
           onCancel={() => {
             setEditingPhotoFile(null);
@@ -1073,6 +1194,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
         <PhotoCropModal
           file={portadaCropFile}
           aspect={4 / 3}
+          title="Foto de portada — así se ve en las tarjetas y en las búsquedas"
           onConfirm={handlePortadaCropConfirm}
           onCancel={() => {
             setPortadaCropFile(null);
@@ -1080,6 +1202,95 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
           }}
         />
       )}
+      {tipsOpen && <PublishTipsModal onClose={() => setTipsOpen(false)} />}
+    </div>
+  );
+}
+
+const AI_FLYER_PROMPT =
+  "Diseñá un flyer publicitario en formato vertical (proporción 4:5), para promocionar [tu producto/servicio]. " +
+  "Texto principal bien visible: \"[TÍTULO]\". Incluí: [precio o promoción, si aplica] y [forma de contacto o @usuario]. " +
+  "Estilo simple y profesional, buen contraste de texto, sin amontonar información, fondo prolijo (podés usar una foto real de [tu producto] de fondo o un color liso). " +
+  "Colores: [2-3 colores de tu marca o del rubro]. Que se lea bien incluso en una miniatura chica.";
+
+function PublishTipsModal({ onClose }: { onClose: () => void }) {
+  const [copied, setCopied] = useState(false);
+
+  async function copyPrompt() {
+    try {
+      await navigator.clipboard.writeText(AI_FLYER_PROMPT);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard no disponible (permiso denegado, http sin TLS, etc.) — el
+      // texto sigue seleccionable a mano en el <p> de abajo.
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-stretch justify-center bg-oliva-dd/60 sm:items-center sm:p-6" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="flex h-full w-full flex-col overflow-y-auto bg-white sm:h-auto sm:max-h-[85vh] sm:max-w-md sm:rounded-2xl">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-piedra/50 bg-white px-5 py-3.5">
+          <span className="font-slab text-[14px] font-semibold text-tinta">Consejos para publicar mejor</span>
+          <button onClick={onClose} aria-label="Cerrar">
+            <i className="ti ti-x text-lg text-tinta" aria-hidden />
+          </button>
+        </div>
+        <div className="flex flex-col gap-4 px-5 py-4">
+          <TipSection icon="ti-heading" title="Título y subtítulo">
+            El título es lo primero que se ve — que sea corto y concreto, con lo más importante primero (ej: &quot;Miel pura de
+            abeja 500ml&quot; en vez de &quot;Producto en venta&quot;). Usá el subtítulo para un dato que no entra en el título:
+            marca, medida, año, modelo.
+          </TipSection>
+          <TipSection icon="ti-align-left" title="Descripción">
+            Contá qué es, en qué estado está, qué incluye y por qué comprarlo o contratarlo. Frases cortas, sin mayúsculas de
+            más. Las palabras clave que cargues aparte (paso &quot;Fotos&quot;) son las que realmente usa el buscador — no hace
+            falta repetirlas mil veces acá.
+          </TipSection>
+          <TipSection icon="ti-photo" title="Foto de portada">
+            Es la miniatura que se ve en las tarjetas y en los resultados de búsqueda. Formato horizontal (4:3), con el
+            producto completo y centrado, buena luz (mejor luz natural que flash), y evitá texto superpuesto si podés.
+          </TipSection>
+          <TipSection icon="ti-photo-plus" title="Resto de las fotos">
+            Formato vertical (4:5). Subí entre 3 y 5 fotos si podés: distintos ángulos, detalles de cerca, el empaque, o el
+            producto/servicio en uso — eso genera mucha más confianza que una sola foto.
+          </TipSection>
+          <TipSection icon="ti-ruler-2" title="Tamaño de imagen">
+            Con una foto sacada desde el celular normal ya alcanza (mínimo recomendado, apenas 1000px de ancho). Evitá
+            capturas de pantalla de otras publicaciones o fotos muy oscuras/borrosas.
+          </TipSection>
+          <TipSection icon="ti-sparkles" title="¿No tenés flyer? Armalo con IA">
+            Pegá este texto en tu generador de imágenes con IA favorito (completando lo que está entre corchetes) para armar
+            un flyer rápido:
+            <div className="mt-2 rounded-lg bg-hueso-2 p-3 text-[11.5px] leading-relaxed text-tinta-suave">{AI_FLYER_PROMPT}</div>
+            <button
+              type="button"
+              onClick={copyPrompt}
+              className="mt-2 flex items-center gap-1.5 rounded-lg border border-piedra/70 px-3 py-1.5 text-[12px] font-medium text-tinta"
+            >
+              <i className={`ti ${copied ? "ti-check" : "ti-copy"} text-sm`} aria-hidden />
+              {copied ? "Copiado" : "Copiar texto"}
+            </button>
+          </TipSection>
+        </div>
+        <div className="border-t border-piedra/40 px-5 py-3.5">
+          <button onClick={onClose} className="w-full rounded-lg bg-oliva py-2.5 text-[13.5px] font-semibold text-hueso">
+            Entendido
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TipSection({ icon, title, children }: { icon: string; title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p className="mb-1 flex items-center gap-1.5 font-slab text-[13px] font-semibold text-tinta">
+        <i className={`ti ${icon} text-dorado`} aria-hidden />
+        {title}
+      </p>
+      <p className="text-[12.5px] leading-relaxed text-tinta-suave">{children}</p>
     </div>
   );
 }

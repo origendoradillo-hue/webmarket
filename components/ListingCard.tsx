@@ -121,11 +121,26 @@ export default function ListingCard({ listing: l, onOpen, isFavorito, onToggleFa
         <h3 className="mb-0.5 line-clamp-2 min-h-[2.4em] font-slab text-sm font-semibold leading-tight text-tinta">{l.nombre}</h3>
         {l.subtitulo && <p className="mb-0.5 truncate text-[11.5px] text-tinta-suave">{l.subtitulo}</p>}
         <p className="mb-2 truncate text-[11.5px] text-piedra">
-          {l.barrio || "El Doradillo"} · {l.zona}
+          {l.nombreEmprendimiento || l.publisherName} · {l.barrio || "El Doradillo"} · {l.zona}
           {l.cuadrante ? ` ${l.cuadrante}` : ""}
         </p>
-        <p className="mb-1.5 min-h-[17px] font-slab text-[13px] font-semibold text-tinta">
-          {l.precioRegalo ? "Se regala" : l.precioConsultar ? "A consultar" : l.precio ? `$${l.precio.toLocaleString("es-AR")}` : " "}
+        <p className="mb-1.5 flex min-h-[17px] items-baseline gap-1.5 font-slab text-[13px] font-semibold text-tinta">
+          {l.precioRegalo ? (
+            "Se regala"
+          ) : l.precioConsultar ? (
+            "A consultar"
+          ) : l.precio ? (
+            <>
+              {l.precioAnterior && l.precioAnterior > l.precio && (
+                <span className="text-[11px] font-normal text-piedra line-through">${l.precioAnterior.toLocaleString("es-AR")}</span>
+              )}
+              <span className={l.precioAnterior && l.precioAnterior > l.precio ? "text-golfo" : undefined}>
+                ${l.precio.toLocaleString("es-AR")}
+              </span>
+            </>
+          ) : (
+            " "
+          )}
         </p>
         <p className="mb-2 min-h-[15px] truncate text-[10.5px] text-golfo">
           {l.tags && l.tags.length > 0 ? l.tags.slice(0, 3).map((t) => `#${t.replace(/\s+/g, "")}`).join(" ") : " "}

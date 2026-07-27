@@ -70,7 +70,7 @@ export interface Database {
           id: string;
           publisher_id: string;
           intencion: "ofrezco" | "busco";
-          tipo: "producto" | "servicio" | "experiencia" | "inmueble" | "usado" | "emprendimiento" | "otro" | null;
+          tipo: "producto" | "servicio" | "experiencia" | "inmueble" | "automotor" | "usado" | "emprendimiento" | "otro" | null;
           rol: "negocio" | "vecino" | null;
           categoria: string | null;
           subcategoria: string | null;
@@ -88,9 +88,11 @@ export interface Database {
           etiquetas: string[];
           cantidad: number | null;
           precio: number | null;
+          precio_anterior: number | null;
           precio_a_consultar: boolean;
           precio_regalo: boolean;
           whatsapp_publico: boolean;
+          nombre_emprendimiento: string | null;
           short_code: string;
           sello: boolean;
           destacada: boolean;
@@ -105,7 +107,7 @@ export interface Database {
         Insert: {
           publisher_id: string;
           intencion: "ofrezco" | "busco";
-          tipo?: "producto" | "servicio" | "experiencia" | "inmueble" | "usado" | "emprendimiento" | "otro" | null;
+          tipo?: "producto" | "servicio" | "experiencia" | "inmueble" | "automotor" | "usado" | "emprendimiento" | "otro" | null;
           categoria?: string | null;
           subcategoria?: string | null;
           zona: string;
@@ -122,9 +124,11 @@ export interface Database {
           etiquetas?: string[];
           cantidad?: number | null;
           precio?: number | null;
+          precio_anterior?: number | null;
           precio_a_consultar?: boolean;
           precio_regalo?: boolean;
           whatsapp_publico?: boolean;
+          nombre_emprendimiento?: string | null;
           detalles?: Record<string, unknown>;
           status?: "activa";
         };
@@ -599,6 +603,8 @@ export interface Database {
           p_whatsapp_publico?: boolean | null;
           p_foto_og_url?: string | null;
           p_foto_portada_url?: string | null;
+          p_nombre_emprendimiento?: string | null;
+          p_precio_anterior?: number | null;
         };
         Returns: string;
       };
@@ -624,6 +630,9 @@ export interface Database {
           p_whatsapp_publico?: boolean | null;
           p_foto_og_url?: string | null;
           p_foto_portada_url?: string | null;
+          p_nombre_emprendimiento?: string | null;
+          p_precio_anterior?: number | null;
+          p_quitar_precio_anterior?: boolean | null;
         };
         Returns: undefined;
       };
@@ -650,6 +659,9 @@ export interface Database {
           p_whatsapp_publico?: boolean | null;
           p_foto_og_url?: string | null;
           p_foto_portada_url?: string | null;
+          p_nombre_emprendimiento?: string | null;
+          p_precio_anterior?: number | null;
+          p_quitar_precio_anterior?: boolean | null;
         };
         Returns: undefined;
       };

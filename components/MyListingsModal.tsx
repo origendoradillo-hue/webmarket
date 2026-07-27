@@ -75,6 +75,9 @@ interface EditForm {
   precio: string;
   precioConsultar: boolean;
   precioRegalo: boolean;
+  tieneDescuento: boolean;
+  precioAnterior: string;
+  nombreEmprendimiento: string;
   zona: string;
   cuadrante: string;
   direccion: string;
@@ -231,6 +234,9 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
       precio: l.precio != null ? String(l.precio) : "",
       precioConsultar: l.precio_a_consultar,
       precioRegalo: l.precio_regalo,
+      tieneDescuento: l.precio_anterior != null,
+      precioAnterior: l.precio_anterior != null ? String(l.precio_anterior) : "",
+      nombreEmprendimiento: l.nombre_emprendimiento || "",
       zona: l.zona,
       cuadrante: l.cuadrante || "",
       direccion: l.direccion || "",
@@ -417,6 +423,9 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
       p_precio: editForm.precio.trim() === "" ? null : Number(editForm.precio),
       p_precio_a_consultar: editForm.precioConsultar,
       p_precio_regalo: editForm.precioRegalo,
+      p_precio_anterior: editForm.tieneDescuento && editForm.precioAnterior.trim() !== "" ? Number(editForm.precioAnterior) : null,
+      p_quitar_precio_anterior: !editForm.tieneDescuento,
+      p_nombre_emprendimiento: editForm.nombreEmprendimiento.trim() || null,
       p_zona: editForm.zona,
       p_cuadrante: editForm.cuadrante || null,
       p_direccion: editForm.direccion || null,
@@ -713,6 +722,14 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
                           className="w-full rounded-lg border border-piedra/70 bg-white px-2.5 py-2 text-[13px] text-tinta"
                         />
                       </MiniField>
+                      <MiniField label="Nombre del emprendimiento (opcional)">
+                        <input
+                          placeholder="Se muestra en vez de tu nombre de usuario"
+                          value={editForm.nombreEmprendimiento}
+                          onChange={(e) => setEditForm({ ...editForm, nombreEmprendimiento: e.target.value })}
+                          className="w-full rounded-lg border border-piedra/70 bg-white px-2.5 py-2 text-[13px] text-tinta"
+                        />
+                      </MiniField>
                       <MiniField label="Descripción">
                         <textarea
                           value={editForm.descripcion}
@@ -763,6 +780,27 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
                           onChange={(e) => setEditForm({ ...editForm, precio: e.target.value })}
                           className="w-full rounded-lg border border-piedra/70 bg-white px-2.5 py-2 text-[13px] text-tinta disabled:bg-hueso-2"
                         />
+                        {!editForm.precioConsultar && !editForm.precioRegalo && (
+                          <>
+                            <label className="flex items-center gap-1.5 text-[11.5px] text-tinta">
+                              <input
+                                type="checkbox"
+                                checked={editForm.tieneDescuento}
+                                onChange={(e) => setEditForm({ ...editForm, tieneDescuento: e.target.checked })}
+                              />
+                              Tiene descuento (mostrar precio anterior tachado)
+                            </label>
+                            {editForm.tieneDescuento && (
+                              <input
+                                type="number"
+                                placeholder="Precio anterior, sin el descuento"
+                                value={editForm.precioAnterior}
+                                onChange={(e) => setEditForm({ ...editForm, precioAnterior: e.target.value })}
+                                className="w-full rounded-lg border border-piedra/70 bg-white px-2.5 py-2 text-[13px] text-tinta"
+                              />
+                            )}
+                          </>
+                        )}
                       </div>
                       <div className="mb-2.5 grid grid-cols-2 gap-2">
                         <input
@@ -896,12 +934,19 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
         </div>
       </div>
       {cropQueue.length > 0 && (
-        <PhotoCropModal file={cropQueue[0]} aspect={4 / 5} onConfirm={handleCropConfirm} onCancel={handleCropCancel} />
+        <PhotoCropModal
+          file={cropQueue[0]}
+          aspect={4 / 5}
+          title="Foto para la galería — así se ve al abrir tu publicación"
+          onConfirm={handleCropConfirm}
+          onCancel={handleCropCancel}
+        />
       )}
       {portadaEditFile && (
         <PhotoCropModal
           file={portadaEditFile}
           aspect={4 / 5}
+          title="Editando la foto principal — así se ve al abrir tu publicación"
           onConfirm={handlePortadaEditConfirm}
           onCancel={() => {
             setPortadaEditFile(null);
@@ -913,6 +958,7 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
         <PhotoCropModal
           file={portadaSourceFile}
           aspect={4 / 3}
+          title="Foto de portada — así se ve en las tarjetas y en las búsquedas"
           onConfirm={handlePortadaSourceCropConfirm}
           onCancel={() => {
             setPortadaSourceFile(null);
@@ -921,7 +967,13 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
         />
       )}
       {portadaCropFile && (
-        <PhotoCropModal file={portadaCropFile} aspect={4 / 3} onConfirm={handleNewPhotoPortadaCropConfirm} onCancel={() => setPortadaCropFile(null)} />
+        <PhotoCropModal
+          file={portadaCropFile}
+          aspect={4 / 3}
+          title="Foto de portada — así se ve en las tarjetas y en las búsquedas"
+          onConfirm={handleNewPhotoPortadaCropConfirm}
+          onCancel={() => setPortadaCropFile(null)}
+        />
       )}
     </div>
   );

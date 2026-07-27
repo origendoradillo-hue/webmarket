@@ -202,6 +202,8 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, user, o
               title={listing.nombre}
               text={listing.descripcion.slice(0, 120)}
               imageUrl={listing.foto}
+              label="Compartir"
+              className="flex items-center rounded-full border border-piedra/60 px-2.5 py-1 text-[12px] font-medium text-tinta"
             />
             <button onClick={onClose} aria-label="Cerrar">
               <i className="ti ti-x text-lg text-tinta" aria-hidden />
@@ -277,12 +279,31 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, user, o
 
           <h2 className="mb-1 font-slab text-xl font-semibold text-tinta sm:text-[22px]">{l.nombre}</h2>
           {l.subtitulo && <p className="mb-1 text-[14px] text-tinta-suave">{l.subtitulo}</p>}
+          {(l.nombreEmprendimiento || l.publisherName) && (
+            <p className="mb-1 flex items-center gap-1 text-[13px] text-tinta-suave">
+              <i className="ti ti-user text-xs" aria-hidden />
+              {l.nombreEmprendimiento || l.publisherName}
+            </p>
+          )}
           <p className="mb-1 text-[13px] text-tinta-suave">
             {l.categoria && categories[l.categoria] ? `${categories[l.categoria].label}${l.subcategoria ? ` · ${l.subcategoria}` : ""}` : "Otro"}
           </p>
           {(l.precio || l.precioConsultar || l.precioRegalo) && (
-            <p className="mb-1 font-slab text-lg font-semibold text-tinta">
-              {l.precioRegalo ? "Se regala" : l.precioConsultar ? "Precio a consultar" : `$${l.precio!.toLocaleString("es-AR")}`}
+            <p className="mb-1 flex items-baseline gap-2 font-slab text-lg font-semibold text-tinta">
+              {l.precioRegalo ? (
+                "Se regala"
+              ) : l.precioConsultar ? (
+                "Precio a consultar"
+              ) : (
+                <>
+                  {l.precioAnterior && l.precioAnterior > l.precio! && (
+                    <span className="text-[13px] font-normal text-piedra line-through">${l.precioAnterior.toLocaleString("es-AR")}</span>
+                  )}
+                  <span className={l.precioAnterior && l.precioAnterior > l.precio! ? "text-golfo" : undefined}>
+                    ${l.precio!.toLocaleString("es-AR")}
+                  </span>
+                </>
+              )}
             </p>
           )}
           <p className="mb-3 flex items-center gap-1 text-[13.5px] font-medium text-tinta">

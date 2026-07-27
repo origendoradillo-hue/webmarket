@@ -7,6 +7,7 @@ export const TIPO_OPTIONS: { value: TipoPublicacion; icon: string; label: string
   { value: "servicio", icon: "ti-tools", label: "Servicio" },
   { value: "experiencia", icon: "ti-compass", label: "Experiencia" },
   { value: "inmueble", icon: "ti-home", label: "Inmuebles" },
+  { value: "automotor", icon: "ti-car", label: "Automotor" },
   { value: "usado", icon: "ti-recycle", label: "Usados" },
   { value: "emprendimiento", icon: "ti-building-store", label: "Emprendimiento" },
   { value: "otro", icon: "ti-dots", label: "Otro" },

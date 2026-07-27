@@ -94,16 +94,28 @@ export const CATEGORIES: Record<CategoryKey, Category> = {
     tipoScope: ["usado"],
     subs: [],
   },
-  usado_vehiculos: {
-    label: "Vehículos",
-    icon: "ti-car",
-    tipoScope: ["usado"],
-    subs: [],
-  },
   usado_otros: {
     label: "Otros usados",
     icon: "ti-dots",
     tipoScope: ["usado"],
+    subs: [],
+  },
+  usado_vehiculos: {
+    label: "Autos y camionetas",
+    icon: "ti-car",
+    tipoScope: ["automotor"],
+    subs: [],
+  },
+  automotor_motos: {
+    label: "Motos y cuatriciclos",
+    icon: "ti-motorbike",
+    tipoScope: ["automotor"],
+    subs: [],
+  },
+  automotor_otros: {
+    label: "Otros vehículos",
+    icon: "ti-dots",
+    tipoScope: ["automotor"],
     subs: [],
   },
   otro_varios: {

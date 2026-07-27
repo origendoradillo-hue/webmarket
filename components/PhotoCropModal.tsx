@@ -12,6 +12,11 @@ interface PreviewPanel {
 interface PhotoCropModalProps {
   file: File;
   aspect?: number;
+  // Texto corto que explica QUÉ se está editando y para qué se usa esa
+  // foto — sin esto, el recorte es una pantalla negra sin contexto (fue
+  // una confusión real reportada: no quedaba claro si se estaba editando
+  // la portada, la principal, o una foto de la galería).
+  title?: string;
   previewPanels?: PreviewPanel[];
   onConfirm: (blob: Blob) => void;
   onCancel: () => void;
@@ -20,7 +25,7 @@ interface PhotoCropModalProps {
 // Editor de recorte/zoom antes de subir una foto — se intercala entre
 // "elegir archivo" y el resize/compresión que ya existía (lib/resizeImage.ts),
 // que sigue aplicándose después sobre el blob recortado.
-export default function PhotoCropModal({ file, aspect, previewPanels, onConfirm, onCancel }: PhotoCropModalProps) {
+export default function PhotoCropModal({ file, aspect, title, previewPanels, onConfirm, onCancel }: PhotoCropModalProps) {
   const [imageSrc] = useState(() => URL.createObjectURL(file));
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -70,6 +75,9 @@ export default function PhotoCropModal({ file, aspect, previewPanels, onConfirm,
 
   return (
     <div className="fixed inset-0 z-[70] flex flex-col bg-black">
+      {title && (
+        <div className="flex-shrink-0 bg-oliva-dd/90 px-4 py-2.5 text-center text-[12.5px] font-medium text-white">{title}</div>
+      )}
       <div className="relative flex-1">
         <Cropper
           image={imageSrc}
