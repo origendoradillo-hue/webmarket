@@ -6,7 +6,9 @@ import { createClient } from "@/lib/supabase/client";
 import { Anuncio, AnuncioLayoutType, TipoAnuncio } from "@/lib/types";
 import { ANUNCIO_LAYOUT_LABELS, ANUNCIO_LAYOUT_OPTIONS } from "@/lib/anuncioLayouts";
 import { resizeImage } from "@/lib/resizeImage";
+import { isValidWhatsapp, sanitizeWhatsappInput, WHATSAPP_HELP_TEXT, WHATSAPP_PLACEHOLDER } from "@/lib/whatsapp";
 import AnuncioSlide, { CARTEL_FLYER_ASPECT } from "./AnuncioSlide";
+import AnuncioSlidePreviewFrame from "./AnuncioSlidePreviewFrame";
 import PhotoCropModal from "./PhotoCropModal";
 
 const TIPO_OPTIONS: { value: TipoAnuncio; label: string }[] = [
@@ -107,6 +109,10 @@ export default function AnuncioRequestForm({ open, onClose, user }: AnuncioReque
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (whatsappNumero.trim() !== "" && !isValidWhatsapp(whatsappNumero)) {
+      setError("El WhatsApp no parece válido — cargá un solo número, con código de área.");
+      return;
+    }
     setSubmitting(true);
     setError(null);
     const supabase = createClient();
@@ -292,12 +298,9 @@ export default function AnuncioRequestForm({ open, onClose, user }: AnuncioReque
 
             <div className="mb-3.5">
               <p className="mb-1.5 text-[11px] font-medium text-tinta">Así se ve</p>
-              {/* AnuncioSlide asume un alto fijo del contenedor (h-full por
-                  dentro, igual que en el carrusel real) — sin esto, algunos
-                  formatos colapsaban a alto 0 y se veían rotos. */}
-              <div className="h-[220px] w-full overflow-hidden rounded-xl border border-piedra/50">
+              <AnuncioSlidePreviewFrame className="w-full rounded-xl border border-piedra/50">
                 <AnuncioSlide anuncio={previewAnuncio} priority={false} />
-              </div>
+              </AnuncioSlidePreviewFrame>
             </div>
 
             {layoutType === "flyer_on_sign" && (
@@ -341,12 +344,16 @@ export default function AnuncioRequestForm({ open, onClose, user }: AnuncioReque
               <LabeledInput label="Texto del botón (opcional)" value={ctaLabel} onChange={setCtaLabel} placeholder="Ej: Ver más" />
               <LabeledInput label="Link del botón (opcional)" value={ctaUrl} onChange={setCtaUrl} placeholder="https://..." />
             </div>
-            <LabeledInput
-              label="WhatsApp de contacto (opcional)"
-              value={whatsappNumero}
-              onChange={setWhatsappNumero}
-              placeholder="Solo números con código de área"
-            />
+            <Field label="WhatsApp de contacto (opcional)">
+              <input
+                type="tel"
+                placeholder={WHATSAPP_PLACEHOLDER}
+                value={whatsappNumero}
+                onChange={(e) => setWhatsappNumero(sanitizeWhatsappInput(e.target.value))}
+                className="w-full rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta"
+              />
+              <p className="mt-1 text-[11px] text-tinta-suave">{WHATSAPP_HELP_TEXT}</p>
+            </Field>
             <LabeledInput label="Link de redes (opcional)" value={redesUrl} onChange={setRedesUrl} placeholder="Instagram, Facebook, etc." />
 
             <Field label="Mensaje para el equipo (opcional)">

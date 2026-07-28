@@ -370,33 +370,47 @@ function FullBannerSlide({ a, priority, onDetailOpenChange }: SlideProps) {
         setDetailOpen(true);
         onDetailOpenChange?.(true);
       }}
-      className={`relative block w-full ${SLIDE_HEIGHT}`}
+      className={`relative block w-full overflow-hidden sm:grid sm:grid-cols-2 ${SLIDE_HEIGHT}`}
     >
-      <Image
-        src={a.imagen && !imgFailed ? a.imagen : FONDO_ESTEPA}
-        alt={a.titulo}
-        fill
-        className="object-cover"
-        sizes="100vw"
-        priority={priority}
-        onError={() => setImgFailed(true)}
-      />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />
-      {/* Blur solo detrás de la franja de texto (no de toda la imagen) para
-          que no se mezclen imagen y letras sin perder nitidez arriba. */}
-      <div className="absolute inset-x-0 bottom-0 h-1/2 backdrop-blur-sm" />
-      <div className="absolute left-3 top-3">
-        <TipoBadge tipo={a.tipo} variant="solid" />
+      {/* Una foto pensada para un carrusel angosto de celular queda muy
+          estirada/recortada en uno mucho más ancho de PC — en mobile es
+          foto a pantalla completa con el texto encima (como siempre); en
+          desktop pasa a ser foto a la izquierda y un panel de texto aparte
+          a la derecha, mismo criterio que el layout del cartel. */}
+      <div className="relative h-full">
+        <Image
+          src={a.imagen && !imgFailed ? a.imagen : FONDO_ESTEPA}
+          alt={a.titulo}
+          fill
+          className="object-cover"
+          sizes="(min-width: 640px) 50vw, 100vw"
+          priority={priority}
+          onError={() => setImgFailed(true)}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent sm:hidden" />
+        {/* Blur solo detrás de la franja de texto (no de toda la imagen) para
+            que no se mezclen imagen y letras sin perder nitidez arriba. */}
+        <div className="absolute inset-x-0 bottom-0 h-1/2 backdrop-blur-sm sm:hidden" />
+        <div className="absolute left-3 top-3">
+          <TipoBadge tipo={a.tipo} variant="solid" />
+        </div>
+        <div className="absolute inset-x-0 bottom-0 p-4 sm:hidden">
+          <h3 className="font-slab text-base font-semibold leading-tight text-white">{a.titulo}</h3>
+          <p className="mt-1 line-clamp-2 max-w-[560px] text-[12px] text-white/85">{a.descripcion}</p>
+          <FechaLugar a={a} />
+          {cta && (
+            <div className="mt-2">
+              <CtaButton cta={cta} />
+            </div>
+          )}
+        </div>
       </div>
-      <div className="absolute inset-x-0 bottom-0 p-4 sm:p-6">
-        <h3 className="font-slab text-base font-semibold leading-tight text-white sm:text-lg">{a.titulo}</h3>
-        <p className="mt-1 line-clamp-2 max-w-[560px] text-[12px] text-white/85 sm:text-[13px]">{a.descripcion}</p>
+      <div className="hidden flex-col justify-center gap-2 bg-hueso-2 px-8 py-7 sm:flex">
+        <TipoBadge tipo={a.tipo} />
+        <h3 className="font-slab text-lg font-semibold leading-tight text-tinta">{a.titulo}</h3>
+        <p className="text-[13.5px] leading-relaxed text-tinta-suave">{a.descripcion}</p>
         <FechaLugar a={a} />
-        {cta && (
-          <div className="mt-2">
-            <CtaButton cta={cta} />
-          </div>
-        )}
+        {cta && <CtaButton cta={cta} />}
       </div>
     </SlideLink>
     {detailOpen && (

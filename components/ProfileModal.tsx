@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { updatePassword } from "@/lib/supabase/auth";
 import { useCategories } from "@/lib/useCategories";
 import { resizeImage } from "@/lib/resizeImage";
+import { isValidWhatsapp, sanitizeWhatsappInput, WHATSAPP_HELP_TEXT, WHATSAPP_PLACEHOLDER } from "@/lib/whatsapp";
 import PasswordInput from "./PasswordInput";
 import PhotoCropModal from "./PhotoCropModal";
 
@@ -138,6 +139,11 @@ export default function ProfileModal({ open, onClose, user }: ProfileModalProps)
 
   async function handleSaveProfile(e: React.FormEvent) {
     e.preventDefault();
+    if (whatsapp.trim() !== "" && !isValidWhatsapp(whatsapp)) {
+      setProfileStatus("error");
+      setProfileMessage("El WhatsApp no parece válido — un solo número, con código de área.");
+      return;
+    }
     setProfileStatus("sending");
     const supabase = createClient();
     const { error } = await supabase
@@ -267,10 +273,12 @@ export default function ProfileModal({ open, onClose, user }: ProfileModalProps)
               <Field label="WhatsApp">
                 <input
                   type="tel"
+                  placeholder={WHATSAPP_PLACEHOLDER}
                   value={whatsapp}
-                  onChange={(e) => setWhatsapp(e.target.value)}
+                  onChange={(e) => setWhatsapp(sanitizeWhatsappInput(e.target.value))}
                   className="w-full rounded-lg border border-piedra/70 px-3 py-2.5 text-[13.5px] text-tinta"
                 />
+                <p className="mt-1 text-[11px] text-tinta-suave">{WHATSAPP_HELP_TEXT}</p>
               </Field>
               <Field label="Email">
                 <div className="flex items-center gap-2 rounded-lg border border-piedra/40 bg-hueso-2 px-3 py-2.5 text-[13.5px] text-tinta-suave">

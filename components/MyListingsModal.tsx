@@ -301,6 +301,19 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
     }
   }
 
+  async function handleQuitarFotoPrincipal(l: ListingRow) {
+    if (!confirm("¿Quitar la foto principal de esta publicación?")) return;
+    setSaving(true);
+    const supabase = createClient();
+    const { error } = await supabase.rpc("mi_update_listing", { p_listing_id: l.id, p_quitar_foto: true });
+    setSaving(false);
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    await loadListings();
+  }
+
   async function handlePortadaEditConfirm(blob: Blob) {
     if (!portadaEditListing) return;
     const listing = portadaEditListing;
@@ -859,17 +872,25 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
                               <span className="absolute bottom-0 left-0 right-0 bg-black/50 text-center text-[9px] text-white">Principal</span>
                               <button
                                 type="button"
+                                onClick={() => handleQuitarFotoPrincipal(l)}
+                                aria-label="Quitar foto principal"
+                                className="absolute right-0.5 top-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white"
+                              >
+                                <i className="ti ti-x text-[12px]" aria-hidden />
+                              </button>
+                              <button
+                                type="button"
                                 onClick={() => handleEditarFotoPrincipal(l)}
                                 aria-label="Editar recorte de la foto principal"
-                                className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-white"
+                                className="absolute right-0.5 top-7 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white"
                               >
-                                <i className="ti ti-crop text-[9px]" aria-hidden />
+                                <i className="ti ti-crop text-[12px]" aria-hidden />
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleUsePhotoAsPortada(l, l.foto_url!)}
                                 aria-label="Usar como portada"
-                                className="absolute left-0.5 top-0.5 rounded-full bg-black/60 px-1 py-0.5 text-[8px] font-medium text-white"
+                                className="absolute left-0.5 top-0.5 rounded-full bg-black/60 px-1.5 py-1 text-[10px] font-medium text-white"
                               >
                                 Portada
                               </button>
@@ -883,15 +904,15 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
                                 type="button"
                                 onClick={() => removeExistingImage(im.id)}
                                 aria-label="Quitar foto"
-                                className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-white"
+                                className="absolute right-0.5 top-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white"
                               >
-                                <i className="ti ti-x text-[9px]" aria-hidden />
+                                <i className="ti ti-x text-[12px]" aria-hidden />
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleUsePhotoAsPortada(l, im.url)}
                                 aria-label="Usar como portada"
-                                className="absolute left-0.5 top-0.5 rounded-full bg-black/60 px-1 py-0.5 text-[8px] font-medium text-white"
+                                className="absolute left-0.5 top-0.5 rounded-full bg-black/60 px-1.5 py-1 text-[10px] font-medium text-white"
                               >
                                 Portada
                               </button>
@@ -905,15 +926,15 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
                                 type="button"
                                 onClick={() => removeNewPhoto(i)}
                                 aria-label="Quitar foto"
-                                className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-white"
+                                className="absolute right-0.5 top-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white"
                               >
-                                <i className="ti ti-x text-[9px]" aria-hidden />
+                                <i className="ti ti-x text-[12px]" aria-hidden />
                               </button>
                               <button
                                 type="button"
                                 onClick={() => openPortadaCropFromNewPhoto(i)}
                                 aria-label="Usar como portada"
-                                className="absolute left-0.5 top-0.5 rounded-full bg-black/60 px-1 py-0.5 text-[8px] font-medium text-white"
+                                className="absolute left-0.5 top-0.5 rounded-full bg-black/60 px-1.5 py-1 text-[10px] font-medium text-white"
                               >
                                 Portada
                               </button>

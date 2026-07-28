@@ -20,11 +20,13 @@ import { REPORT_MOTIVO_LABELS, requiereSuspensionReciproca } from "@/lib/reportM
 import type { Anuncio, AnuncioLayoutType, TipoAnuncio, TipoPublicacion } from "@/lib/types";
 import { TIPO_OPTIONS } from "@/lib/tipos";
 import { ANUNCIO_LAYOUT_LABELS, ANUNCIO_LAYOUT_OPTIONS } from "@/lib/anuncioLayouts";
+import { isValidWhatsapp, sanitizeWhatsappInput, WHATSAPP_HELP_TEXT, WHATSAPP_PLACEHOLDER } from "@/lib/whatsapp";
 import { SITE_URL } from "@/lib/seo";
 import { resizeImage } from "@/lib/resizeImage";
 import { uploadCoverPhoto } from "@/lib/uploadCoverPhoto";
 import { containsPhoneNumber, maskPhoneNumbers } from "@/lib/phoneDetection";
 import AnuncioSlide, { TIPO_LABEL, CARTEL_FLYER_ASPECT } from "./AnuncioSlide";
+import AnuncioSlidePreviewFrame from "./AnuncioSlidePreviewFrame";
 import PhotoCropModal from "./PhotoCropModal";
 import DualCropFlow from "./DualCropFlow";
 import ShareButton from "./ShareButton";
@@ -1448,6 +1450,16 @@ function AdminListingRow({
     loadImages();
   }
 
+  async function quitarFotoPortada() {
+    if (!confirm("¿Quitar la foto de portada de esta publicación?")) return;
+    setSaving(true);
+    const supabase = createClient();
+    const { error } = await supabase.rpc("admin_update_listing", { p_listing_id: l.id, p_quitar_foto: true });
+    setSaving(false);
+    if (error) alert(error.message);
+    else onSaved();
+  }
+
   async function reasignar() {
     if (!reassignTo) return;
     setSaving(true);
@@ -1810,11 +1822,19 @@ function AdminListingRow({
                 <img src={l.foto_url} alt="Foto de portada actual" className="h-full w-full rounded object-cover" />
                 <button
                   type="button"
+                  onClick={quitarFotoPortada}
+                  aria-label="Quitar foto de portada"
+                  className="absolute right-0.5 top-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white"
+                >
+                  <i className="ti ti-x text-[12px]" aria-hidden />
+                </button>
+                <button
+                  type="button"
                   onClick={() => downloadImage(l.foto_url!, `portada-${l.id}.jpg`)}
                   aria-label="Descargar foto de portada"
-                  className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-white"
+                  className="absolute bottom-0.5 left-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white"
                 >
-                  <i className="ti ti-download text-[9px]" aria-hidden />
+                  <i className="ti ti-download text-[12px]" aria-hidden />
                 </button>
                 <button
                   type="button"
@@ -1826,9 +1846,9 @@ function AdminListingRow({
                     }
                   }}
                   aria-label="Editar recorte de la foto de portada"
-                  className="absolute bottom-0.5 right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-white"
+                  className="absolute bottom-0.5 right-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white"
                 >
-                  <i className="ti ti-crop text-[9px]" aria-hidden />
+                  <i className="ti ti-crop text-[12px]" aria-hidden />
                 </button>
               </div>
             )}
@@ -1846,17 +1866,17 @@ function AdminListingRow({
                     type="button"
                     onClick={() => downloadImage(im.url, `foto-${im.id}.jpg`)}
                     aria-label="Descargar foto"
-                    className="absolute bottom-0.5 left-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-white"
+                    className="absolute bottom-0.5 left-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white"
                   >
-                    <i className="ti ti-download text-[9px]" aria-hidden />
+                    <i className="ti ti-download text-[12px]" aria-hidden />
                   </button>
                   <button
                     type="button"
                     onClick={() => quitarFoto(im.id)}
                     aria-label="Quitar foto"
-                    className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-white"
+                    className="absolute right-0.5 top-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white"
                   >
-                    <i className="ti ti-x text-[9px]" aria-hidden />
+                    <i className="ti ti-x text-[12px]" aria-hidden />
                   </button>
                 </div>
               ))}
@@ -2059,6 +2079,10 @@ function AdminAnuncioRow({
   }, [expanded, loadHistorial]);
 
   async function guardarCambios() {
+    if (form.whatsappNumero.trim() !== "" && !isValidWhatsapp(form.whatsappNumero)) {
+      alert("El WhatsApp no parece válido — un solo número, con código de área.");
+      return;
+    }
     setSaving(true);
     const supabase = createClient();
     const { error } = await supabase.rpc("admin_process_anuncio", {
@@ -2111,6 +2135,26 @@ function AdminAnuncioRow({
       return;
     }
     onSaved();
+  }
+
+  async function quitarImagenAnuncio() {
+    if (!confirm("¿Quitar el flyer / imagen principal de este anuncio?")) return;
+    setSaving(true);
+    const supabase = createClient();
+    const { error } = await supabase.rpc("admin_process_anuncio", { p_anuncio_id: a.id, p_quitar_imagen: true });
+    setSaving(false);
+    if (error) alert(error.message);
+    else onSaved();
+  }
+
+  async function quitarFondoAnuncio() {
+    if (!confirm("¿Quitar la imagen de fondo de este anuncio?")) return;
+    setSaving(true);
+    const supabase = createClient();
+    const { error } = await supabase.rpc("admin_process_anuncio", { p_anuncio_id: a.id, p_quitar_background_image: true });
+    setSaving(false);
+    if (error) alert(error.message);
+    else onSaved();
   }
 
   function handleUploadFondo(e: React.ChangeEvent<HTMLInputElement>) {
@@ -2339,6 +2383,14 @@ function AdminAnuncioRow({
                   <img src={a.imagen_url} alt="" className="h-full w-full rounded object-cover" />
                   <button
                     type="button"
+                    onClick={quitarImagenAnuncio}
+                    aria-label="Quitar flyer / imagen principal"
+                    className="absolute right-0.5 top-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white"
+                  >
+                    <i className="ti ti-x text-[12px]" aria-hidden />
+                  </button>
+                  <button
+                    type="button"
                     onClick={async () => {
                       try {
                         setImagenCropFile(await urlToFile(a.imagen_url!, "flyer.jpg"));
@@ -2347,9 +2399,9 @@ function AdminAnuncioRow({
                       }
                     }}
                     aria-label="Editar recorte del flyer"
-                    className="absolute bottom-0.5 right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-white"
+                    className="absolute bottom-0.5 right-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white"
                   >
-                    <i className="ti ti-crop text-[9px]" aria-hidden />
+                    <i className="ti ti-crop text-[12px]" aria-hidden />
                   </button>
                 </div>
               )}
@@ -2374,6 +2426,14 @@ function AdminAnuncioRow({
                   <img src={a.background_image_url} alt="" className="h-full w-full rounded object-cover" />
                   <button
                     type="button"
+                    onClick={quitarFondoAnuncio}
+                    aria-label="Quitar imagen de fondo"
+                    className="absolute right-0.5 top-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white"
+                  >
+                    <i className="ti ti-x text-[12px]" aria-hidden />
+                  </button>
+                  <button
+                    type="button"
                     onClick={async () => {
                       try {
                         setFondoCropFile(await urlToFile(a.background_image_url!, "fondo.jpg"));
@@ -2382,9 +2442,9 @@ function AdminAnuncioRow({
                       }
                     }}
                     aria-label="Editar recorte del fondo"
-                    className="absolute bottom-0.5 right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-white"
+                    className="absolute bottom-0.5 right-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white"
                   >
-                    <i className="ti ti-crop text-[9px]" aria-hidden />
+                    <i className="ti ti-crop text-[12px]" aria-hidden />
                   </button>
                 </div>
               )}
@@ -2402,11 +2462,17 @@ function AdminAnuncioRow({
             <LabeledInput label="Texto del botón (CTA)" value={form.ctaLabel} onChange={(v) => setForm({ ...form, ctaLabel: v })} />
             <LabeledInput label="Link del botón" value={form.ctaUrl} onChange={(v) => setForm({ ...form, ctaUrl: v })} />
           </div>
-          <LabeledInput
-            label="WhatsApp de contacto (opcional, solo números con código de área)"
-            value={form.whatsappNumero}
-            onChange={(v) => setForm({ ...form, whatsappNumero: v })}
-          />
+          <div className="mb-3.5">
+            <label className="mb-1.5 block text-[12.5px] font-medium text-tinta">WhatsApp de contacto (opcional)</label>
+            <input
+              type="tel"
+              placeholder={WHATSAPP_PLACEHOLDER}
+              value={form.whatsappNumero}
+              onChange={(e) => setForm({ ...form, whatsappNumero: sanitizeWhatsappInput(e.target.value) })}
+              className="w-full rounded-lg border border-piedra/70 px-2.5 py-2.5 text-[13.5px] text-tinta"
+            />
+            <p className="mt-1 text-[11px] text-tinta-suave">{WHATSAPP_HELP_TEXT}</p>
+          </div>
           <LabeledInput
             label="Link de redes (Instagram, Facebook, etc. — opcional)"
             value={form.redesUrl}
@@ -2421,17 +2487,11 @@ function AdminAnuncioRow({
             <p className="mb-1.5 text-[11px] font-medium text-tinta">Vista previa en los 4 formatos</p>
             <div className="flex flex-wrap gap-3">
               {ANUNCIO_LAYOUT_OPTIONS.map((t) => (
-                <div key={t} className="w-[220px]">
+                <div key={t} className="w-[260px]">
                   <p className="mb-1 text-[10.5px] text-tinta-suave">{ANUNCIO_LAYOUT_LABELS[t]}</p>
-                  {/* AnuncioSlide necesita un alto fijo del contenedor (h-full
-                      por dentro). Sin esto, "Banner horizontal" e "Imagen de
-                      fondo + placa" quedaban en blanco: su contenido es 100%
-                      absolute (la imagen fill), así que sin nada en el flujo
-                      normal el alto calculado da 0 — cambiar el layout no
-                      hacía nada porque nunca hubo dónde mostrarlo. */}
-                  <div className="h-[220px] overflow-hidden rounded-xl border border-piedra/50">
+                  <AnuncioSlidePreviewFrame className="w-[260px] rounded-xl border border-piedra/50">
                     <AnuncioSlide anuncio={{ ...previewAnuncio, layoutType: t as AnuncioLayoutType }} priority={false} />
-                  </div>
+                  </AnuncioSlidePreviewFrame>
                 </div>
               ))}
             </div>
@@ -2472,9 +2532,9 @@ function AdminAnuncioRow({
             {
               label: "Así se ve",
               render: (url) => (
-                <div className="h-[220px] w-[220px] overflow-hidden">
+                <AnuncioSlidePreviewFrame className="w-[260px]">
                   <AnuncioSlide anuncio={{ ...previewAnuncio, imagen: url }} priority={false} />
-                </div>
+                </AnuncioSlidePreviewFrame>
               ),
             },
           ]}
@@ -2489,9 +2549,9 @@ function AdminAnuncioRow({
             {
               label: "Así se ve",
               render: (url) => (
-                <div className="h-[220px] w-[220px] overflow-hidden">
+                <AnuncioSlidePreviewFrame className="w-[260px]">
                   <AnuncioSlide anuncio={{ ...previewAnuncio, backgroundImagen: url }} priority={false} />
-                </div>
+                </AnuncioSlidePreviewFrame>
               ),
             },
           ]}
