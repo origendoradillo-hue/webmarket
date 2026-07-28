@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
+import { useCategories } from "@/lib/useCategories";
 import type { ListingRow } from "@/lib/supabase/types";
 import { REPORT_MOTIVO_LABELS } from "@/lib/reportMotivos";
 import { SITE_URL } from "@/lib/seo";
@@ -78,6 +79,8 @@ interface EditForm {
   tieneDescuento: boolean;
   precioDescuento: string;
   nombreEmprendimiento: string;
+  categoria: string;
+  subcategoria: string;
   zona: string;
   cuadrante: string;
   direccion: string;
@@ -86,6 +89,7 @@ interface EditForm {
 }
 
 export default function MyListingsModal({ open, onClose, user }: MyListingsModalProps) {
+  const { categories, zones } = useCategories();
   const [listings, setListings] = useState<ListingRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -240,6 +244,8 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
       tieneDescuento: l.precio_anterior != null,
       precioDescuento: l.precio_anterior != null && l.precio != null ? String(l.precio) : "",
       nombreEmprendimiento: l.nombre_emprendimiento || "",
+      categoria: l.categoria || "",
+      subcategoria: l.subcategoria || "",
       zona: l.zona,
       cuadrante: l.cuadrante || "",
       direccion: l.direccion || "",
@@ -448,6 +454,8 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
       p_precio_anterior: hayDescuentoValido ? precioBase : null,
       p_quitar_precio_anterior: !hayDescuentoValido,
       p_nombre_emprendimiento: editForm.nombreEmprendimiento.trim() || null,
+      p_categoria: editForm.categoria || null,
+      p_subcategoria: editForm.subcategoria || null,
       p_zona: editForm.zona,
       p_cuadrante: editForm.cuadrante || null,
       p_direccion: editForm.direccion || null,
@@ -825,18 +833,69 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
                         )}
                       </div>
                       <div className="mb-2.5 grid grid-cols-2 gap-2">
-                        <input
-                          placeholder="Barrio"
+                        <select
                           value={editForm.zona}
                           onChange={(e) => setEditForm({ ...editForm, zona: e.target.value })}
                           className="rounded-lg border border-piedra/70 bg-white px-2.5 py-2 text-[13px] text-tinta"
-                        />
+                        >
+                          <option value="">(sin barrio)</option>
+                          {/* Si esta publicación tiene un barrio que ya no
+                              está en la lista actual (borrado/renombrado),
+                              se agrega igual como opción para no perder el
+                              dato ni que el desplegable se vea "vacío". */}
+                          {editForm.zona && !zones.includes(editForm.zona) && (
+                            <option value={editForm.zona}>{editForm.zona} (no está en la lista actual)</option>
+                          )}
+                          {zones.map((z) => (
+                            <option key={z} value={z}>
+                              {z}
+                            </option>
+                          ))}
+                        </select>
                         <input
                           placeholder="Dirección o link de Maps (opcional)"
                           value={editForm.direccion}
                           onChange={(e) => setEditForm({ ...editForm, direccion: e.target.value })}
                           className="rounded-lg border border-piedra/70 bg-white px-2.5 py-2 text-[13px] text-tinta"
                         />
+                        <select
+                          value={editForm.categoria}
+                          onChange={(e) => setEditForm({ ...editForm, categoria: e.target.value, subcategoria: "" })}
+                          className="rounded-lg border border-piedra/70 bg-white px-2.5 py-2 text-[13px] text-tinta"
+                        >
+                          <option value="">(sin categoría)</option>
+                          {editForm.categoria &&
+                            !(
+                              categories[editForm.categoria] &&
+                              (!l.tipo || categories[editForm.categoria].tipoScope.includes(l.tipo))
+                            ) && (
+                              <option value={editForm.categoria}>
+                                {categories[editForm.categoria]?.label || editForm.categoria} (no está en la lista actual)
+                              </option>
+                            )}
+                          {Object.entries(categories)
+                            .filter(([, c]) => !l.tipo || c.tipoScope.includes(l.tipo))
+                            .map(([key, c]) => (
+                              <option key={key} value={key}>
+                                {c.label}
+                              </option>
+                            ))}
+                        </select>
+                        <select
+                          value={editForm.subcategoria}
+                          onChange={(e) => setEditForm({ ...editForm, subcategoria: e.target.value })}
+                          className="rounded-lg border border-piedra/70 bg-white px-2.5 py-2 text-[13px] text-tinta"
+                        >
+                          <option value="">(sin subcategoría)</option>
+                          {editForm.subcategoria && !(categories[editForm.categoria]?.subs || []).includes(editForm.subcategoria) && (
+                            <option value={editForm.subcategoria}>{editForm.subcategoria} (no está en la lista actual)</option>
+                          )}
+                          {(categories[editForm.categoria]?.subs || []).map((s) => (
+                            <option key={s} value={s}>
+                              {s}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                       <MiniField label="Palabras clave (separadas por coma)">
                         <input

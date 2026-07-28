@@ -1312,7 +1312,7 @@ function AdminListingRow({
   users: ProfileRow[];
   isSuperadmin: boolean;
 }) {
-  const { categories } = useCategories();
+  const { categories, zones } = useCategories();
   const [saving, setSaving] = useState(false);
   const [nota, setNota] = useState("");
   const [historial, setHistorial] = useState<ModeracionLogRow[]>([]);
@@ -1726,15 +1726,45 @@ function AdminListingRow({
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <LabeledInput label="Título" value={form.nombre} onChange={(v) => setForm({ ...form, nombre: v })} />
             <LabeledInput label="Subtítulo" value={form.subtitulo} onChange={(v) => setForm({ ...form, subtitulo: v })} />
-            <LabeledInput label="Barrio" value={form.zona} onChange={(v) => setForm({ ...form, zona: v })} />
+            <div>
+              <label className="mb-1 block text-[11px] font-medium text-tinta">Barrio</label>
+              <select
+                value={form.zona}
+                onChange={(e) => setForm({ ...form, zona: e.target.value })}
+                className="w-full rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
+              >
+                <option value="">(sin barrio)</option>
+                {/* Publicaciones viejas pueden tener un barrio que ya no está
+                    en la lista (borrado o renombrado) — se agrega igual como
+                    opción para no perder el dato ni mostrar el desplegable
+                    "vacío" cuando en realidad tiene un valor cargado. */}
+                {form.zona && !zones.includes(form.zona) && (
+                  <option value={form.zona}>{form.zona} (no está en la lista actual)</option>
+                )}
+                {zones.map((z) => (
+                  <option key={z} value={z}>
+                    {z}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div>
               <label className="mb-1 block text-[11px] font-medium text-tinta">Categoría</label>
               <select
                 value={form.categoria}
-                onChange={(e) => setForm({ ...form, categoria: e.target.value })}
+                onChange={(e) => setForm({ ...form, categoria: e.target.value, subcategoria: "" })}
                 className="w-full rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
               >
                 <option value="">(sin categoría)</option>
+                {/* Igual que con barrio: si la categoría cargada ya no existe
+                    o cambió de tipo_scope (pasó a otro "Ofrezco/Busco"), se
+                    agrega como opción aparte en vez de que el desplegable
+                    caiga en "(sin categoría)" ocultando el valor real. */}
+                {form.categoria && !(categories[form.categoria] && (!l.tipo || categories[form.categoria].tipoScope.includes(l.tipo as TipoPublicacion))) && (
+                  <option value={form.categoria}>
+                    {categories[form.categoria]?.label || form.categoria} (no está en la lista actual)
+                  </option>
+                )}
                 {Object.entries(categories)
                   .filter(([, c]) => !l.tipo || c.tipoScope.includes(l.tipo as TipoPublicacion))
                   .map(([key, c]) => (
@@ -1744,7 +1774,24 @@ function AdminListingRow({
                   ))}
               </select>
             </div>
-            <LabeledInput label="Subcategoría" value={form.subcategoria} onChange={(v) => setForm({ ...form, subcategoria: v })} />
+            <div>
+              <label className="mb-1 block text-[11px] font-medium text-tinta">Subcategoría</label>
+              <select
+                value={form.subcategoria}
+                onChange={(e) => setForm({ ...form, subcategoria: e.target.value })}
+                className="w-full rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
+              >
+                <option value="">(sin subcategoría)</option>
+                {form.subcategoria && !(categories[form.categoria]?.subs || []).includes(form.subcategoria) && (
+                  <option value={form.subcategoria}>{form.subcategoria} (no está en la lista actual)</option>
+                )}
+                {(categories[form.categoria]?.subs || []).map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div>
               <label className="mb-1 block text-[11px] font-medium text-tinta">{form.tieneDescuento ? "Precio original" : "Precio"}</label>
               <input
