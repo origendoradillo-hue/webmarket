@@ -11,7 +11,10 @@ interface FilterDropdownProps {
 // Pill chico que abre un panel flotante con las opciones adentro (mismo
 // contenido que ya existía, solo que ahora colapsado) — así los 4 grupos
 // de filtros caben en una sola fila horizontal en vez de apilarse y
-// ocupar toda la pantalla en celular.
+// ocupar toda la pantalla en celular. Cada chip ocupa una fracción igual
+// del ancho disponible (en vez de su ancho de contenido) para que los 4
+// entren siempre en el ancho de la pantalla sin scroll lateral, sea cual
+// sea el modelo de celular — el texto se trunca si no entra.
 export default function FilterDropdown({ label, activeLabel, children }: FilterDropdownProps) {
   const [open, setOpen] = useState(false);
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
@@ -49,23 +52,23 @@ export default function FilterDropdown({ label, activeLabel, children }: FilterD
   const isActive = !!activeLabel;
 
   return (
-    <div className="relative flex-shrink-0" ref={wrapRef}>
+    <div className="relative min-w-0 flex-1" ref={wrapRef}>
       <button
         ref={btnRef}
         type="button"
         onClick={toggle}
-        className={`flex flex-shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-3 py-1.5 text-[11.5px] ${
+        className={`flex w-full min-w-0 items-center justify-center gap-px rounded-full border px-0.5 py-1 text-[8px] leading-tight ${
           isActive ? "border-oliva bg-oliva text-hueso" : "border-piedra/60 bg-white text-tinta"
         }`}
       >
-        {activeLabel || label}
-        <i className={`ti ti-chevron-down text-xs transition-transform ${open ? "rotate-180" : ""}`} aria-hidden />
+        <span className="min-w-0 truncate">{activeLabel || label}</span>
+        <i className={`ti ti-chevron-down flex-shrink-0 text-[7px] transition-transform ${open ? "rotate-180" : ""}`} aria-hidden />
       </button>
       {open && coords && (
         <div
           ref={popRef}
           style={{ position: "fixed", top: coords.top, left: coords.left }}
-          className="z-20 max-h-[70vh] w-max min-w-[220px] max-w-[calc(100vw-2rem)] overflow-y-auto rounded-lg border border-piedra/30 bg-white p-3 shadow-lg"
+          className="z-50 max-h-[70vh] w-max min-w-[220px] max-w-[calc(100vw-2rem)] overflow-y-auto rounded-lg border border-piedra/30 bg-white p-2.5 shadow-lg"
         >
           {children}
         </div>

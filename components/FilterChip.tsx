@@ -16,11 +16,11 @@ export default function FilterChip({
     <button
       type="button"
       onClick={onClick}
-      className={`flex flex-shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-3 py-1.5 text-[11.5px] ${
+      className={`flex flex-shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-1 text-[10.5px] ${
         selected ? "border-oliva bg-oliva text-hueso" : "border-piedra/60 bg-white text-tinta"
       }`}
     >
-      <i className={`ti ${selected ? "ti-square-check" : "ti-square"} text-sm`} aria-hidden />
+      <i className={`ti ${selected ? "ti-square-check" : "ti-square"} text-xs`} aria-hidden />
       {children}
     </button>
   );

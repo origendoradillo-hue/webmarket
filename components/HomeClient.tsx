@@ -709,7 +709,7 @@ export default function HomeClient() {
               </div>
             )}
             <>
-              <div className="no-scrollbar sticky top-[58px] z-30 mb-3 flex flex-nowrap gap-2 overflow-x-auto bg-hueso px-4 py-2 pb-1 sm:top-[71px] sm:px-7">
+              <div className="sticky top-[58px] z-30 mb-3 flex gap-1.5 bg-hueso px-4 py-2 pb-1 sm:top-[71px] sm:gap-2 sm:px-7">
                 <FilterDropdown label="Tipo" activeLabel={tipoFilter !== "all" ? TIPO_LABELS[tipoFilter] : undefined}>
                   <div className="flex flex-wrap gap-1.5">
                     <FilterChip selected={tipoFilter === "all"} onClick={() => handleSelectTipo("all")}>

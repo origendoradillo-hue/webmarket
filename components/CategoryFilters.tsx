@@ -30,21 +30,21 @@ export default function CategoryFilters({
       <div className="mb-2 flex flex-wrap gap-1.5 pb-1">
         <button
           onClick={() => onSelectCat("all")}
-          className={`flex flex-shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-1 font-sans text-[11px] ${
+          className={`flex flex-shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-2 py-1 font-sans text-[10px] ${
             cat === "all" ? "border-oliva bg-oliva text-hueso" : "border-piedra/70 bg-white text-nogal"
           }`}
         >
-          <i className={`ti ${cat === "all" ? "ti-square-check" : "ti-apps"} text-[12px]`} aria-hidden /> Todas
+          <i className={`ti ${cat === "all" ? "ti-square-check" : "ti-apps"} text-[11px]`} aria-hidden /> Todas
         </button>
         {catEntries.map(([key, c]) => (
           <button
             key={key}
             onClick={() => onSelectCat(key)}
-            className={`flex flex-shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-1 font-sans text-[11px] ${
+            className={`flex flex-shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-2 py-1 font-sans text-[10px] ${
               cat === key ? "border-oliva bg-oliva text-hueso" : "border-piedra/70 bg-white text-nogal"
             }`}
           >
-            <i className={`ti ${cat === key ? "ti-square-check" : c.icon} text-[12px]`} aria-hidden /> {c.label}
+            <i className={`ti ${cat === key ? "ti-square-check" : c.icon} text-[11px]`} aria-hidden /> {c.label}
           </button>
         ))}
       </div>

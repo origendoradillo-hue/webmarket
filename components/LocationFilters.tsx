@@ -20,21 +20,21 @@ export default function LocationFilters({ zona, cuadrante, onSelectZona, onSelec
       <div className="mb-2 flex flex-wrap gap-1.5 pb-1">
         <button
           onClick={() => onSelectZona("all")}
-          className={`flex flex-shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-1 font-sans text-[11px] ${
+          className={`flex flex-shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-2 py-1 font-sans text-[10px] ${
             zona === "all" ? "border-oliva bg-oliva text-hueso" : "border-piedra/70 bg-white text-nogal"
           }`}
         >
-          <i className={`ti ${zona === "all" ? "ti-square-check" : "ti-map-pin"} text-[12px]`} aria-hidden /> Todas las zonas
+          <i className={`ti ${zona === "all" ? "ti-square-check" : "ti-map-pin"} text-[11px]`} aria-hidden /> Todas las zonas
         </button>
         {zones.map((z) => (
           <button
             key={z}
             onClick={() => onSelectZona(z)}
-            className={`flex flex-shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-1 font-sans text-[11px] ${
+            className={`flex flex-shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-2 py-1 font-sans text-[10px] ${
               zona === z ? "border-oliva bg-oliva text-hueso" : "border-piedra/70 bg-white text-nogal"
             }`}
           >
-            <i className={`ti ${zona === z ? "ti-square-check" : "ti-square"} text-[12px]`} aria-hidden /> {z}
+            <i className={`ti ${zona === z ? "ti-square-check" : "ti-square"} text-[11px]`} aria-hidden /> {z}
           </button>
         ))}
       </div>
