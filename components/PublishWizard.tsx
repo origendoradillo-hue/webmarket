@@ -629,7 +629,7 @@ export default function PublishWizard({ open, onClose, user, onPublished, onRequ
                     />
                     <OptionCard
                       icon="ti-speakerphone"
-                      label="Publicar un anuncio"
+                      label="Anuncio publicitario"
                       caption="Eventos, avisos o proyectos en la portada — lo coordina el equipo, requiere aprobación (no es instantáneo)"
                       selected={false}
                       className="col-span-2"

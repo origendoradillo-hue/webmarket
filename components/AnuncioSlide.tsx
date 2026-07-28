@@ -244,11 +244,10 @@ function AnuncioDetailModal({ a, onClose }: { a: Anuncio; onClose: () => void })
   );
 }
 
-// Fondos institucionales por defecto — fotos reales de la estepa
-// patagónica, para flyer_on_sign / background_image / full_banner cuando
-// el admin todavía no cargó una imagen propia.
+// Fondo institucional por defecto — foto real de la estepa patagónica,
+// para flyer_on_sign / full_banner cuando el admin todavía no cargó una
+// imagen propia.
 const FONDO_ESTEPA = "/brand/anuncio-fondo-estepa.png";
-const FONDO_INSTITUCIONAL = "/brand/anuncio-fondo-institucional.png";
 const CARTEL_COLGANTE = "/brand/cartel-colgante.png";
 
 // Rectángulo (medido en la imagen fuente, 1122x1402px, con un flood-fill
@@ -262,6 +261,12 @@ const CARTEL_FLYER_RECT = { left: "16.49%", top: "19.61%", width: "64.44%", heig
 // flyer a esta relación de aspecto antes de subirlo, así encaja justo en
 // el panel sin franjas vacías arriba/abajo.
 export const CARTEL_FLYER_ASPECT = 723 / 945;
+
+// Referencia para el recorte de la foto del layout "full_banner" — el
+// mismo 375×360 (ancho de celular típico × alto real del carrusel en
+// mobile, ver AnuncioCarousel.tsx) que ya usa AnuncioSlidePreviewFrame,
+// así lo que se recorta en el editor coincide con cómo se ve publicado.
+export const BANNER_ASPECT = 375 / 360;
 
 // El alto real lo fija el contenedor del carrusel (AnuncioCarousel.tsx,
 // alto fijo, no min-h). Cada formato solo tiene que llenarlo del todo
@@ -362,6 +367,13 @@ function FullBannerSlide({ a, priority, onDetailOpenChange }: SlideProps) {
   const [imgFailed, setImgFailed] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const cta = buildCta(a);
+  // Antes flyer_on_sign/full_banner/background_image tenían 3 fuentes de
+  // imagen ligeramente distintas, con full_banner e background_image
+  // terminando visualmente casi idénticos (misma foto de fondo con texto
+  // superpuesto). Se fusionaron en un solo layout: prioriza
+  // backgroundImagen (así los anuncios ex-background_image no pierden su
+  // foto), cae a imagen para los full_banner viejos que solo tenían eso.
+  const bg = a.backgroundImagen || a.imagen;
 
   return (
     <>
@@ -374,12 +386,14 @@ function FullBannerSlide({ a, priority, onDetailOpenChange }: SlideProps) {
     >
       {/* Una foto pensada para un carrusel angosto de celular queda muy
           estirada/recortada en uno mucho más ancho de PC — en mobile es
-          foto a pantalla completa con el texto encima (como siempre); en
-          desktop pasa a ser foto a la izquierda y un panel de texto aparte
-          a la derecha, mismo criterio que el layout del cartel. */}
+          foto a pantalla completa con una placa de texto flotante (un solo
+          blur, no una franja de degradado + blur separados); en desktop
+          pasa a ser foto a la izquierda y un panel de texto sólido aparte
+          a la derecha (sin blur, más legible), mismo criterio que el
+          layout del cartel. */}
       <div className="relative h-full">
         <Image
-          src={a.imagen && !imgFailed ? a.imagen : FONDO_ESTEPA}
+          src={bg && !imgFailed ? bg : FONDO_ESTEPA}
           alt={a.titulo}
           fill
           className="object-cover"
@@ -387,16 +401,12 @@ function FullBannerSlide({ a, priority, onDetailOpenChange }: SlideProps) {
           priority={priority}
           onError={() => setImgFailed(true)}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent sm:hidden" />
-        {/* Blur solo detrás de la franja de texto (no de toda la imagen) para
-            que no se mezclen imagen y letras sin perder nitidez arriba. */}
-        <div className="absolute inset-x-0 bottom-0 h-1/2 backdrop-blur-sm sm:hidden" />
-        <div className="absolute left-3 top-3">
+        <div className="absolute left-3 top-3 sm:hidden">
           <TipoBadge tipo={a.tipo} variant="solid" />
         </div>
-        <div className="absolute inset-x-0 bottom-0 p-4 sm:hidden">
+        <div className="absolute inset-x-3 bottom-3 rounded-xl bg-oliva-dd/90 p-4 shadow-lg backdrop-blur-sm sm:hidden">
           <h3 className="font-slab text-base font-semibold leading-tight text-white">{a.titulo}</h3>
-          <p className="mt-1 line-clamp-2 max-w-[560px] text-[12px] text-white/85">{a.descripcion}</p>
+          <p className="mt-1 line-clamp-2 text-[12px] text-white/85">{a.descripcion}</p>
           <FechaLugar a={a} />
           {cta && (
             <div className="mt-2">
@@ -426,57 +436,6 @@ function FullBannerSlide({ a, priority, onDetailOpenChange }: SlideProps) {
   );
 }
 
-function BackgroundImageSlide({ a, priority, onDetailOpenChange }: SlideProps) {
-  const [imgFailed, setImgFailed] = useState(false);
-  const [detailOpen, setDetailOpen] = useState(false);
-  const cta = buildCta(a);
-  const bg = a.backgroundImagen || a.imagen;
-
-  return (
-    <>
-    <SlideLink
-      onOpen={() => {
-        setDetailOpen(true);
-        onDetailOpenChange?.(true);
-      }}
-      className={`relative block w-full ${SLIDE_HEIGHT}`}
-    >
-      <Image
-        src={bg && !imgFailed ? bg : FONDO_ESTEPA}
-        alt=""
-        aria-hidden
-        fill
-        className="object-cover"
-        sizes="100vw"
-        priority={priority}
-        onError={() => setImgFailed(true)}
-      />
-      <div className="absolute inset-0 bg-oliva-dd/20" />
-      <div className="absolute inset-x-3 bottom-3 max-w-[420px] rounded-xl bg-oliva-dd/92 p-4 shadow-lg backdrop-blur-sm sm:inset-x-auto sm:bottom-6 sm:left-6">
-        <TipoBadge tipo={a.tipo} variant="solid" />
-        <h3 className="mt-1.5 font-slab text-base font-semibold leading-tight text-white sm:text-lg">{a.titulo}</h3>
-        <p className="mt-1 line-clamp-2 text-[12px] text-white/85 sm:text-[13px]">{a.descripcion}</p>
-        <FechaLugar a={a} />
-        {cta && (
-          <div className="mt-2">
-            <CtaButton cta={cta} />
-          </div>
-        )}
-      </div>
-    </SlideLink>
-    {detailOpen && (
-      <AnuncioDetailModal
-        a={a}
-        onClose={() => {
-          setDetailOpen(false);
-          onDetailOpenChange?.(false);
-        }}
-      />
-    )}
-    </>
-  );
-}
-
 function TextOnlySlide({ a, onDetailOpenChange }: SlideProps) {
   const [detailOpen, setDetailOpen] = useState(false);
   const cta = buildCta(a);
@@ -488,14 +447,19 @@ function TextOnlySlide({ a, onDetailOpenChange }: SlideProps) {
         setDetailOpen(true);
         onDetailOpenChange?.(true);
       }}
-      className={`relative flex flex-col items-start justify-center gap-2 overflow-hidden px-5 py-6 sm:px-10 ${SLIDE_HEIGHT}`}
+      className={`flex flex-col overflow-hidden sm:grid sm:grid-cols-2 ${SLIDE_HEIGHT}`}
     >
-      <Image src={FONDO_INSTITUCIONAL} alt="" aria-hidden fill className="object-cover" sizes="100vw" />
-      <div className="absolute inset-0 bg-hueso/85" />
-      <div className="relative flex h-11 w-11 items-center justify-center rounded-full border-2 border-dorado bg-hueso-2">
-        <i className={`ti ${TIPO_ICON[a.tipo]} text-xl text-oliva`} aria-hidden />
+      {/* Sin foto no hay nada que recortar/estirar por formato — en vez de
+          una imagen institucional de fondo casi imperceptible (85% de
+          opacidad encima), un panel de color sólido con el ícono del tipo
+          de anuncio bien grande, mismo split imagen/texto que los otros 2
+          layouts para que los 3 formatos compartan un lenguaje visual. */}
+      <div className="flex h-[110px] shrink-0 items-center justify-center bg-oliva-dd sm:h-full">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-dorado bg-oliva-dd/40">
+          <i className={`ti ${TIPO_ICON[a.tipo]} text-3xl text-dorado`} aria-hidden />
+        </div>
       </div>
-      <div className="relative flex flex-col gap-2">
+      <div className="flex flex-1 flex-col justify-center gap-2 overflow-y-auto bg-hueso-2 px-5 py-4 sm:px-10 sm:py-7">
         <TipoBadge tipo={a.tipo} />
         <h3 className="font-slab text-lg font-semibold leading-tight text-tinta sm:text-xl">{a.titulo}</h3>
         <p className="line-clamp-3 max-w-[560px] text-[13px] leading-relaxed text-tinta-suave sm:text-[13.5px]">{a.descripcion}</p>
@@ -530,8 +494,6 @@ export default function AnuncioSlide({ anuncio, priority, onDetailOpenChange }: 
   switch (resolveLayout(anuncio)) {
     case "flyer_on_sign":
       return <FlyerOnSignSlide a={anuncio} priority={priority} onDetailOpenChange={onDetailOpenChange} />;
-    case "background_image":
-      return <BackgroundImageSlide a={anuncio} priority={priority} onDetailOpenChange={onDetailOpenChange} />;
     case "text_only":
       return <TextOnlySlide a={anuncio} priority={priority} onDetailOpenChange={onDetailOpenChange} />;
     case "full_banner":

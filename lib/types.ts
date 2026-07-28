@@ -78,10 +78,12 @@ export interface Listing {
 export type TipoAnuncio = "evento" | "aviso_barrial" | "sponsor" | "promocion" | "comunicado" | "feria" | "novedad";
 
 // flyer_on_sign: flyer vertical 4:5 enmarcado sobre un fondo horizontal.
-// full_banner: imagen horizontal a pantalla completa (diseño original).
+// full_banner: foto a pantalla completa (mobile) o a un costado (desktop)
+//   con el texto encima/al lado — fusiona lo que antes eran 2 layouts
+//   separados ("banner horizontal" e "imagen de fondo + placa") porque
+//   terminaban viéndose casi idénticos.
 // text_only: sin imagen, para avisos institucionales.
-// background_image: imagen de fondo ambiental + placa de texto.
-export type AnuncioLayoutType = "flyer_on_sign" | "full_banner" | "text_only" | "background_image";
+export type AnuncioLayoutType = "flyer_on_sign" | "full_banner" | "text_only";
 
 export interface Anuncio {
   id: string;

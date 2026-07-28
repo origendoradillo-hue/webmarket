@@ -7,7 +7,7 @@ import { Anuncio, AnuncioLayoutType, TipoAnuncio } from "@/lib/types";
 import { ANUNCIO_LAYOUT_LABELS, ANUNCIO_LAYOUT_OPTIONS } from "@/lib/anuncioLayouts";
 import { resizeImage } from "@/lib/resizeImage";
 import { isValidWhatsapp, sanitizeWhatsappInput, WHATSAPP_HELP_TEXT, WHATSAPP_PLACEHOLDER } from "@/lib/whatsapp";
-import AnuncioSlide, { CARTEL_FLYER_ASPECT } from "./AnuncioSlide";
+import AnuncioSlide, { BANNER_ASPECT, CARTEL_FLYER_ASPECT } from "./AnuncioSlide";
 import AnuncioSlidePreviewFrame from "./AnuncioSlidePreviewFrame";
 import PhotoCropModal from "./PhotoCropModal";
 
@@ -188,7 +188,7 @@ export default function AnuncioRequestForm({ open, onClose, user }: AnuncioReque
     >
       <div className="flex h-full w-full flex-col bg-white sm:h-auto sm:max-h-[90vh] sm:max-w-md sm:rounded-2xl">
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-piedra/50 bg-white px-4 py-3.5">
-          <span className="font-slab text-[13px] font-semibold text-tinta">Publicar un anuncio</span>
+          <span className="font-slab text-[13px] font-semibold text-tinta">Anuncio publicitario</span>
           <button onClick={handleClose} aria-label="Cerrar">
             <i className="ti ti-x text-lg text-tinta" aria-hidden />
           </button>
@@ -322,18 +322,8 @@ export default function AnuncioRequestForm({ open, onClose, user }: AnuncioReque
             {layoutType === "full_banner" && (
               <div className="mb-3.5">
                 <ImageField
-                  label="Imagen principal (ocupa toda la pantalla)"
-                  hint="Horizontal ancha — ideal 1600×900px o más panorámica"
-                  data={imagenData}
-                  onUpload={handleUploadImagen}
-                />
-              </div>
-            )}
-            {layoutType === "background_image" && (
-              <div className="mb-3.5">
-                <ImageField
-                  label="Imagen de fondo (ocupa toda la pantalla)"
-                  hint="Horizontal ancha — ideal 1600×900px"
+                  label="Foto del anuncio"
+                  hint="Se ve completa en el celular (proporción ~375×360, casi cuadrada) y a un costado del texto en pantallas grandes — evitá que lo importante quede pegado a los bordes."
                   data={backgroundData}
                   onUpload={handleUploadFondo}
                 />
@@ -381,7 +371,7 @@ export default function AnuncioRequestForm({ open, onClose, user }: AnuncioReque
         <PhotoCropModal
           file={imagenCropFile}
           aspect={layoutType === "flyer_on_sign" ? CARTEL_FLYER_ASPECT : undefined}
-          title={layoutType === "flyer_on_sign" ? "Flyer para el cartel — formato vertical" : "Imagen principal del anuncio"}
+          title="Flyer para el cartel — formato vertical"
           onConfirm={handleImagenCropConfirm}
           onCancel={() => setImagenCropFile(null)}
         />
@@ -389,7 +379,8 @@ export default function AnuncioRequestForm({ open, onClose, user }: AnuncioReque
       {fondoCropFile && (
         <PhotoCropModal
           file={fondoCropFile}
-          title="Imagen de fondo — formato horizontal"
+          aspect={layoutType === "full_banner" ? BANNER_ASPECT : undefined}
+          title={layoutType === "full_banner" ? "Foto del anuncio" : "Imagen de fondo — formato horizontal"}
           onConfirm={handleFondoCropConfirm}
           onCancel={() => setFondoCropFile(null)}
         />
@@ -470,20 +461,20 @@ function AnuncioTipsModal({ onClose }: { onClose: () => void }) {
           <TipSection icon="ti-layout-grid" title="Elegí el formato según lo que tenés">
             <strong className="font-medium text-tinta">Flyer vertical (con cartel):</strong> subís el flyer que ya tenés
             armado (de Instagram, Canva, etc.), formato vertical — se muestra colgado de un cartel de madera de fondo.{" "}
-            <strong className="font-medium text-tinta">Banner horizontal:</strong> una sola foto horizontal a pantalla
-            completa, con el texto encima. <strong className="font-medium text-tinta">Imagen de fondo + placa:</strong>{" "}
-            foto de fondo con el texto en una placa aparte, más legible que el banner si la foto tiene mucho detalle.{" "}
-            <strong className="font-medium text-tinta">Solo texto:</strong> para avisos institucionales sin ninguna
-            imagen.
+            <strong className="font-medium text-tinta">Foto + texto:</strong> una sola foto — se ve completa en el
+            celular con el texto en una placa abajo, y a un costado del texto (sin foto de por medio) en pantallas
+            grandes. <strong className="font-medium text-tinta">Solo texto:</strong> para avisos institucionales sin
+            ninguna imagen.
           </TipSection>
           <TipSection icon="ti-photo" title="Flyer / imagen principal">
             Si ya tenés un flyer armado, subilo así como está — se recorta a formato vertical automáticamente. Si no
             tenés uno, mirá el instructivo de "Cómo publicar bien" del asistente normal, tiene un prompt para armar uno
             con IA.
           </TipSection>
-          <TipSection icon="ti-photo-plus" title="Imagen de fondo">
-            Es opcional y va detrás de todo — una foto horizontal, luminosa, sin texto (el texto va encima con un
-            degradado). En el formato "Solo texto" no se usa.
+          <TipSection icon="ti-photo-plus" title="Imagen de fondo / foto del anuncio">
+            En "Flyer vertical" es opcional — el paisaje horizontal detrás del cartel, no se ve el detalle, no hace
+            falta que sea nítida. En "Foto + texto" es la imagen principal (no opcional) — se ve casi cuadrada en el
+            celular, evitá que lo importante quede pegado a los bordes.
           </TipSection>
           <TipSection icon="ti-click" title="Botón, WhatsApp y redes">
             Completá el botón (texto + link) si querés mandar a una web o a la publicación relacionada. Cargá WhatsApp si

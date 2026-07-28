@@ -154,7 +154,7 @@ export interface Database {
           notas_internas: string | null;
           mensaje_solicitante: string | null;
           ubicacion: "home" | "categoria" | "ambas";
-          layout_type: "flyer_on_sign" | "full_banner" | "text_only" | "background_image";
+          layout_type: "flyer_on_sign" | "full_banner" | "text_only";
           background_image_url: string | null;
           cta_label: string | null;
           cta_url: string | null;

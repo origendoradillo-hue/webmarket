@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useCategories } from "@/lib/useCategories";
 import { createClient } from "@/lib/supabase/client";
 import type {
@@ -25,7 +26,7 @@ import { SITE_URL } from "@/lib/seo";
 import { resizeImage } from "@/lib/resizeImage";
 import { uploadCoverPhoto } from "@/lib/uploadCoverPhoto";
 import { containsPhoneNumber, maskPhoneNumbers } from "@/lib/phoneDetection";
-import AnuncioSlide, { TIPO_LABEL, CARTEL_FLYER_ASPECT } from "./AnuncioSlide";
+import AnuncioSlide, { TIPO_LABEL, CARTEL_FLYER_ASPECT, BANNER_ASPECT } from "./AnuncioSlide";
 import AnuncioSlidePreviewFrame from "./AnuncioSlidePreviewFrame";
 import PhotoCropModal from "./PhotoCropModal";
 import DualCropFlow from "./DualCropFlow";
@@ -413,7 +414,16 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
   return (
     <div className="min-h-screen bg-hueso px-4 py-6 sm:px-8">
       <div className="mx-auto max-w-4xl">
-        <h1 className="mb-1 font-slab text-2xl font-semibold text-tinta">Panel de administración</h1>
+        <div className="mb-1 flex items-center justify-between gap-2">
+          <h1 className="font-slab text-2xl font-semibold text-tinta">Panel de administración</h1>
+          <Link
+            href="/"
+            className="flex flex-shrink-0 items-center gap-1.5 rounded-lg border border-piedra/70 px-3 py-1.5 text-xs font-medium text-tinta"
+          >
+            <i className="ti ti-logout text-sm" aria-hidden />
+            Salir del panel
+          </Link>
+        </div>
         <p className="mb-6 text-sm text-tinta-suave">Rol actual: {role}</p>
 
         <div className="mb-5 flex flex-wrap gap-2">
@@ -1328,6 +1338,17 @@ function AdminListingRow({
     tags: l.tags.join(", "),
     whatsappPublico: l.whatsapp_publico,
   });
+  // Aviso de "cambios sin guardar" — se saltea el primer render (los datos
+  // recién cargados no cuentan como un cambio del admin).
+  const [dirty, setDirty] = useState(false);
+  const formMounted = useRef(false);
+  useEffect(() => {
+    if (!formMounted.current) {
+      formMounted.current = true;
+      return;
+    }
+    setDirty(true);
+  }, [form]);
 
   const [images, setImages] = useState<{ id: string; url: string }[]>([]);
   const [fotoCropQueue, setFotoCropQueue] = useState<File[]>([]);
@@ -1500,6 +1521,7 @@ function AdminListingRow({
     setSaving(false);
     if (error) alert(error.message);
     else {
+      setDirty(false);
       onSaved();
       loadHistorial();
     }
@@ -1887,6 +1909,12 @@ function AdminListingRow({
             </div>
           </div>
 
+          {dirty && (
+            <p className="flex items-center gap-1.5 rounded-lg bg-dorado/15 px-3 py-2 text-[12px] font-medium text-oliva-dd">
+              <i className="ti ti-alert-circle" aria-hidden />
+              Tenés cambios sin guardar — tocá &quot;Guardar cambios&quot; para aplicarlos.
+            </p>
+          )}
           <button onClick={guardarCambios} disabled={saving} className="w-fit rounded-lg bg-oliva px-4 py-2 text-xs font-semibold text-hueso disabled:bg-piedra">
             {saving ? "Guardando..." : "Guardar cambios"}
           </button>
@@ -2062,6 +2090,17 @@ function AdminAnuncioRow({
     whatsappNumero: a.whatsapp_numero || "",
     redesUrl: a.redes_url || "",
   });
+  // Aviso de "cambios sin guardar" — se saltea el primer render (los datos
+  // recién cargados no cuentan como un cambio del admin).
+  const [dirty, setDirty] = useState(false);
+  const formMounted = useRef(false);
+  useEffect(() => {
+    if (!formMounted.current) {
+      formMounted.current = true;
+      return;
+    }
+    setDirty(true);
+  }, [form]);
 
   const loadHistorial = useCallback(async () => {
     const supabase = createClient();
@@ -2102,6 +2141,7 @@ function AdminAnuncioRow({
     setSaving(false);
     if (error) alert(error.message);
     else {
+      setDirty(false);
       onSaved();
       loadHistorial();
     }
@@ -2372,91 +2412,99 @@ function AdminAnuncioRow({
             </select>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="mb-1 block text-[11px] font-medium text-tinta">
-                Flyer / imagen principal {uploadingImagen && "(subiendo...)"}
-              </label>
-              {a.imagen_url && (
-                <div className="relative mb-1.5 h-16 w-16">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={a.imagen_url} alt="" className="h-full w-full rounded object-cover" />
-                  <button
-                    type="button"
-                    onClick={quitarImagenAnuncio}
-                    aria-label="Quitar flyer / imagen principal"
-                    className="absolute right-0.5 top-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white"
-                  >
-                    <i className="ti ti-x text-[12px]" aria-hidden />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      try {
-                        setImagenCropFile(await urlToFile(a.imagen_url!, "flyer.jpg"));
-                      } catch {
-                        alert("No se pudo cargar la imagen para editar.");
-                      }
-                    }}
-                    aria-label="Editar recorte del flyer"
-                    className="absolute bottom-0.5 right-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white"
-                  >
-                    <i className="ti ti-crop text-[12px]" aria-hidden />
-                  </button>
-                </div>
-              )}
-              <input
-                type="file"
-                accept="image/*"
-                disabled={uploadingImagen}
-                onChange={handleUploadImagen}
-                className="w-full text-[11px] text-tinta"
-              />
+          {form.layoutType !== "text_only" && (
+            <div className={form.layoutType === "flyer_on_sign" ? "grid grid-cols-2 gap-2" : ""}>
               {form.layoutType === "flyer_on_sign" && (
-                <p className="mt-1 text-[10.5px] text-tinta-suave">El recorte se ajusta a la proporción del panel del cartel.</p>
-              )}
-            </div>
-            <div>
-              <label className="mb-1 block text-[11px] font-medium text-tinta">
-                Imagen de fondo (opcional) {uploadingFondo && "(subiendo...)"}
-              </label>
-              {a.background_image_url && (
-                <div className="relative mb-1.5 h-16 w-16">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={a.background_image_url} alt="" className="h-full w-full rounded object-cover" />
-                  <button
-                    type="button"
-                    onClick={quitarFondoAnuncio}
-                    aria-label="Quitar imagen de fondo"
-                    className="absolute right-0.5 top-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white"
-                  >
-                    <i className="ti ti-x text-[12px]" aria-hidden />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      try {
-                        setFondoCropFile(await urlToFile(a.background_image_url!, "fondo.jpg"));
-                      } catch {
-                        alert("No se pudo cargar la imagen para editar.");
-                      }
-                    }}
-                    aria-label="Editar recorte del fondo"
-                    className="absolute bottom-0.5 right-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white"
-                  >
-                    <i className="ti ti-crop text-[12px]" aria-hidden />
-                  </button>
+                <div>
+                  <label className="mb-1 block text-[11px] font-medium text-tinta">
+                    Flyer / imagen principal {uploadingImagen && "(subiendo...)"}
+                  </label>
+                  {a.imagen_url && (
+                    <div className="relative mb-1.5 h-16 w-16">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={a.imagen_url} alt="" className="h-full w-full rounded object-cover" />
+                      <button
+                        type="button"
+                        onClick={quitarImagenAnuncio}
+                        aria-label="Quitar flyer / imagen principal"
+                        className="absolute right-0.5 top-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white"
+                      >
+                        <i className="ti ti-x text-[12px]" aria-hidden />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            setImagenCropFile(await urlToFile(a.imagen_url!, "flyer.jpg"));
+                          } catch {
+                            alert("No se pudo cargar la imagen para editar.");
+                          }
+                        }}
+                        aria-label="Editar recorte del flyer"
+                        className="absolute bottom-0.5 right-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white"
+                      >
+                        <i className="ti ti-crop text-[12px]" aria-hidden />
+                      </button>
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    disabled={uploadingImagen}
+                    onChange={handleUploadImagen}
+                    className="w-full text-[11px] text-tinta"
+                  />
+                  <p className="mt-1 text-[10.5px] text-tinta-suave">El recorte se ajusta a la proporción del panel del cartel.</p>
                 </div>
               )}
-              <input
-                type="file"
-                accept="image/*"
-                disabled={uploadingFondo}
-                onChange={handleUploadFondo}
-                className="w-full text-[11px] text-tinta"
-              />
+              <div>
+                <label className="mb-1 block text-[11px] font-medium text-tinta">
+                  {form.layoutType === "full_banner" ? "Foto del anuncio" : "Imagen de fondo (opcional)"}{" "}
+                  {uploadingFondo && "(subiendo...)"}
+                </label>
+                {a.background_image_url && (
+                  <div className="relative mb-1.5 h-16 w-16">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={a.background_image_url} alt="" className="h-full w-full rounded object-cover" />
+                    <button
+                      type="button"
+                      onClick={quitarFondoAnuncio}
+                      aria-label="Quitar imagen de fondo"
+                      className="absolute right-0.5 top-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white"
+                    >
+                      <i className="ti ti-x text-[12px]" aria-hidden />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          setFondoCropFile(await urlToFile(a.background_image_url!, "fondo.jpg"));
+                        } catch {
+                          alert("No se pudo cargar la imagen para editar.");
+                        }
+                      }}
+                      aria-label="Editar recorte del fondo"
+                      className="absolute bottom-0.5 right-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white"
+                    >
+                      <i className="ti ti-crop text-[12px]" aria-hidden />
+                    </button>
+                  </div>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  disabled={uploadingFondo}
+                  onChange={handleUploadFondo}
+                  className="w-full text-[11px] text-tinta"
+                />
+                {form.layoutType === "full_banner" && (
+                  <p className="mt-1 text-[10.5px] text-tinta-suave">
+                    Se ve completa en el celular; en pantallas grandes ocupa la mitad izquierda, al lado del texto.
+                  </p>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="grid grid-cols-2 gap-2">
             <LabeledInput label="Texto del botón (CTA)" value={form.ctaLabel} onChange={(v) => setForm({ ...form, ctaLabel: v })} />
@@ -2479,6 +2527,12 @@ function AdminAnuncioRow({
             onChange={(v) => setForm({ ...form, redesUrl: v })}
           />
 
+          {dirty && (
+            <p className="flex items-center gap-1.5 rounded-lg bg-dorado/15 px-3 py-2 text-[12px] font-medium text-oliva-dd">
+              <i className="ti ti-alert-circle" aria-hidden />
+              Tenés cambios sin guardar — tocá &quot;Guardar cambios&quot; para aplicarlos.
+            </p>
+          )}
           <button onClick={guardarCambios} disabled={saving} className="w-fit rounded-lg bg-oliva px-4 py-2 text-xs font-semibold text-hueso disabled:bg-piedra">
             {saving ? "Guardando..." : "Guardar cambios"}
           </button>
@@ -2545,6 +2599,7 @@ function AdminAnuncioRow({
       {fondoCropFile && (
         <PhotoCropModal
           file={fondoCropFile}
+          aspect={form.layoutType === "full_banner" ? BANNER_ASPECT : undefined}
           previewPanels={[
             {
               label: "Así se ve",

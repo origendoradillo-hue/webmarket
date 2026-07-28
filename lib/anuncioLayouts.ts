@@ -1,11 +1,10 @@
-// Fuente única de los 4 formatos de anuncio — usado tanto en el panel de
+// Fuente única de los 3 formatos de anuncio — usado tanto en el panel de
 // admin (components/AdminClient.tsx) como en la solicitud pública
-// (components/AnuncioRequestForm.tsx) para no tener las mismas 4 líneas
+// (components/AnuncioRequestForm.tsx) para no tener las mismas líneas
 // duplicadas y corriendo el riesgo de que se desincronicen.
 export const ANUNCIO_LAYOUT_LABELS: Record<string, string> = {
   flyer_on_sign: "Flyer vertical (con cartel)",
-  full_banner: "Banner horizontal completo",
-  background_image: "Imagen de fondo + placa de texto",
+  full_banner: "Foto + texto",
   text_only: "Solo texto (institucional)",
 };
 
