@@ -35,16 +35,18 @@ export default function FilterDropdown({ label, activeLabel, children }: FilterD
 
   function toggle() {
     if (!open && btnRef.current) {
-      // La fila de chips hace scroll horizontal (varios filtros no entran
-      // todos en el ancho de un celular) — un panel `absolute` queda
-      // recortado por ese scroll aunque mida bien, porque `overflow-x:
-      // auto` fuerza a `overflow-y` a comportarse igual (recorta en las
-      // dos direcciones, no solo la horizontal). `fixed`, posicionado a
-      // mano según dónde está el botón, no depende del contenedor con
-      // scroll y se ve completo siempre.
+      // El panel tiene ancho variable según el contenido (w-max, puede
+      // llegar a ocupar casi toda la pantalla si hay muchas categorías) —
+      // no se puede saber su ancho final antes de renderizarlo, así que
+      // calcular el borde izquierdo "cerca del botón" con un ancho
+      // supuesto (ej. 220px) lo mandaba afuera de la pantalla para los
+      // chips de la derecha (Ubicación, Orden) cuando terminaba siendo
+      // más ancho que eso. Ahora se ancla siempre al mismo margen
+      // izquierdo que ya usa la fila de filtros — junto con
+      // max-w-[calc(100vw-2rem)] en el panel, el borde derecho nunca
+      // pasa el de la pantalla, sea cual sea el ancho real del contenido.
       const rect = btnRef.current.getBoundingClientRect();
-      const left = Math.min(rect.left, window.innerWidth - 16 - 220);
-      setCoords({ top: rect.bottom + 8, left: Math.max(16, left) });
+      setCoords({ top: rect.bottom + 8, left: 16 });
     }
     setOpen((o) => !o);
   }
