@@ -1321,6 +1321,10 @@ function AdminListingRow({
     nombre: l.nombre,
     subtitulo: l.subtitulo || "",
     descripcion: l.descripcion,
+    // Publicaciones viejas cargadas con un tipo genérico (ej. "otro")
+    // solo pueden elegir entre las pocas categorías con ese tipo_scope —
+    // por eso el tipo también es editable acá, no solo la categoría.
+    tipo: l.tipo || TIPO_OPTIONS[0].value,
     categoria: l.categoria || "",
     subcategoria: l.subcategoria || "",
     // Si ya tiene descuento cargado, "Precio" muestra el original (tachado)
@@ -1504,6 +1508,7 @@ function AdminListingRow({
       p_nombre: form.nombre,
       p_subtitulo: form.subtitulo || null,
       p_descripcion: maskPhoneNumbers(form.descripcion).masked,
+      p_tipo: form.tipo,
       p_categoria: form.categoria || null,
       p_subcategoria: form.subcategoria || null,
       p_precio: hayDescuentoValido ? Number(form.precioDescuento) : precioBase,
@@ -1727,6 +1732,32 @@ function AdminListingRow({
             <LabeledInput label="Título" value={form.nombre} onChange={(v) => setForm({ ...form, nombre: v })} />
             <LabeledInput label="Subtítulo" value={form.subtitulo} onChange={(v) => setForm({ ...form, subtitulo: v })} />
             <div>
+              <label className="mb-1 block text-[11px] font-medium text-tinta">Tipo</label>
+              <select
+                value={form.tipo}
+                onChange={(e) => setForm({ ...form, tipo: e.target.value as TipoPublicacion, categoria: "", subcategoria: "" })}
+                className="w-full rounded-lg border border-piedra/70 px-2 py-1.5 text-xs text-tinta"
+              >
+                {/* Publicaciones muy viejas pueden tener un tipo que ya no
+                    existe (la lista de tipos cambió varias veces con los
+                    años) — si no se agrega como opción, el desplegable cae
+                    en el primer tipo válido en silencio, y como ninguna
+                    categoría tiene ese tipo "fantasma" en su tipo_scope,
+                    Categoría y Subcategoría se quedan sin ninguna opción. */}
+                {!TIPO_OPTIONS.some((t) => t.value === form.tipo) && (
+                  <option value={form.tipo}>{form.tipo} (no está en la lista actual)</option>
+                )}
+                {TIPO_OPTIONS.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-[10.5px] text-tinta-suave">
+                Cambiar el tipo cambia qué categorías se pueden elegir abajo.
+              </p>
+            </div>
+            <div>
               <label className="mb-1 block text-[11px] font-medium text-tinta">Barrio</label>
               <select
                 value={form.zona}
@@ -1757,16 +1788,17 @@ function AdminListingRow({
               >
                 <option value="">(sin categoría)</option>
                 {/* Igual que con barrio: si la categoría cargada ya no existe
-                    o cambió de tipo_scope (pasó a otro "Ofrezco/Busco"), se
-                    agrega como opción aparte en vez de que el desplegable
-                    caiga en "(sin categoría)" ocultando el valor real. */}
-                {form.categoria && !(categories[form.categoria] && (!l.tipo || categories[form.categoria].tipoScope.includes(l.tipo as TipoPublicacion))) && (
+                    o cambió de tipo_scope (o el tipo de la publicación
+                    cambió), se agrega como opción aparte en vez de que el
+                    desplegable caiga en "(sin categoría)" ocultando el
+                    valor real. */}
+                {form.categoria && !categories[form.categoria]?.tipoScope.includes(form.tipo as TipoPublicacion) && (
                   <option value={form.categoria}>
                     {categories[form.categoria]?.label || form.categoria} (no está en la lista actual)
                   </option>
                 )}
                 {Object.entries(categories)
-                  .filter(([, c]) => !l.tipo || c.tipoScope.includes(l.tipo as TipoPublicacion))
+                  .filter(([, c]) => c.tipoScope.includes(form.tipo as TipoPublicacion))
                   .map(([key, c]) => (
                     <option key={key} value={key}>
                       {c.label}
