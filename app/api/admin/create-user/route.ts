@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { normalizeWhatsappNumber } from "@/lib/whatsapp";
 
 function generateTempPassword(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
@@ -13,7 +14,8 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
   const fullName = typeof body?.fullName === "string" ? body.fullName.trim() : "";
-  const whatsapp = typeof body?.whatsapp === "string" ? body.whatsapp.trim() : "";
+  const whatsappRaw = typeof body?.whatsapp === "string" ? body.whatsapp.trim() : "";
+  const whatsapp = whatsappRaw === "" ? "" : normalizeWhatsappNumber(whatsappRaw);
   const role = typeof body?.role === "string" ? body.role : "publicador";
 
   if (!email) {

@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { updatePassword } from "@/lib/supabase/auth";
 import { useCategories } from "@/lib/useCategories";
 import { resizeImage } from "@/lib/resizeImage";
-import { isValidWhatsapp, sanitizeWhatsappInput, WHATSAPP_HELP_TEXT, WHATSAPP_PLACEHOLDER } from "@/lib/whatsapp";
+import { isValidWhatsapp, normalizeWhatsappNumber, sanitizeWhatsappInput, WHATSAPP_HELP_TEXT, WHATSAPP_PLACEHOLDER } from "@/lib/whatsapp";
 import PasswordInput from "./PasswordInput";
 import PhotoCropModal from "./PhotoCropModal";
 
@@ -151,7 +151,7 @@ export default function ProfileModal({ open, onClose, user }: ProfileModalProps)
       .update({
         full_name: fullName.trim(),
         nickname: nickname.trim() || null,
-        whatsapp_number: whatsapp.trim(),
+        whatsapp_number: whatsapp.trim() === "" ? "" : normalizeWhatsappNumber(whatsapp),
         zona: zona || null,
         instagram_url: instagram.trim() || null,
         facebook_url: facebook.trim() || null,

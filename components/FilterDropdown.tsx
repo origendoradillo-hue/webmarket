@@ -14,24 +14,46 @@ interface FilterDropdownProps {
 // ocupar toda la pantalla en celular.
 export default function FilterDropdown({ label, activeLabel, children }: FilterDropdownProps) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const popRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
     function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      if (wrapRef.current?.contains(target) || popRef.current?.contains(target)) return;
+      setOpen(false);
     }
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, [open]);
 
+  function toggle() {
+    if (!open && btnRef.current) {
+      // La fila de chips hace scroll horizontal (varios filtros no entran
+      // todos en el ancho de un celular) — un panel `absolute` queda
+      // recortado por ese scroll aunque mida bien, porque `overflow-x:
+      // auto` fuerza a `overflow-y` a comportarse igual (recorta en las
+      // dos direcciones, no solo la horizontal). `fixed`, posicionado a
+      // mano según dónde está el botón, no depende del contenedor con
+      // scroll y se ve completo siempre.
+      const rect = btnRef.current.getBoundingClientRect();
+      const left = Math.min(rect.left, window.innerWidth - 16 - 220);
+      setCoords({ top: rect.bottom + 8, left: Math.max(16, left) });
+    }
+    setOpen((o) => !o);
+  }
+
   const isActive = !!activeLabel;
 
   return (
-    <div className="relative flex-shrink-0" ref={ref}>
+    <div className="relative flex-shrink-0" ref={wrapRef}>
       <button
+        ref={btnRef}
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={toggle}
         className={`flex flex-shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-3 py-1.5 text-[11.5px] ${
           isActive ? "border-oliva bg-oliva text-hueso" : "border-piedra/60 bg-white text-tinta"
         }`}
@@ -39,8 +61,12 @@ export default function FilterDropdown({ label, activeLabel, children }: FilterD
         {activeLabel || label}
         <i className={`ti ti-chevron-down text-xs transition-transform ${open ? "rotate-180" : ""}`} aria-hidden />
       </button>
-      {open && (
-        <div className="absolute left-0 top-full z-20 mt-2 max-h-[70vh] w-max min-w-[220px] max-w-[calc(100vw-2rem)] overflow-y-auto rounded-lg border border-piedra/30 bg-white p-3 shadow-lg">
+      {open && coords && (
+        <div
+          ref={popRef}
+          style={{ position: "fixed", top: coords.top, left: coords.left }}
+          className="z-20 max-h-[70vh] w-max min-w-[220px] max-w-[calc(100vw-2rem)] overflow-y-auto rounded-lg border border-piedra/30 bg-white p-3 shadow-lg"
+        >
           {children}
         </div>
       )}

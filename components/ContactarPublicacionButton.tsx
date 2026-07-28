@@ -54,7 +54,7 @@ export default function ContactarPublicacionButton({
     }
     trackEvent("contact_whatsapp", { listing_id: listingId, source: "listing_page" });
     const mensaje = `Hola, vi tu publicación en Origen El Doradillo sobre ${nombre}. Quería consultar si sigue disponible.`;
-    window.open(`https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}`, "_blank");
+    window.open(`https://wa.me/${numero.replace(/\D/g, "")}?text=${encodeURIComponent(mensaje)}`, "_blank");
   }
 
   return (

@@ -413,6 +413,9 @@ export default function HomeClient() {
     setScreen("explorar");
     setResultadosIntencion(null);
     setIntencionFilter("all");
+    // Los destacados/relevantes ya se ven en la portada — acá lo que sirve
+    // por defecto es lo más nuevo, no repetir el mismo orden.
+    setSortMode("reciente");
   }
 
   function handleSelectIntencion(i: "ofrezco" | "busco") {
@@ -650,8 +653,8 @@ export default function HomeClient() {
           <div className="mb-2 grid grid-cols-4 gap-1.5">
             <CompactNavButton active={screen === "explorar"} onClick={handleExplorar} icon="ti-compass" label="Mirando" />
             <CompactNavButton active={false} onClick={handleOpenPublish} icon="ti-plus" label="Publicar" />
-            <CompactNavButton active={resultadosIntencion === "ofrezco"} onClick={() => handleSelectIntencion("ofrezco")} icon="ti-tag" label="Ofrece" />
-            <CompactNavButton active={resultadosIntencion === "busco"} onClick={() => handleSelectIntencion("busco")} icon="ti-search" label="Busca" />
+            <CompactNavButton active={resultadosIntencion === "ofrezco"} onClick={() => handleSelectIntencion("ofrezco")} icon="ti-tag" label="Se ofrece" />
+            <CompactNavButton active={resultadosIntencion === "busco"} onClick={() => handleSelectIntencion("busco")} icon="ti-search" label="Se busca" />
           </div>
           <p className="text-[12.5px] text-tinta-suave">
             Estás viendo: <span className="font-semibold text-tinta">{breadcrumb}</span>
@@ -706,7 +709,7 @@ export default function HomeClient() {
               </div>
             )}
             <>
-              <div className="sticky top-[58px] z-30 mb-3 flex flex-wrap gap-2 bg-hueso px-4 py-2 pb-1 sm:top-[71px] sm:px-7">
+              <div className="no-scrollbar sticky top-[58px] z-30 mb-3 flex flex-nowrap gap-2 overflow-x-auto bg-hueso px-4 py-2 pb-1 sm:top-[71px] sm:px-7">
                 <FilterDropdown label="Tipo" activeLabel={tipoFilter !== "all" ? TIPO_LABELS[tipoFilter] : undefined}>
                   <div className="flex flex-wrap gap-1.5">
                     <FilterChip selected={tipoFilter === "all"} onClick={() => handleSelectTipo("all")}>

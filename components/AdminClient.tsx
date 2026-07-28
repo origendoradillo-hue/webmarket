@@ -21,7 +21,7 @@ import { REPORT_MOTIVO_LABELS, requiereSuspensionReciproca } from "@/lib/reportM
 import type { Anuncio, AnuncioLayoutType, TipoAnuncio, TipoPublicacion } from "@/lib/types";
 import { TIPO_OPTIONS } from "@/lib/tipos";
 import { ANUNCIO_LAYOUT_LABELS, ANUNCIO_LAYOUT_OPTIONS } from "@/lib/anuncioLayouts";
-import { isValidWhatsapp, sanitizeWhatsappInput, WHATSAPP_HELP_TEXT, WHATSAPP_PLACEHOLDER } from "@/lib/whatsapp";
+import { isValidWhatsapp, normalizeWhatsappNumber, sanitizeWhatsappInput, WHATSAPP_HELP_TEXT, WHATSAPP_PLACEHOLDER } from "@/lib/whatsapp";
 import { SITE_URL } from "@/lib/seo";
 import { resizeImage } from "@/lib/resizeImage";
 import { uploadCoverPhoto } from "@/lib/uploadCoverPhoto";
@@ -1979,6 +1979,20 @@ function AdminListingRow({
                   >
                     <i className="ti ti-x text-[12px]" aria-hidden />
                   </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        setPortadaCropFile(await urlToFile(im.url, "foto.jpg"));
+                      } catch {
+                        alert("No se pudo cargar la foto para editar.");
+                      }
+                    }}
+                    aria-label="Usar como portada"
+                    className="absolute left-0.5 top-0.5 rounded-full bg-black/60 px-1.5 py-1 text-[10px] font-medium text-white"
+                  >
+                    Portada
+                  </button>
                 </div>
               ))}
               <label className="flex h-16 w-16 cursor-pointer items-center justify-center rounded-md border-[1.5px] border-dashed border-piedra/70 text-oliva">
@@ -2214,7 +2228,7 @@ function AdminAnuncioRow({
       p_layout_type: form.layoutType,
       p_cta_label: form.ctaLabel || null,
       p_cta_url: form.ctaUrl || null,
-      p_whatsapp_numero: form.whatsappNumero || null,
+      p_whatsapp_numero: form.whatsappNumero.trim() === "" ? null : normalizeWhatsappNumber(form.whatsappNumero),
       p_redes_url: form.redesUrl || null,
     });
     setSaving(false);

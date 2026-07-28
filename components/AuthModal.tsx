@@ -9,6 +9,7 @@ import {
   updatePassword,
 } from "@/lib/supabase/auth";
 import { trackEvent } from "@/lib/analytics";
+import { isValidWhatsapp, normalizeWhatsappNumber, sanitizeWhatsappInput, WHATSAPP_HELP_TEXT, WHATSAPP_PLACEHOLDER } from "@/lib/whatsapp";
 import PasswordInput from "./PasswordInput";
 
 type Mode = "login" | "signup" | "forgot" | "reset";
@@ -81,8 +82,13 @@ export default function AuthModal({ open, onClose, initialMode = "login" }: Auth
       setMessage("Las contraseñas no coinciden.");
       return;
     }
+    if (!isValidWhatsapp(whatsapp)) {
+      setStatus("error");
+      setMessage("El WhatsApp no parece válido — un solo número, con código de área.");
+      return;
+    }
     setStatus("sending");
-    const error = await signUpWithPassword(email, password, fullName, whatsapp);
+    const error = await signUpWithPassword(email, password, fullName, normalizeWhatsappNumber(whatsapp));
     if (error) {
       setStatus("error");
       setMessage(error);
@@ -222,11 +228,12 @@ export default function AuthModal({ open, onClose, initialMode = "login" }: Auth
                 <input
                   type="tel"
                   required
-                  placeholder="Tu WhatsApp"
+                  placeholder={WHATSAPP_PLACEHOLDER}
                   value={whatsapp}
-                  onChange={(e) => setWhatsapp(e.target.value)}
-                  className="mb-2.5 w-full rounded-lg border border-piedra/70 px-3 py-2.5 text-[13.5px] text-tinta"
+                  onChange={(e) => setWhatsapp(sanitizeWhatsappInput(e.target.value))}
+                  className="mb-1 w-full rounded-lg border border-piedra/70 px-3 py-2.5 text-[13.5px] text-tinta"
                 />
+                <p className="mb-2.5 text-[11px] text-tinta-suave">{WHATSAPP_HELP_TEXT}</p>
                 <PasswordInput
                   required
                   placeholder="Contraseña (mínimo 8 caracteres)"

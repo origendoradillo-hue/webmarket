@@ -18,5 +18,17 @@ export function isValidWhatsapp(raw: string): boolean {
   return digits.length >= 8 && digits.length <= 15;
 }
 
-export const WHATSAPP_PLACEHOLDER = "Ej: +54 9 2804 123456";
-export const WHATSAPP_HELP_TEXT = "Un solo número, con código de área. Ejemplo: +54 9 2804 123456";
+// Casi nadie que se registra pone el "+54 9" — sin eso, wa.me/<numero>
+// abre un chat inválido y el contacto por WhatsApp no funciona. Se usa al
+// guardar (no en cada tecla) para completar el código de país + el "9" de
+// celular argentino si el número cargado no los trae. Devuelve solo
+// dígitos, listo para wa.me/<numero>.
+export function normalizeWhatsappNumber(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  if (digits.startsWith("54")) return digits;
+  if (digits.startsWith("9")) return `54${digits}`;
+  return `549${digits}`;
+}
+
+export const WHATSAPP_PLACEHOLDER = "Ej: 2804 123456";
+export const WHATSAPP_HELP_TEXT = "Un solo número, con código de área (sin 0 ni 15) — el +54 9 se agrega solo. Ejemplo: 2804 123456";

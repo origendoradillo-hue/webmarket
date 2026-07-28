@@ -185,7 +185,7 @@ export default function ListingDetail({ listing: l, onClose, isLoggedIn, user, o
 
     trackEvent("contact_whatsapp", { listing_id: String(listing.id), source: "modal" });
     const mensaje = `Hola, vi tu publicación en Origen El Doradillo sobre ${listing.nombre}. Quería consultar si sigue disponible.`;
-    window.open(`https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}`, "_blank");
+    window.open(`https://wa.me/${numero.replace(/\D/g, "")}?text=${encodeURIComponent(mensaje)}`, "_blank");
   }
 
   return (

@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Anuncio, AnuncioLayoutType, TipoAnuncio } from "@/lib/types";
 import { ANUNCIO_LAYOUT_LABELS, ANUNCIO_LAYOUT_OPTIONS } from "@/lib/anuncioLayouts";
 import { resizeImage } from "@/lib/resizeImage";
-import { isValidWhatsapp, sanitizeWhatsappInput, WHATSAPP_HELP_TEXT, WHATSAPP_PLACEHOLDER } from "@/lib/whatsapp";
+import { isValidWhatsapp, normalizeWhatsappNumber, sanitizeWhatsappInput, WHATSAPP_HELP_TEXT, WHATSAPP_PLACEHOLDER } from "@/lib/whatsapp";
 import AnuncioSlide, { BANNER_ASPECT, CARTEL_FLYER_ASPECT } from "./AnuncioSlide";
 import AnuncioSlidePreviewFrame from "./AnuncioSlidePreviewFrame";
 import PhotoCropModal from "./PhotoCropModal";
@@ -151,7 +151,7 @@ export default function AnuncioRequestForm({ open, onClose, user }: AnuncioReque
       p_background_image_url: backgroundUrl,
       p_cta_label: ctaLabel || null,
       p_cta_url: ctaUrl || null,
-      p_whatsapp_numero: whatsappNumero || null,
+      p_whatsapp_numero: whatsappNumero.trim() === "" ? null : normalizeWhatsappNumber(whatsappNumero),
       p_redes_url: redesUrl || null,
       p_mensaje_solicitante: mensajeSolicitante || null,
     });

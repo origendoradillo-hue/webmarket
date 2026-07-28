@@ -297,10 +297,14 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
     setNewFotoPortadaData(await blobToDataUrl(resized));
   }
 
-  async function handleEditarFotoPrincipal(l: ListingRow) {
-    if (!l.foto_url) return;
+  // Sirve tanto para re-recortar la foto principal actual como para
+  // promover cualquier otra foto ya subida (adicional o recién elegida) a
+  // ser la nueva principal — antes solo se podía re-recortar la que ya
+  // estaba, y para cambiarla por otra había que borrarla y subirla de
+  // nuevo desde cero.
+  async function handleUsePhotoAsPrincipal(l: ListingRow, url: string) {
     try {
-      setPortadaEditFile(await urlToFile(l.foto_url, "foto.jpg"));
+      setPortadaEditFile(await urlToFile(url, "foto.jpg"));
       setPortadaEditListing(l);
     } catch {
       alert("No se pudo cargar la foto para editar.");
@@ -939,7 +943,7 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
                               </button>
                               <button
                                 type="button"
-                                onClick={() => handleEditarFotoPrincipal(l)}
+                                onClick={() => handleUsePhotoAsPrincipal(l, l.foto_url!)}
                                 aria-label="Editar recorte de la foto principal"
                                 className="absolute right-0.5 top-7 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white"
                               >
@@ -975,6 +979,14 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
                               >
                                 Portada
                               </button>
+                              <button
+                                type="button"
+                                onClick={() => handleUsePhotoAsPrincipal(l, im.url)}
+                                aria-label="Usar como principal"
+                                className="absolute bottom-0.5 left-0.5 rounded-full bg-black/60 px-1.5 py-1 text-[10px] font-medium text-white"
+                              >
+                                Principal
+                              </button>
                             </div>
                           ))}
                           {newPhotos.map((v, i) => (
@@ -996,6 +1008,14 @@ export default function MyListingsModal({ open, onClose, user }: MyListingsModal
                                 className="absolute left-0.5 top-0.5 rounded-full bg-black/60 px-1.5 py-1 text-[10px] font-medium text-white"
                               >
                                 Portada
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleUsePhotoAsPrincipal(l, v)}
+                                aria-label="Usar como principal"
+                                className="absolute bottom-0.5 left-0.5 rounded-full bg-black/60 px-1.5 py-1 text-[10px] font-medium text-white"
+                              >
+                                Principal
                               </button>
                             </div>
                           ))}
