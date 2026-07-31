@@ -179,6 +179,7 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
   const { categories } = useCategories();
   const [tab, setTab] = useState<Tab>("publicaciones");
   const [listings, setListings] = useState<ListingWithPublisher[]>([]);
+  const [whatsappClicks, setWhatsappClicks] = useState<Record<string, number>>({});
   const [anuncios, setAnuncios] = useState<AnuncioWithSolicitante[]>([]);
   const [reports, setReports] = useState<ReportWithDetails[]>([]);
   const [verifications, setVerifications] = useState<VerificationWithUser[]>([]);
@@ -269,6 +270,19 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
     setUsers(data || []);
   }, []);
 
+  // Clics a WhatsApp por publicación — antes solo se mostraba el total del
+  // sitio (pestaña Métricas), nunca agrupado por publicación. RLS ya deja
+  // que el staff lea whatsapp_clicks entero, así que alcanza con traer
+  // listing_id de cada fila y contar acá en vez de agregar una función
+  // nueva en la base.
+  const loadWhatsappClicks = useCallback(async () => {
+    const supabase = createClient();
+    const { data } = await supabase.from("whatsapp_clicks").select("listing_id");
+    const counts: Record<string, number> = {};
+    for (const row of data || []) counts[row.listing_id] = (counts[row.listing_id] || 0) + 1;
+    setWhatsappClicks(counts);
+  }, []);
+
   useEffect(() => {
     Promise.all([
       loadListings(),
@@ -278,8 +292,18 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
       loadReviewReports(),
       loadSupportRequests(),
       loadUsers(),
+      loadWhatsappClicks(),
     ]).finally(() => setLoading(false));
-  }, [loadListings, loadAnuncios, loadReports, loadVerifications, loadReviewReports, loadSupportRequests, loadUsers]);
+  }, [
+    loadListings,
+    loadAnuncios,
+    loadReports,
+    loadVerifications,
+    loadReviewReports,
+    loadSupportRequests,
+    loadUsers,
+    loadWhatsappClicks,
+  ]);
 
   function downloadUsersCsv() {
     // Excel en español/Argentina usa ";" como separador de listas al abrir un
@@ -474,6 +498,7 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
                     <AdminListingRow
                       key={l.id}
                       listing={l}
+                      whatsappClicks={whatsappClicks[l.id] || 0}
                       expanded={expandedListing === l.id}
                       onToggle={() => setExpandedListing(expandedListing === l.id ? null : l.id)}
                       onSaved={loadListings}
@@ -558,6 +583,7 @@ export default function AdminClient({ role, currentUserId }: AdminClientProps) {
                   <AdminListingRow
                     key={l.id}
                     listing={l}
+                    whatsappClicks={whatsappClicks[l.id] || 0}
                     expanded={expandedListing === l.id}
                     onToggle={() => setExpandedListing(expandedListing === l.id ? null : l.id)}
                     onSaved={loadListings}
@@ -1299,6 +1325,7 @@ function CategoryCard({
 
 function AdminListingRow({
   listing: l,
+  whatsappClicks,
   expanded,
   onToggle,
   onSaved,
@@ -1306,6 +1333,7 @@ function AdminListingRow({
   isSuperadmin,
 }: {
   listing: ListingWithPublisher;
+  whatsappClicks: number;
   expanded: boolean;
   onToggle: () => void;
   onSaved: () => void;
@@ -1658,6 +1686,14 @@ function AdminListingRow({
           </p>
           <p className="text-xs text-tinta-suave">
             {l.profiles?.full_name || "?"} ({l.profiles?.email || "sin email"})
+          </p>
+          <p className="flex items-center gap-3 text-xs text-tinta-suave">
+            <span className="flex items-center gap-1">
+              <i className="ti ti-eye" aria-hidden /> {l.views_count}
+            </span>
+            <span className="flex items-center gap-1">
+              <i className="ti ti-brand-whatsapp" aria-hidden /> {whatsappClicks}
+            </span>
           </p>
         </div>
         <div className="flex items-center gap-2">

@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Footer from "@/components/Footer";
+import { canonicalUrl } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Publicar en Origen El Doradillo",
   description:
     "Cómo publicar tus productos, servicios o experiencias en Origen El Doradillo: es gratis, rápido y tu publicación queda activa al instante.",
+  alternates: { canonical: canonicalUrl("/publicar-en-origen") },
 };
 
 export default function PublicarEnOrigenPage() {

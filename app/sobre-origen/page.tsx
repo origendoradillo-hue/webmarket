@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Footer from "@/components/Footer";
+import { canonicalUrl } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Sobre Origen El Doradillo",
   description:
     "Origen El Doradillo es la guía y mercado local de productos, servicios y experiencias de la zona rural norte de Puerto Madryn, cerca del Parque Ecológico El Doradillo.",
+  alternates: { canonical: canonicalUrl("/sobre-origen") },
 };
 
 export default function SobreOrigenPage() {

@@ -84,21 +84,35 @@ export default async function PublicacionPage({ params }: PageProps) {
   const url = `${SITE_URL}/publicacion/${id}`;
   const shareUrl = listing.short_code ? `${SITE_URL}/p/${listing.short_code}` : url;
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": listing.intencion === "ofrezco" ? "Product" : "Offer",
-    name: listing.nombre,
-    description: listing.descripcion,
-    image: listing.foto_url || undefined,
-    url,
-    ...(listing.precio && !listing.precio_a_consultar && !listing.precio_regalo
-      ? { offers: { "@type": "Offer", price: listing.precio, priceCurrency: "ARS", availability: "https://schema.org/InStock" } }
-      : {}),
-  };
+  // Google exige que un "Product" declare offers, review o aggregateRating
+  // — acá no hay reseñas/calificación en este schema, así que sin un
+  // precio real no hay nada válido para poner en "offers" y hay que
+  // directamente no declarar el producto (en vez de mandar un Product sin
+  // ninguno de los tres, que es justo el error que reportó Search
+  // Console). "Precio a consultar" no tiene forma correcta de expresarse
+  // como Offer sin precio; "se regala" sí, como Offer de precio 0. Tampoco
+  // aplica a publicaciones "busco" (piden algo, no lo venden).
+  const jsonLd =
+    listing.intencion === "ofrezco" && (listing.precio_regalo || (listing.precio && !listing.precio_a_consultar))
+      ? {
+          "@context": "https://schema.org",
+          "@type": "Product",
+          name: listing.nombre,
+          description: listing.descripcion,
+          image: listing.foto_url || undefined,
+          url,
+          offers: {
+            "@type": "Offer",
+            price: listing.precio_regalo ? 0 : listing.precio,
+            priceCurrency: "ARS",
+            availability: "https://schema.org/InStock",
+          },
+        }
+      : null;
 
   return (
     <div className="min-h-screen bg-hueso">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      {jsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />}
       <RegistrarVista listingId={id} />
 
       <header className="border-b border-piedra/30 bg-white px-5 py-4 sm:px-8">

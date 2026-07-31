@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Footer from "@/components/Footer";
+import { canonicalUrl } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Cómo funciona",
   description: "Cómo funciona Origen El Doradillo: explorar, publicar, contactar por WhatsApp y dejar reseñas.",
+  alternates: { canonical: canonicalUrl("/como-funciona") },
 };
 
 export default function ComoFuncionaPage() {

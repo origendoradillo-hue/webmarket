@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Footer from "@/components/Footer";
+import { canonicalUrl } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Términos y condiciones",
   description: "Términos y condiciones de uso de Origen El Doradillo.",
+  alternates: { canonical: canonicalUrl("/terminos") },
 };
 
 export default function TerminosPage() {

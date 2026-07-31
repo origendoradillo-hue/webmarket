@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Footer from "@/components/Footer";
+import { canonicalUrl } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Política de Privacidad",
   description: "Cómo Origen El Doradillo recolecta, usa y protege los datos de su comunidad.",
+  alternates: { canonical: canonicalUrl("/privacidad") },
 };
 
 export default function PrivacidadPage() {

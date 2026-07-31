@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Footer from "@/components/Footer";
+import { canonicalUrl } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Seguridad de la comunidad",
   description:
     "Cómo Origen El Doradillo cuida la seguridad de la comunidad: verificación de cuentas, niveles de confianza, denuncias y moderación.",
+  alternates: { canonical: canonicalUrl("/seguridad") },
 };
 
 export default function SeguridadPage() {

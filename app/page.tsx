@@ -1,5 +1,10 @@
+import type { Metadata } from "next";
 import HomeClient from "@/components/HomeClient";
-import { SITE_URL, SITE_NAME } from "@/lib/seo";
+import { SITE_URL, SITE_NAME, canonicalUrl } from "@/lib/seo";
+
+export const metadata: Metadata = {
+  alternates: { canonical: canonicalUrl() },
+};
 
 const jsonLd = {
   "@context": "https://schema.org",
