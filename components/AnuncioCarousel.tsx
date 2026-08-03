@@ -51,7 +51,14 @@ export default function AnuncioCarousel({ anuncios }: AnuncioCarouselProps) {
   }
 
   return (
-    <div className="w-full overflow-hidden rounded-2xl bg-oliva-dd shadow-sm ring-1 ring-dorado/40">
+    // El "card" (esquinas redondeadas + borde) está pensado para verse
+    // inserto en la página, no de punta a punta — en mobile w-full ya da
+    // un ancho razonable (~375px), pero en una pantalla de PC se estiraba
+    // a todo el ancho de la ventana (más de 1400px, la mitad para la foto,
+    // la mitad para el texto), quedando gigante y con la foto muy
+    // recortada. sm:max-w-[760px] lo tapa a partir de tablet/desktop —
+    // mismo ancho de columna que ya usa el detalle de una publicación.
+    <div className="mx-auto w-full overflow-hidden rounded-2xl bg-oliva-dd shadow-sm ring-1 ring-dorado/40 sm:max-w-[760px]">
       <p className="flex items-center gap-1.5 bg-oliva-d px-4 py-1.5 text-[10.5px] font-semibold uppercase tracking-wide text-dorado sm:px-8">
         <i className="ti ti-speakerphone text-sm" aria-hidden />
         Anuncios y novedades de la comunidad

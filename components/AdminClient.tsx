@@ -2433,7 +2433,16 @@ function AdminAnuncioRow({
           <p className="text-xs text-tinta-suave">Solicitado por {a.profiles?.full_name || a.profiles?.email || "?"}</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="rounded-full border border-piedra/60 px-2 py-1 text-[11px] text-tinta">{ANUNCIO_STATUS_LABELS[a.status]}</span>
+          <div className="flex flex-col items-end gap-0.5">
+            <span
+              className={`rounded-full border px-2 py-1 text-[11px] ${
+                a.status === "publicado" ? "border-piedra/60 text-tinta" : "border-dorado bg-dorado/15 font-medium text-oliva-dd"
+              }`}
+            >
+              {ANUNCIO_STATUS_LABELS[a.status]}
+            </span>
+            {a.status !== "publicado" && <span className="text-[10px] font-medium text-dorado">No se ve en el sitio</span>}
+          </div>
           <button onClick={onToggle} className="rounded-lg border border-piedra/70 px-2.5 py-1.5 text-xs text-tinta">
             {expanded ? "Cerrar" : "Gestionar"}
           </button>
@@ -2442,6 +2451,12 @@ function AdminAnuncioRow({
 
       {expanded && (
         <div className="mt-3 flex flex-col gap-3 border-t border-piedra/40 pt-3">
+          {a.status !== "publicado" && (
+            <p className="flex items-center gap-1.5 rounded-lg bg-dorado/15 px-3 py-2 text-[12px] font-medium text-oliva-dd">
+              <i className="ti ti-alert-circle" aria-hidden />
+              Este anuncio no se ve en el sitio todavía — solo el estado &quot;Publicado&quot; lo hace visible.
+            </p>
+          )}
           <div className="flex flex-wrap gap-2">
             {ANUNCIO_STATUS_OPTIONS.map((s) => (
               <button

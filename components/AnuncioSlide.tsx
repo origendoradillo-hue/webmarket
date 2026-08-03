@@ -310,7 +310,13 @@ function FlyerOnSignSlide({ a, priority, onDetailOpenChange, forceMobile }: Slid
       }}
       className={`flex flex-col overflow-hidden ${forceMobile ? "" : "sm:grid sm:grid-cols-2"} ${SLIDE_HEIGHT}`}
     >
-      <div className={`relative flex h-[170px] shrink-0 items-center justify-center overflow-hidden p-4 ${forceMobile ? "" : "sm:h-full sm:p-6"}`}>
+      {/* min-h-0: por default un ítem de grid no se achica más que el alto
+          "natural" de lo que tiene adentro (min-height: auto), así que sin
+          esto en desktop (sm:grid) esta columna terminaba más alta que los
+          420px del carrusel real — se veía tapado por el overflow-hidden
+          de afuera, pero el recorte de la foto de fondo se calculaba mal
+          igual, porque object-cover encuadra según el alto real de la caja. */}
+      <div className={`relative flex h-[170px] min-h-0 shrink-0 items-center justify-center overflow-hidden p-4 ${forceMobile ? "" : "sm:h-full sm:p-6"}`}>
         <Image
           src={a.backgroundImagen && !bgFailed ? a.backgroundImagen : FONDO_ESTEPA}
           alt=""
@@ -402,7 +408,12 @@ function FullBannerSlide({ a, priority, onDetailOpenChange, forceMobile }: Slide
           pasa a ser foto a la izquierda y un panel de texto sólido aparte
           a la derecha (sin blur, más legible), mismo criterio que el
           layout del cartel. */}
-      <div className="relative h-full">
+      {/* min-h-0: sin esto, en desktop (sm:grid) esta columna crecía más
+          alta que los 420px reales del carrusel (min-height: auto por
+          default en un ítem de grid) — el overflow-hidden de afuera lo
+          tapaba, pero object-cover encuadraba la foto según ese alto
+          incorrecto, así que el recorte quedaba mal igual. */}
+      <div className="relative h-full min-h-0">
         <Image
           src={bg && !imgFailed ? bg : FONDO_ESTEPA}
           alt={a.titulo}
@@ -426,7 +437,15 @@ function FullBannerSlide({ a, priority, onDetailOpenChange, forceMobile }: Slide
           )}
         </div>
       </div>
-      <div className={`hidden flex-col justify-center gap-2 bg-hueso-2 px-8 py-7 ${forceMobile ? "" : "sm:flex"}`}>
+      {/* overflow-y-auto: sin esto, un título/descripción largos hacían que
+          esta columna pidiera más alto del que tiene el carrusel (420px) —
+          y como el grid de CSS agranda toda la fila para que entre el
+          contenido de cualquiera de las 2 columnas, la columna de la foto
+          crecía también (se veía tapada por el overflow-hidden de afuera,
+          pero el recorte de la foto se calculaba mal igual, porque
+          object-cover encuadra según el alto real de su caja, no el
+          visible). Los otros 2 formatos ya lo tenían. */}
+      <div className={`hidden flex-col justify-center gap-2 overflow-y-auto bg-hueso-2 px-8 py-7 ${forceMobile ? "" : "sm:flex"}`}>
         <TipoBadge tipo={a.tipo} />
         <h3 className="font-slab text-lg font-semibold leading-tight text-tinta">{a.titulo}</h3>
         <p className="text-[13.5px] leading-relaxed text-tinta-suave">{a.descripcion}</p>
@@ -465,7 +484,7 @@ function TextOnlySlide({ a, onDetailOpenChange, forceMobile }: SlideProps) {
           opacidad encima), un panel de color sólido con el ícono del tipo
           de anuncio bien grande, mismo split imagen/texto que los otros 2
           layouts para que los 3 formatos compartan un lenguaje visual. */}
-      <div className={`flex h-[110px] shrink-0 items-center justify-center bg-oliva-dd ${forceMobile ? "" : "sm:h-full"}`}>
+      <div className={`flex h-[110px] min-h-0 shrink-0 items-center justify-center bg-oliva-dd ${forceMobile ? "" : "sm:h-full"}`}>
         <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-dorado bg-oliva-dd/40">
           <i className={`ti ${TIPO_ICON[a.tipo]} text-3xl text-dorado`} aria-hidden />
         </div>
