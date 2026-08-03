@@ -2667,13 +2667,13 @@ function AdminAnuncioRow({
           </button>
 
           <div>
-            <p className="mb-1.5 text-[11px] font-medium text-tinta">Vista previa en los 4 formatos</p>
+            <p className="mb-1.5 text-[11px] font-medium text-tinta">Vista previa en los 3 formatos</p>
             <div className="flex flex-wrap gap-3">
               {ANUNCIO_LAYOUT_OPTIONS.map((t) => (
                 <div key={t} className="w-[260px]">
                   <p className="mb-1 text-[10.5px] text-tinta-suave">{ANUNCIO_LAYOUT_LABELS[t]}</p>
                   <AnuncioSlidePreviewFrame className="w-[260px] rounded-xl border border-piedra/50">
-                    <AnuncioSlide anuncio={{ ...previewAnuncio, layoutType: t as AnuncioLayoutType }} priority={false} />
+                    <AnuncioSlide anuncio={{ ...previewAnuncio, layoutType: t as AnuncioLayoutType }} priority={false} forceMobile />
                   </AnuncioSlidePreviewFrame>
                 </div>
               ))}
@@ -2716,7 +2716,7 @@ function AdminAnuncioRow({
               label: "Así se ve",
               render: (url) => (
                 <AnuncioSlidePreviewFrame className="w-[260px]">
-                  <AnuncioSlide anuncio={{ ...previewAnuncio, imagen: url }} priority={false} />
+                  <AnuncioSlide anuncio={{ ...previewAnuncio, imagen: url }} priority={false} forceMobile />
                 </AnuncioSlidePreviewFrame>
               ),
             },
@@ -2734,7 +2734,7 @@ function AdminAnuncioRow({
               label: "Así se ve",
               render: (url) => (
                 <AnuncioSlidePreviewFrame className="w-[260px]">
-                  <AnuncioSlide anuncio={{ ...previewAnuncio, backgroundImagen: url }} priority={false} />
+                  <AnuncioSlide anuncio={{ ...previewAnuncio, backgroundImagen: url }} priority={false} forceMobile />
                 </AnuncioSlidePreviewFrame>
               ),
             },

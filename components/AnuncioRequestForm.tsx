@@ -299,7 +299,7 @@ export default function AnuncioRequestForm({ open, onClose, user }: AnuncioReque
             <div className="mb-3.5">
               <p className="mb-1.5 text-[11px] font-medium text-tinta">Así se ve</p>
               <AnuncioSlidePreviewFrame className="w-full rounded-xl border border-piedra/50">
-                <AnuncioSlide anuncio={previewAnuncio} priority={false} />
+                <AnuncioSlide anuncio={previewAnuncio} priority={false} forceMobile />
               </AnuncioSlidePreviewFrame>
             </div>
 

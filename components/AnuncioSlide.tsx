@@ -30,6 +30,17 @@ interface SlideProps {
   a: Anuncio;
   priority: boolean;
   onDetailOpenChange?: (open: boolean) => void;
+  // Las vistas previas (grilla de formatos, panel "Así se ve" del editor de
+  // recorte) escalan el slide con un transform CSS para mostrarlo chico —
+  // pero `sm:` de Tailwind mira el ancho REAL de la ventana, no el tamaño
+  // visual ya escalado. En una pantalla de escritorio (lo más común para
+  // administrar el sitio) esto hacía que la vista previa mostrara el
+  // layout de desktop apretado adentro de una cajita chica — una imagen
+  // angosta o directamente rota, en vez de cómo se ve en un celular real.
+  // Este flag apaga las clases `sm:` que cambian la estructura, para que
+  // la vista previa siempre muestre el armado de mobile sin importar el
+  // ancho de la ventana del admin.
+  forceMobile?: boolean;
 }
 
 interface Cta {
@@ -284,7 +295,7 @@ function FlyerBadge() {
   );
 }
 
-function FlyerOnSignSlide({ a, priority, onDetailOpenChange }: SlideProps) {
+function FlyerOnSignSlide({ a, priority, onDetailOpenChange, forceMobile }: SlideProps) {
   const [imgFailed, setImgFailed] = useState(false);
   const [bgFailed, setBgFailed] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -297,9 +308,9 @@ function FlyerOnSignSlide({ a, priority, onDetailOpenChange }: SlideProps) {
         setDetailOpen(true);
         onDetailOpenChange?.(true);
       }}
-      className={`flex flex-col overflow-hidden sm:grid sm:grid-cols-2 ${SLIDE_HEIGHT}`}
+      className={`flex flex-col overflow-hidden ${forceMobile ? "" : "sm:grid sm:grid-cols-2"} ${SLIDE_HEIGHT}`}
     >
-      <div className="relative flex h-[170px] shrink-0 items-center justify-center overflow-hidden p-4 sm:h-full sm:p-6">
+      <div className={`relative flex h-[170px] shrink-0 items-center justify-center overflow-hidden p-4 ${forceMobile ? "" : "sm:h-full sm:p-6"}`}>
         <Image
           src={a.backgroundImagen && !bgFailed ? a.backgroundImagen : FONDO_ESTEPA}
           alt=""
@@ -363,7 +374,7 @@ function FlyerOnSignSlide({ a, priority, onDetailOpenChange }: SlideProps) {
   );
 }
 
-function FullBannerSlide({ a, priority, onDetailOpenChange }: SlideProps) {
+function FullBannerSlide({ a, priority, onDetailOpenChange, forceMobile }: SlideProps) {
   const [imgFailed, setImgFailed] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const cta = buildCta(a);
@@ -382,7 +393,7 @@ function FullBannerSlide({ a, priority, onDetailOpenChange }: SlideProps) {
         setDetailOpen(true);
         onDetailOpenChange?.(true);
       }}
-      className={`relative block w-full overflow-hidden sm:grid sm:grid-cols-2 ${SLIDE_HEIGHT}`}
+      className={`relative block w-full overflow-hidden ${forceMobile ? "" : "sm:grid sm:grid-cols-2"} ${SLIDE_HEIGHT}`}
     >
       {/* Una foto pensada para un carrusel angosto de celular queda muy
           estirada/recortada en uno mucho más ancho de PC — en mobile es
@@ -401,10 +412,10 @@ function FullBannerSlide({ a, priority, onDetailOpenChange }: SlideProps) {
           priority={priority}
           onError={() => setImgFailed(true)}
         />
-        <div className="absolute left-3 top-3 sm:hidden">
+        <div className={`absolute left-3 top-3 ${forceMobile ? "" : "sm:hidden"}`}>
           <TipoBadge tipo={a.tipo} variant="solid" />
         </div>
-        <div className="absolute inset-x-3 bottom-3 rounded-xl bg-oliva-dd/90 p-4 shadow-lg backdrop-blur-sm sm:hidden">
+        <div className={`absolute inset-x-3 bottom-3 rounded-xl bg-oliva-dd/90 p-4 shadow-lg backdrop-blur-sm ${forceMobile ? "" : "sm:hidden"}`}>
           <h3 className="font-slab text-base font-semibold leading-tight text-white">{a.titulo}</h3>
           <p className="mt-1 line-clamp-2 text-[12px] text-white/85">{a.descripcion}</p>
           <FechaLugar a={a} />
@@ -415,7 +426,7 @@ function FullBannerSlide({ a, priority, onDetailOpenChange }: SlideProps) {
           )}
         </div>
       </div>
-      <div className="hidden flex-col justify-center gap-2 bg-hueso-2 px-8 py-7 sm:flex">
+      <div className={`hidden flex-col justify-center gap-2 bg-hueso-2 px-8 py-7 ${forceMobile ? "" : "sm:flex"}`}>
         <TipoBadge tipo={a.tipo} />
         <h3 className="font-slab text-lg font-semibold leading-tight text-tinta">{a.titulo}</h3>
         <p className="text-[13.5px] leading-relaxed text-tinta-suave">{a.descripcion}</p>
@@ -436,7 +447,7 @@ function FullBannerSlide({ a, priority, onDetailOpenChange }: SlideProps) {
   );
 }
 
-function TextOnlySlide({ a, onDetailOpenChange }: SlideProps) {
+function TextOnlySlide({ a, onDetailOpenChange, forceMobile }: SlideProps) {
   const [detailOpen, setDetailOpen] = useState(false);
   const cta = buildCta(a);
 
@@ -447,14 +458,14 @@ function TextOnlySlide({ a, onDetailOpenChange }: SlideProps) {
         setDetailOpen(true);
         onDetailOpenChange?.(true);
       }}
-      className={`flex flex-col overflow-hidden sm:grid sm:grid-cols-2 ${SLIDE_HEIGHT}`}
+      className={`flex flex-col overflow-hidden ${forceMobile ? "" : "sm:grid sm:grid-cols-2"} ${SLIDE_HEIGHT}`}
     >
       {/* Sin foto no hay nada que recortar/estirar por formato — en vez de
           una imagen institucional de fondo casi imperceptible (85% de
           opacidad encima), un panel de color sólido con el ícono del tipo
           de anuncio bien grande, mismo split imagen/texto que los otros 2
           layouts para que los 3 formatos compartan un lenguaje visual. */}
-      <div className="flex h-[110px] shrink-0 items-center justify-center bg-oliva-dd sm:h-full">
+      <div className={`flex h-[110px] shrink-0 items-center justify-center bg-oliva-dd ${forceMobile ? "" : "sm:h-full"}`}>
         <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-dorado bg-oliva-dd/40">
           <i className={`ti ${TIPO_ICON[a.tipo]} text-3xl text-dorado`} aria-hidden />
         </div>
@@ -488,16 +499,17 @@ interface AnuncioSlideProps {
   anuncio: Anuncio;
   priority: boolean;
   onDetailOpenChange?: (open: boolean) => void;
+  forceMobile?: boolean;
 }
 
-export default function AnuncioSlide({ anuncio, priority, onDetailOpenChange }: AnuncioSlideProps) {
+export default function AnuncioSlide({ anuncio, priority, onDetailOpenChange, forceMobile }: AnuncioSlideProps) {
   switch (resolveLayout(anuncio)) {
     case "flyer_on_sign":
-      return <FlyerOnSignSlide a={anuncio} priority={priority} onDetailOpenChange={onDetailOpenChange} />;
+      return <FlyerOnSignSlide a={anuncio} priority={priority} onDetailOpenChange={onDetailOpenChange} forceMobile={forceMobile} />;
     case "text_only":
-      return <TextOnlySlide a={anuncio} priority={priority} onDetailOpenChange={onDetailOpenChange} />;
+      return <TextOnlySlide a={anuncio} priority={priority} onDetailOpenChange={onDetailOpenChange} forceMobile={forceMobile} />;
     case "full_banner":
     default:
-      return <FullBannerSlide a={anuncio} priority={priority} onDetailOpenChange={onDetailOpenChange} />;
+      return <FullBannerSlide a={anuncio} priority={priority} onDetailOpenChange={onDetailOpenChange} forceMobile={forceMobile} />;
   }
 }
